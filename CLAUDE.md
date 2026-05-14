@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-**P0 W21 — 실제 계산식 가동 (0~4주차)** — Slice 02 + 01 + 04 + 03 라이브. `chronoshealth.ever-day.com` 23문항 입력 → 실제 Framingham + 경험적 bio age 결과 즉시 표시. modelVersion `rs-v0.1.0`. 다음: 23 필드 i18n / Slice 05 (D1 저장). `docs/work-procedure.txt` 5장
+**P0 W21 — 실제 계산식 가동 (0~4주차)** — Slice 02 + 01 + 04 + 03 라이브. `chronoshealth.ever-day.com` 23문항 입력 → 실제 Framingham + 경험적 bio age 결과 즉시 표시. modelVersion `rs-v0.1.0`. 23 필드 i18n 4언어 분리 완료. 다음: identity 도메인 Slice 01 (이름·전화·이메일 가입 + 세션 토큰, ADR 0010) → risk-survey Slice 05 (D1 저장). `docs/work-procedure.txt` 5장
 
 ## 임시 도메인 (ADR 0006)
 
@@ -28,7 +28,10 @@
   - ADR 0005 — 코딩 표준 (TS / Python / Solidity)
   - ADR 0006 — 임시 도메인 chronoshealth.ever-day.com
   - ADR 0007 — 인프라 전략: P0~P1 Cloudflare 단독, P2+ 재결정
-- `docs/spec/` — 기능별 명세
+  - ADR 0008 — 저장소 Cloudflare D1 (P0~P1 한정)
+  - ADR 0009 — API 프레임워크 Hono on CF Workers
+  - ADR 0010 — 인증 / 회원관리: P0/P1 단순 가입 (이름·전화·이메일, 비밀번호/OTP/OAuth 미도입)
+- `docs/spec/` — 기능별 명세 (risk-survey, identity)
 
 **모든 작업은 위 3개 문서 중 하나에 근거해야 한다.** 근거 없는 결정은 ADR로 먼저 합의.
 

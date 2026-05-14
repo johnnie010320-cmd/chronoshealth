@@ -3,7 +3,7 @@
 - **Spec**: `docs/spec/risk-survey.md`
 - **Estimate**: 2일
 - **Linear**: TBD (Linear 발급 시 생성)
-- **Dependencies**: 회원가입 / 로그인 흐름 (별도 spec 필요 — 임시로 모의 인증 처리)
+- **Dependencies**: identity Slice 01 (`docs/spec/identity/01-signup.md`) — 본 슬라이스는 모의 인증으로 선행 완료, identity Slice 01 합류 후 실제 세션 토큰으로 교체됨
 - **Status**: Ready
 
 ## 완료 정의 (Definition of Done)
@@ -23,11 +23,11 @@
 - `apps/web/src/features/risk-survey/components/SurveyForm.tsx` — 신규
 - `apps/web/src/features/risk-survey/schema.ts` — Zod 스키마 (`@chronos/types`에서 import)
 - `packages/types/src/risk-survey.ts` — 공유 스키마 (서버와 동일)
-- `apps/web/src/app/login/page.tsx` — 임시 모의 인증 (정식 회원가입 spec 별도)
+- `apps/web/src/app/login/page.tsx` — 임시 모의 인증 (identity Slice 01에서 `/signup` 페이지로 대체 예정)
 
 ## 의존성
 
-- 회원가입 / 로그인 spec — **별도 작성 필요** (현 슬라이스는 모의 인증으로 진행)
+- 회원가입 / 로그인 spec — **identity 도메인 spec (`docs/spec/identity.md`) + Slice 01 작성 완료 (2026-05-14)**. 본 슬라이스는 모의 인증으로 선행, identity Slice 01 머지 후 실제 토큰으로 교체.
 - Tailwind CSS 4 + 폼 라이브러리 (react-hook-form 또는 자체 훅)
 
 ## 검증 시나리오

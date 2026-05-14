@@ -146,7 +146,7 @@ const RiskSurveyResponse = z.object({
 | `risk_survey_responses` | 설문 원본 답변 | ❌ pseudonym만 |
 | `risk_survey_reports` | 출력된 리포트 | ❌ pseudonym만 |
 
-> ⚠️ **미해결**: identity-vault 외부에 둘지, identity-vault 내부에 둘지. 의료 데이터 카테고리이지만 pseudonym 기준이라 외부 분석 DB로 분리하는 게 ADR 0003에 부합. 죠니 결정 필요.
+> ✅ **결정 (2026-05-14, 결정 사항 #4 참조)**: identity-vault **외부 분석 DB** (`chronoshealth-analysis`)에 `user_pseudonym_id`만으로 저장. PII는 `chronoshealth-identity` D1 (identity 도메인 spec 5.1) 단독. ADR 0003 정합.
 
 ### 4.2 보존 / 익명화
 
