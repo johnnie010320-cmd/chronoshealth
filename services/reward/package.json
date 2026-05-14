@@ -1,0 +1,11 @@
+{
+  "name": "@chronos/reward",
+  "version": "0.0.0",
+  "private": true,
+  "description": "온체인 정산 인덱서 — P4 단계 본격",
+  "scripts": {
+    "lint": "echo 'pending'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

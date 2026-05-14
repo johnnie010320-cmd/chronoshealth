@@ -1,0 +1,11 @@
+{
+  "name": "@chronos/ingestion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "웨어러블 / FHIR 수집 — P2 단계 본격",
+  "scripts": {
+    "lint": "echo 'pending'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@chronos/ml-serving",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FastAPI + Triton — ML 추론 서빙 (Python 주력)",
+  "scripts": {
+    "lint": "echo 'TS 어댑터만, Python은 ml/ 참조'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

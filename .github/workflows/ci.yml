@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      ts: ${{ steps.filter.outputs.ts }}
+      python: ${{ steps.filter.outputs.python }}
+      solidity: ${{ steps.filter.outputs.solidity }}
+      identity: ${{ steps.filter.outputs.identity }}
+      compliance: ${{ steps.filter.outputs.compliance }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ts:
+              - '**/*.{ts,tsx,js,jsx}'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+            python:
+              - 'ml/**'
+              - 'services/ml-serving/**'
+              - '**/*.py'
+            solidity:
+              - 'contracts/**'
+            identity:
+              - 'services/identity/**'
+            compliance:
+              - 'docs/compliance/**'
+
+  secrets-scan:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ts-lint-type-test:
+    name: TS lint / type / test
+    needs: detect
+    if: needs.detect.outputs.ts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  python-lint-type:
+    name: Python lint / type
+    needs: detect
+    if: needs.detect.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install ruff mypy
+      - run: ruff check ml/ services/
+      - run: mypy --strict ml/ services/ml-serving/ || true
+
+  solidity-audit:
+    name: Solidity build / test / Slither
+    needs: detect
+    if: needs.detect.outputs.solidity == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge fmt --check
+        working-directory: contracts
+      - run: forge build
+        working-directory: contracts
+      - run: forge test -vvv
+        working-directory: contracts
+      - run: forge coverage --report lcov
+        working-directory: contracts
+      - uses: crytic/slither-action@v0.4.0
+        with:
+          target: contracts/
+          fail-on: high
+
+  compliance-gate:
+    name: Compliance review (identity / docs)
+    needs: detect
+    if: needs.detect.outputs.identity == 'true' || needs.detect.outputs.compliance == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbidden medical terms check
+        run: |
+          if grep -rEi '(진단|처방|치료|여명|사망일|deathday|diagnose|prescribe)' --include='*.{ts,tsx,py,sol,md,json}' apps/ services/ packages/ 2>/dev/null; then
+            echo "::error::Forbidden medical terms found"
+            exit 1
+          fi
+      - name: PII pattern in logs check
+        run: |
+          if grep -rEi 'logger.*(user_email|user_phone|user_name|resident_number)' --include='*.{ts,py}' apps/ services/ 2>/dev/null; then
+            echo "::error::PII pattern in logging"
+            exit 1
+          fi
+      - name: Require 2 human reviewers
+        run: echo "⚠️  identity/ 또는 compliance/ 변경은 사람 2명 리뷰 필수 (CODEOWNERS 강제)"

@@ -1,0 +1,12 @@
+{
+  "name": "@chronos/identity",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Identity Vault — PII 격리 서비스 (사람 2명 리뷰 필수)",
+  "scripts": {
+    "build": "echo 'pending'",
+    "lint": "echo 'pending'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

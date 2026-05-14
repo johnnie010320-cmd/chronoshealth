@@ -1,0 +1,13 @@
+{
+  "name": "@chronos/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "API 클라이언트 SDK (OpenAPI 자동 생성 기반)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "echo 'pending'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

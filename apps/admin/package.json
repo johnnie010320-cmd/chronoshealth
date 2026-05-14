@@ -1,0 +1,11 @@
+{
+  "name": "@chronos/admin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "내부 운영 콘솔 — P1 후반 scaffold",
+  "scripts": {
+    "lint": "echo 'pending'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

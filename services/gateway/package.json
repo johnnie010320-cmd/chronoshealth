@@ -1,0 +1,13 @@
+{
+  "name": "@chronos/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "NestJS API Gateway",
+  "scripts": {
+    "dev": "echo 'pending NestJS scaffold'",
+    "build": "echo 'pending'",
+    "lint": "echo 'pending'",
+    "typecheck": "echo 'pending'",
+    "test": "echo 'pending'"
+  }
+}

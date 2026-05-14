@@ -1,0 +1,12 @@
+{
+  "name": "@chronos/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'dev script placeholder — Next.js scaffold pending'",
+    "build": "echo 'build script placeholder'",
+    "lint": "echo 'lint script placeholder'",
+    "typecheck": "echo 'typecheck script placeholder'",
+    "test": "echo 'test script placeholder'"
+  }
+}

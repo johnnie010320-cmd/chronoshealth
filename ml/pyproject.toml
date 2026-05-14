@@ -1,0 +1,28 @@
+[project]
+name = "chronos-ml"
+version = "0.0.0"
+description = "Chronos Health ML pipelines, models, evaluation"
+requires-python = ">=3.12"
+dependencies = [
+  # 실제 의존성은 pipeline / model 작업 진입 시 추가
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_any_explicit = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-v --strict-markers"
