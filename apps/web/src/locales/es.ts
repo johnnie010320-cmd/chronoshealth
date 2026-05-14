@@ -56,6 +56,53 @@ export const es: Dictionary = {
     submitting: 'Calculando…',
     bottomDisclaimer:
       'Este informe no sustituye la atención médica. Sólo para referencia de bienestar.',
+    fields: {
+      birthYear: { label: 'Año de nacimiento', placeholder: 'ej.: 1990' },
+      sex: {
+        label: 'Sexo',
+        options: { male: 'Hombre', female: 'Mujer', other: 'Otro' },
+      },
+      heightCm: { label: 'Estatura (cm)', placeholder: 'ej.: 175' },
+      weightKg: { label: 'Peso (kg)', placeholder: 'ej.: 70' },
+      smoking: {
+        label: 'Tabaquismo',
+        options: {
+          never: 'Nunca',
+          former: 'Anterior',
+          current: 'Actual',
+        },
+      },
+      alcoholDrinksPerWeek: { label: 'Bebidas alcohólicas por semana' },
+      exerciseMinutesPerWeek: { label: 'Minutos de ejercicio por semana' },
+      sleepHoursPerNight: { label: 'Horas de sueño por noche' },
+      systolicBp: { label: 'Presión sistólica', placeholder: 'ej.: 120' },
+      diastolicBp: { label: 'Presión diastólica', placeholder: 'ej.: 80' },
+      fastingGlucose: { label: 'Glucosa en ayunas', placeholder: 'ej.: 95' },
+      ldlCholesterol: { label: 'Colesterol LDL', placeholder: 'ej.: 110' },
+      hdlCholesterol: { label: 'Colesterol HDL', placeholder: 'ej.: 50' },
+      familyHistoryDiabetes: { label: 'Antecedente familiar de diabetes' },
+      familyHistoryHypertension: { label: 'Antecedente familiar de hipertensión' },
+      familyHistoryCardiovascular: {
+        label: 'Antecedente familiar de enfermedad cardiovascular',
+      },
+      stressLevel: {
+        label: 'Nivel de estrés',
+        options: { low: 'Bajo', medium: 'Medio', high: 'Alto' },
+      },
+      selfRatedHealth: {
+        label: 'Salud autopercibida',
+        options: {
+          excellent: 'Excelente',
+          good: 'Buena',
+          fair: 'Regular',
+          poor: 'Mala',
+        },
+      },
+      consentToStore: { label: 'Consiento que se almacenen mis respuestas' },
+      consentToResearch: {
+        label: 'Consiento el uso anonimizado con fines de investigación',
+      },
+    },
     error: {
       validation: 'Revisa los datos',
       UNAUTHORIZED: 'Autenticación necesaria (token beta).',

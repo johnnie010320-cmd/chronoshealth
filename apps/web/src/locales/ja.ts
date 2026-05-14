@@ -55,6 +55,51 @@ export const ja: Dictionary = {
     submitting: '計算中…',
     bottomDisclaimer:
       '本レポートは医療行為を代替するものではなく、健康増進の参考用です。',
+    fields: {
+      birthYear: { label: '生年', placeholder: '例: 1990' },
+      sex: {
+        label: '性別',
+        options: { male: '男性', female: '女性', other: 'その他' },
+      },
+      heightCm: { label: '身長 (cm)', placeholder: '例: 175' },
+      weightKg: { label: '体重 (kg)', placeholder: '例: 70' },
+      smoking: {
+        label: '喫煙',
+        options: {
+          never: '非喫煙',
+          former: '過去喫煙',
+          current: '現在喫煙',
+        },
+      },
+      alcoholDrinksPerWeek: { label: '週あたりの飲酒杯数' },
+      exerciseMinutesPerWeek: { label: '週あたりの運動時間 (分)' },
+      sleepHoursPerNight: { label: '1日の睡眠時間 (時間)' },
+      systolicBp: { label: '収縮期血圧', placeholder: '例: 120' },
+      diastolicBp: { label: '拡張期血圧', placeholder: '例: 80' },
+      fastingGlucose: { label: '空腹時血糖', placeholder: '例: 95' },
+      ldlCholesterol: { label: 'LDLコレステロール', placeholder: '例: 110' },
+      hdlCholesterol: { label: 'HDLコレステロール', placeholder: '例: 50' },
+      familyHistoryDiabetes: { label: '糖尿病の家族歴' },
+      familyHistoryHypertension: { label: '高血圧の家族歴' },
+      familyHistoryCardiovascular: { label: '心血管疾患の家族歴' },
+      stressLevel: {
+        label: 'ストレスレベル',
+        options: { low: '低', medium: '中', high: '高' },
+      },
+      selfRatedHealth: {
+        label: '自己評価健康',
+        options: {
+          excellent: '非常に良い',
+          good: '良い',
+          fair: '普通',
+          poor: '悪い',
+        },
+      },
+      consentToStore: { label: '回答の保存に同意します' },
+      consentToResearch: {
+        label: '匿名化データの研究利用に同意します',
+      },
+    },
     error: {
       validation: '入力値の確認が必要',
       UNAUTHORIZED: '認証が必要です（ベータトークン不足）。',

@@ -56,6 +56,53 @@ export const en: Dictionary = {
     submitting: 'Calculating…',
     bottomDisclaimer:
       'This report is not a substitute for medical care. For wellness reference only.',
+    fields: {
+      birthYear: { label: 'Birth year', placeholder: 'e.g., 1990' },
+      sex: {
+        label: 'Sex',
+        options: { male: 'Male', female: 'Female', other: 'Other' },
+      },
+      heightCm: { label: 'Height (cm)', placeholder: 'e.g., 175' },
+      weightKg: { label: 'Weight (kg)', placeholder: 'e.g., 70' },
+      smoking: {
+        label: 'Smoking',
+        options: {
+          never: 'Never',
+          former: 'Former',
+          current: 'Current',
+        },
+      },
+      alcoholDrinksPerWeek: { label: 'Alcoholic drinks per week' },
+      exerciseMinutesPerWeek: { label: 'Exercise minutes per week' },
+      sleepHoursPerNight: { label: 'Sleep hours per night' },
+      systolicBp: { label: 'Systolic BP', placeholder: 'e.g., 120' },
+      diastolicBp: { label: 'Diastolic BP', placeholder: 'e.g., 80' },
+      fastingGlucose: { label: 'Fasting glucose', placeholder: 'e.g., 95' },
+      ldlCholesterol: { label: 'LDL cholesterol', placeholder: 'e.g., 110' },
+      hdlCholesterol: { label: 'HDL cholesterol', placeholder: 'e.g., 50' },
+      familyHistoryDiabetes: { label: 'Family history of diabetes' },
+      familyHistoryHypertension: { label: 'Family history of hypertension' },
+      familyHistoryCardiovascular: {
+        label: 'Family history of cardiovascular disease',
+      },
+      stressLevel: {
+        label: 'Stress level',
+        options: { low: 'Low', medium: 'Medium', high: 'High' },
+      },
+      selfRatedHealth: {
+        label: 'Self-rated health',
+        options: {
+          excellent: 'Excellent',
+          good: 'Good',
+          fair: 'Fair',
+          poor: 'Poor',
+        },
+      },
+      consentToStore: { label: 'I consent to storing my responses' },
+      consentToResearch: {
+        label: 'I consent to anonymized use for research',
+      },
+    },
     error: {
       validation: 'Input check needed',
       UNAUTHORIZED: 'Authentication required (beta token missing).',

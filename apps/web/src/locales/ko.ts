@@ -52,6 +52,51 @@ export const ko = {
     submitting: '계산 중…',
     bottomDisclaimer:
       '본 리포트는 의료 행위를 대체할 수 없으며 건강 증진 참고용입니다.',
+    fields: {
+      birthYear: { label: '출생 연도', placeholder: '예: 1990' },
+      sex: {
+        label: '성별',
+        options: { male: '남성', female: '여성', other: '기타' },
+      },
+      heightCm: { label: '키 (cm)', placeholder: '예: 175' },
+      weightKg: { label: '몸무게 (kg)', placeholder: '예: 70' },
+      smoking: {
+        label: '흡연',
+        options: {
+          never: '비흡연',
+          former: '과거 흡연',
+          current: '현재 흡연',
+        },
+      },
+      alcoholDrinksPerWeek: { label: '주당 음주 잔 수' },
+      exerciseMinutesPerWeek: { label: '주당 운동 시간 (분)' },
+      sleepHoursPerNight: { label: '하루 평균 수면 (시간)' },
+      systolicBp: { label: '수축기 혈압', placeholder: '예: 120' },
+      diastolicBp: { label: '이완기 혈압', placeholder: '예: 80' },
+      fastingGlucose: { label: '공복 혈당', placeholder: '예: 95' },
+      ldlCholesterol: { label: 'LDL 콜레스테롤', placeholder: '예: 110' },
+      hdlCholesterol: { label: 'HDL 콜레스테롤', placeholder: '예: 50' },
+      familyHistoryDiabetes: { label: '당뇨 가족력' },
+      familyHistoryHypertension: { label: '고혈압 가족력' },
+      familyHistoryCardiovascular: { label: '심혈관 질환 가족력' },
+      stressLevel: {
+        label: '스트레스 수준',
+        options: { low: '낮음', medium: '보통', high: '높음' },
+      },
+      selfRatedHealth: {
+        label: '자가 건강 평가',
+        options: {
+          excellent: '매우 좋음',
+          good: '좋음',
+          fair: '보통',
+          poor: '나쁨',
+        },
+      },
+      consentToStore: { label: '내 응답을 저장하는 것에 동의합니다' },
+      consentToResearch: {
+        label: '익명화된 데이터를 연구 목적으로 활용하는 것에 동의합니다',
+      },
+    },
     error: {
       validation: '입력값 확인 필요',
       UNAUTHORIZED: '인증이 필요합니다 (베타 토큰 누락).',

@@ -21,6 +21,7 @@ type Props = {
 export function SurveyForm({ onSuccess }: Props) {
   const { t } = useI18n();
   const S = t.survey;
+  const F = S.fields;
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,19 +108,44 @@ export function SurveyForm({ onSuccess }: Props) {
         title={S.section.demographics}
         n="1"
       >
-        <Field label="출생 연도 / Birth year" name="birthYear" type="number" required min={1900} placeholder="1990" />
+        <Field
+          label={F.birthYear.label}
+          name="birthYear"
+          type="number"
+          required
+          min={1900}
+          placeholder={F.birthYear.placeholder}
+        />
         <SelectField
-          label="성별 / Sex"
+          label={F.sex.label}
           name="sex"
           required
           options={[
-            { value: 'male', label: 'Male / 男 / Hombre' },
-            { value: 'female', label: 'Female / 女 / Mujer' },
-            { value: 'other', label: 'Other / その他 / Otro' },
+            { value: 'male', label: F.sex.options.male },
+            { value: 'female', label: F.sex.options.female },
+            { value: 'other', label: F.sex.options.other },
           ]}
         />
-        <Field label="키 / Height (cm)" name="heightCm" type="number" step="0.1" required min={100} max={250} placeholder="175" />
-        <Field label="몸무게 / Weight (kg)" name="weightKg" type="number" step="0.1" required min={20} max={300} placeholder="70" />
+        <Field
+          label={F.heightCm.label}
+          name="heightCm"
+          type="number"
+          step="0.1"
+          required
+          min={100}
+          max={250}
+          placeholder={F.heightCm.placeholder}
+        />
+        <Field
+          label={F.weightKg.label}
+          name="weightKg"
+          type="number"
+          step="0.1"
+          required
+          min={20}
+          max={300}
+          placeholder={F.weightKg.placeholder}
+        />
       </Section>
 
       <Section
@@ -128,18 +154,43 @@ export function SurveyForm({ onSuccess }: Props) {
         n="2"
       >
         <SelectField
-          label="흡연 / Smoking"
+          label={F.smoking.label}
           name="smoking"
           required
           options={[
-            { value: 'never', label: 'Never / 非喫煙 / Nunca' },
-            { value: 'former', label: 'Former / 過去 / Anterior' },
-            { value: 'current', label: 'Current / 現在 / Actual' },
+            { value: 'never', label: F.smoking.options.never },
+            { value: 'former', label: F.smoking.options.former },
+            { value: 'current', label: F.smoking.options.current },
           ]}
         />
-        <Field label="주당 음주 잔 / Alcohol/wk" name="alcoholDrinksPerWeek" type="number" required min={0} max={100} defaultValue={0} />
-        <Field label="주당 운동(분) / Exercise min/wk" name="exerciseMinutesPerWeek" type="number" required min={0} max={2000} defaultValue={150} />
-        <Field label="수면(시간) / Sleep hours" name="sleepHoursPerNight" type="number" step="0.5" required min={0} max={24} defaultValue={7} />
+        <Field
+          label={F.alcoholDrinksPerWeek.label}
+          name="alcoholDrinksPerWeek"
+          type="number"
+          required
+          min={0}
+          max={100}
+          defaultValue={0}
+        />
+        <Field
+          label={F.exerciseMinutesPerWeek.label}
+          name="exerciseMinutesPerWeek"
+          type="number"
+          required
+          min={0}
+          max={2000}
+          defaultValue={150}
+        />
+        <Field
+          label={F.sleepHoursPerNight.label}
+          name="sleepHoursPerNight"
+          type="number"
+          step="0.5"
+          required
+          min={0}
+          max={24}
+          defaultValue={7}
+        />
       </Section>
 
       <Section
@@ -148,11 +199,46 @@ export function SurveyForm({ onSuccess }: Props) {
         n="3"
         hint={S.section.vitalsHint}
       >
-        <Field label="수축기 혈압 / Systolic BP" name="systolicBp" type="number" min={60} max={250} placeholder="120" />
-        <Field label="이완기 혈압 / Diastolic BP" name="diastolicBp" type="number" min={30} max={150} placeholder="80" />
-        <Field label="공복 혈당 / Fasting glucose" name="fastingGlucose" type="number" min={30} max={500} placeholder="95" />
-        <Field label="LDL cholesterol" name="ldlCholesterol" type="number" min={30} max={400} placeholder="110" />
-        <Field label="HDL cholesterol" name="hdlCholesterol" type="number" min={10} max={200} placeholder="50" />
+        <Field
+          label={F.systolicBp.label}
+          name="systolicBp"
+          type="number"
+          min={60}
+          max={250}
+          placeholder={F.systolicBp.placeholder}
+        />
+        <Field
+          label={F.diastolicBp.label}
+          name="diastolicBp"
+          type="number"
+          min={30}
+          max={150}
+          placeholder={F.diastolicBp.placeholder}
+        />
+        <Field
+          label={F.fastingGlucose.label}
+          name="fastingGlucose"
+          type="number"
+          min={30}
+          max={500}
+          placeholder={F.fastingGlucose.placeholder}
+        />
+        <Field
+          label={F.ldlCholesterol.label}
+          name="ldlCholesterol"
+          type="number"
+          min={30}
+          max={400}
+          placeholder={F.ldlCholesterol.placeholder}
+        />
+        <Field
+          label={F.hdlCholesterol.label}
+          name="hdlCholesterol"
+          type="number"
+          min={10}
+          max={200}
+          placeholder={F.hdlCholesterol.placeholder}
+        />
       </Section>
 
       <Section
@@ -160,9 +246,18 @@ export function SurveyForm({ onSuccess }: Props) {
         title={S.section.familyHistory}
         n="4"
       >
-        <Checkbox name="familyHistoryDiabetes" label="당뇨 / Diabetes / 糖尿 / Diabetes" />
-        <Checkbox name="familyHistoryHypertension" label="고혈압 / Hypertension / 高血圧 / Hipertensión" />
-        <Checkbox name="familyHistoryCardiovascular" label="심혈관 / Cardiovascular / 心血管 / Cardiovascular" />
+        <Checkbox
+          name="familyHistoryDiabetes"
+          label={F.familyHistoryDiabetes.label}
+        />
+        <Checkbox
+          name="familyHistoryHypertension"
+          label={F.familyHistoryHypertension.label}
+        />
+        <Checkbox
+          name="familyHistoryCardiovascular"
+          label={F.familyHistoryCardiovascular.label}
+        />
       </Section>
 
       <Section
@@ -171,24 +266,24 @@ export function SurveyForm({ onSuccess }: Props) {
         n="5"
       >
         <SelectField
-          label="스트레스 / Stress level"
+          label={F.stressLevel.label}
           name="stressLevel"
           required
           options={[
-            { value: 'low', label: 'Low / 低 / Bajo' },
-            { value: 'medium', label: 'Medium / 中 / Medio' },
-            { value: 'high', label: 'High / 高 / Alto' },
+            { value: 'low', label: F.stressLevel.options.low },
+            { value: 'medium', label: F.stressLevel.options.medium },
+            { value: 'high', label: F.stressLevel.options.high },
           ]}
         />
         <SelectField
-          label="자가 평가 / Self-rated health"
+          label={F.selfRatedHealth.label}
           name="selfRatedHealth"
           required
           options={[
-            { value: 'excellent', label: 'Excellent / 매우 좋음' },
-            { value: 'good', label: 'Good / 좋음' },
-            { value: 'fair', label: 'Fair / 보통' },
-            { value: 'poor', label: 'Poor / 나쁨' },
+            { value: 'excellent', label: F.selfRatedHealth.options.excellent },
+            { value: 'good', label: F.selfRatedHealth.options.good },
+            { value: 'fair', label: F.selfRatedHealth.options.fair },
+            { value: 'poor', label: F.selfRatedHealth.options.poor },
           ]}
         />
       </Section>
@@ -200,11 +295,11 @@ export function SurveyForm({ onSuccess }: Props) {
       >
         <Checkbox
           name="consentToStore"
-          label="저장 동의 / Consent to store / 保存に同意 / Consiento guardar"
+          label={F.consentToStore.label}
         />
         <Checkbox
           name="consentToResearch"
-          label="익명 활용 / Anonymous research / 匿名活用 / Uso anónimo"
+          label={F.consentToResearch.label}
         />
       </Section>
 
