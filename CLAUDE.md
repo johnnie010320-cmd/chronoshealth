@@ -22,11 +22,12 @@
 - `docs/adr/` — 비가역적 결정 기록
   - ADR 0000 — 절차서 정본 채택
   - ADR 0001 — 모노레포 pnpm + Turborepo
-  - ADR 0002 — AWS 서울 리전
+  - ADR 0002 — AWS 서울 리전 **(Superseded by 0007)**
   - ADR 0003 — identity-vault PII 격리
   - ADR 0004 — 토큰 체인 Polygon PoS
   - ADR 0005 — 코딩 표준 (TS / Python / Solidity)
-  - ADR 0006 — 임시 도메인 chronos-health.ever-day.com
+  - ADR 0006 — 임시 도메인 chronoshealth.ever-day.com
+  - ADR 0007 — 인프라 전략: P0~P1 Cloudflare 단독, P2+ 재결정
 - `docs/spec/` — 기능별 명세
 
 **모든 작업은 위 3개 문서 중 하나에 근거해야 한다.** 근거 없는 결정은 ADR로 먼저 합의.

@@ -1,8 +1,10 @@
 # ADR 0002 — 클라우드: AWS 서울(ap-northeast-2)
 
-- **Status**: Accepted
+- **Status**: **Superseded by ADR 0007** (2026-05-14)
 - **Date**: 2026-05-13
 - **Decider**: Johnnie
+
+> ⚠️ 본 결정은 폐기되었습니다. P0 진입 후 죠니가 "Cloudflare 단독 운영" 방향으로 재결정. 상세 사유와 단계별 적용 범위는 ADR 0007 참조.
 
 ## Context
 

@@ -5,6 +5,7 @@ CHRONOS HEALTH
 작성자 : Johnnie
 작성일 : 2026년 5월 12일
 버전 : 1.0 (최초 초안)
+수정 이력 : 2026-05-14 — ADR 0007에 따라 인프라 섹션(2.1, 2.2, 2.3, 5.2 P0, 7.2, 9, 11 Day 2)을 Cloudflare 기준으로 수정. AWS 관련 결정은 P2 후반에 재검토.
 
 [Heading1] 목차
 [TOC1] 목차1
@@ -142,19 +143,19 @@ ETL, 피처 스토어, 모델 학습·서빙, 드리프트 모니터링
 Solidity, Foundry, OpenZeppelin, Circom(영지식), TheGraph
 토큰, 건강 기여 보상 컨트랙트, 영지식 증명 검증
 저장소
-PostgreSQL(메타), TimescaleDB(시계열), S3(원본), IPFS(공개 메타)
+PostgreSQL(메타), TimescaleDB(시계열), Cloudflare R2(원본, S3 호환), IPFS(공개 메타)
 데이터 계층 분리 + 개인정보 격리
 인프라
-AWS 서울 리전, Terraform, GitHub Actions, Docker, k8s(EKS)
+Cloudflare (Workers/Pages/R2/D1/Hyperdrive) 글로벌 엣지, GitHub Actions (P3 ML 인프라는 별도 ADR로 재결정 — ADR 0007)
 인프라 코드, 자동 배포, 감사 로그
 
 [Heading2] 2.2 데이터 계층 (의료 데이터 격리)
 [ListParagraph] 개인식별정보(PII)는 별도 '신원 금고(identity-vault)' 서비스에서만 다루고, 분석 DB에는 의사식별자(user_pseudonym_id)만 존재한다.
-[ListParagraph] 원본 의료 데이터는 KMS로 암호화된 S3 영역에 저장하고, 분석 단계로 갈수록 익명화 수준을 강화한다 (브론즈 → 실버 → 골드).
+[ListParagraph] 원본 의료 데이터는 Cloudflare R2(또는 BYOK 가능한 외부 객체 스토리지) 암호화 영역에 저장하고, 분석 단계로 갈수록 익명화 수준을 강화한다 (브론즈 → 실버 → 골드).
 [ListParagraph] 모든 데이터 접근은 감사 로그(audit_log) 테이블에 기록되며, 추가만 가능하고 7년간 보관한다.
 [ListParagraph] '잊혀질 권리' 요청은 신원 금고의 매핑만 끊으면 분석 DB 데이터는 통계적 익명 상태로 잔존이 가능하다. 단, 법무 검토를 거쳐야 한다.
 [Heading2] 2.3 머신러닝 계층
-[ListParagraph] 피처 스토어 : Feast 기반, 온라인(Redis)/오프라인(Parquet on S3) 분리.
+[ListParagraph] 피처 스토어 : Feast 기반, 온라인(Redis)/오프라인(Parquet on R2 — P3 시점 ML 인프라 결정과 함께 재검토) 분리.
 [ListParagraph] 모델군 : (a) PhenoAge 계열 회귀 — 생물학적 나이, (b) 트랜스포머 시계열 — 12개월 위험 변화, (c) 생존분석(DeepHit) — 사건별 위험률(hazard).
 [ListParagraph] 실험 관리 : MLflow + DVC. 모든 실험은 데이터셋 해시 + 설정 + 깃 SHA 세 가지로 식별한다.
 [ListParagraph] 서빙 : Triton 또는 BentoML, A/B 트래픽 분할은 API 게이트웨이에서 결정.
@@ -290,7 +291,7 @@ MAU 5만, 30일 잔존 30%, 토큰 유동성 확보
 [Heading2] 5.2 단계별 상세
 [Heading3] 단계 0 — 기반 구축 (0~4주)
 [ListParagraph] 모노레포 초기화(pnpm + Turborepo), CI(GitHub Actions), 환경별 비밀 관리(SOPS + age).
-[ListParagraph] Terraform으로 AWS 서울 리전 기본 계정과 개발·스테이징·운영 VPC 구성.
+[ListParagraph] Cloudflare (l2pamerica@gmail.com 계정) Pages / Workers / R2 / D1 환경 구성. dev / staging / prod는 wrangler 환경 또는 별도 Pages 프로젝트로 분리. (AWS 인프라는 ADR 0007에 따라 P2 후반 재결정.)
 [ListParagraph] CLAUDE.md, 서브에이전트, 훅, MCP를 모두 이 시점에 설정.
 [ListParagraph] 결정 기록 0001~0005 : 모노레포, 클라우드 리전, 개인정보 격리, 토큰 체인 선택, 코딩 표준.
 [ListParagraph] 종료 조건 : '헬로 월드' 서비스 하나가 개발 → 스테이징으로 자동 배포되고 Datadog APM이 들어오는 것을 확인.
@@ -399,7 +400,7 @@ EU AI Act (고위험 분류 가능성)
 [ListParagraph] 최소 수집 : 예측에 필요한 최소 변수만 수집. 새 변수 도입은 결정 기록 + 법무 검토.
 [ListParagraph] 목적 결합 : 모든 데이터 사용처는 목적 코드(purpose_code)로 태깅하고, 다른 목적으로 사용 시 자동 차단.
 [ListParagraph] 동의 원장 : 동의 변경 이력은 추가만 가능. 사용자 화면에서 언제든 철회 가능.
-[ListParagraph] 민감 필드 금고 : 가족력·정신건강·유전 정보는 별도 컬럼 + 별도 KMS 키.
+[ListParagraph] 민감 필드 금고 : 가족력·정신건강·유전 정보는 별도 컬럼 + 별도 암호화 키 (현 시점 Cloudflare Workers Secret + 클라이언트측 암호화, 향후 BYOK / 외부 KMS 도입 시점에 재결정 — ADR 0007).
 [Heading2] 7.3 윤리 가이드라인
 [ListParagraph] UI 문구에 '사망일', '죽음', '여명' 같은 단정적 표현을 금지한다. '건강 위험 추정', '개선 여지'로 표현한다.
 [ListParagraph] 사용자 위험 점수가 임계치 이상으로 상승할 경우 자살예방상담전화(국번 없이 1393)와 정신건강위기상담전화(1577-0199) 안내를 자동 노출한다.
@@ -456,7 +457,7 @@ Polygon PoS 1차
 공개 데이터셋 + 의료 자문 + 챔피언-챌린저. 정확도가 임계치 미달일 때는 예측 노출 차단.
 개인정보 유출
 치명적
-신원 금고 격리, 필드 단위 KMS, 감사 로그, 분기마다 침투 테스트, 보험 가입.
+신원 금고 격리, 필드 단위 암호화(현 시점 Workers Secret 기반, BYOK 도입은 ADR 0007 재결정 트리거), 감사 로그, 분기마다 침투 테스트, 보험 가입.
 사망·자해 관련 윤리 이슈
 치명적
 UI 문구 가이드라인, 위험 임계 시 상담 리소스 자동 노출, 미성년자 차단, 법무 검토서.
@@ -498,8 +499,8 @@ OpenZeppelin + 외부 감사 + 바운티 + 타임락 + 보유 한도 상한.
 저장소 초기화, CI 골격, CLAUDE.md v0, 결정 기록 0001 모노레포 결정
 main에 첫 커밋, 헬로 월드 서비스 빌드
 2일차
-환경별 비밀 관리, Terraform 기본 계정, IAM, KMS
-개발 VPC 생성, 비밀 파이프라인 가동
+환경별 비밀 관리, Cloudflare API token 발급(최소 권한), wrangler secrets 등록
+CF Pages dev / preview 환경 분리, 비밀 파이프라인 가동
 3일차
 .claude/ 서브에이전트 4종 정의, 훅 작성
 컴플라이언스 리뷰어 + 솔리디티 감사관 동작 확인
