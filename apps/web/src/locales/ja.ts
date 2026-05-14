@@ -157,6 +157,34 @@ export const ja: Dictionary = {
     profile: 'マイページ',
     logout: 'ログアウト',
   },
+  login: {
+    pageTitle: 'ログイン',
+    heroTitle: 'おかえりなさい',
+    heroBody: 'メール・電話番号・カカオ・Google でログインできます。',
+    notice:
+      'この画面は UI プレビューです。ログイン機能は後続段階で追加されます。現在は会員登録からのみご利用いただけます。',
+    email: {
+      sectionTitle: 'メール',
+      emailLabel: 'メール',
+      emailPlaceholder: 'you@example.com',
+      passwordLabel: 'パスワード',
+      passwordPlaceholder: '••••••••',
+      submit: 'メールでログイン',
+    },
+    phone: {
+      sectionTitle: '電話番号',
+      phoneLabel: '電話番号',
+      phonePlaceholder: '+81-90-1234-5678',
+      submit: '認証コードを受け取る',
+    },
+    divider: 'または',
+    kakao: 'カカオで続ける',
+    google: 'Google で続ける',
+    noAccount: 'アカウントをお持ちでない方は',
+    signupCta: '会員登録',
+    unavailable:
+      'この機能は準備中です。現在は会員登録メニューからご登録ください。',
+  },
   comingSoon: {
     title: '準備中',
     body: 'この画面は後続段階で追加されます。ベータではホームとアンケートのみ動作します。',

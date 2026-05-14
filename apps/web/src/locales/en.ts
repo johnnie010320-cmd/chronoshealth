@@ -160,6 +160,34 @@ export const en: Dictionary = {
     profile: 'My profile',
     logout: 'Log out',
   },
+  login: {
+    pageTitle: 'Log in',
+    heroTitle: 'Welcome back',
+    heroBody: 'Sign in with email, phone, Kakao, or Google.',
+    notice:
+      'This screen is a UI preview. Login functionality arrives in a later stage — for now please use the Sign up menu.',
+    email: {
+      sectionTitle: 'Email',
+      emailLabel: 'Email',
+      emailPlaceholder: 'you@example.com',
+      passwordLabel: 'Password',
+      passwordPlaceholder: '••••••••',
+      submit: 'Continue with email',
+    },
+    phone: {
+      sectionTitle: 'Phone',
+      phoneLabel: 'Phone',
+      phonePlaceholder: '+1-555-555-5555',
+      submit: 'Send verification code',
+    },
+    divider: 'or',
+    kakao: 'Continue with Kakao',
+    google: 'Continue with Google',
+    noAccount: "Don't have an account?",
+    signupCta: 'Sign up',
+    unavailable:
+      'This feature is coming soon. Please use the Sign up menu for now.',
+  },
   comingSoon: {
     title: 'Coming soon',
     body: 'This screen will arrive in a later stage. Only Home and Survey work in this beta.',

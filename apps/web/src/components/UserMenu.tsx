@@ -101,18 +101,14 @@ export function UserMenu() {
             </>
           ) : (
             <>
-              <button
-                type="button"
+              <Link
+                href="/login"
                 role="menuitem"
-                disabled
-                title={t.userMenu.loginUnavailable}
-                className="flex w-full cursor-not-allowed items-center justify-between gap-3 px-4 py-2.5 text-left text-stone-400 dark:text-stone-600"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-stone-800 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
               >
-                <span>{t.userMenu.login}</span>
-                <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-stone-500 dark:bg-stone-800 dark:text-stone-400">
-                  soon
-                </span>
-              </button>
+                {t.userMenu.login}
+              </Link>
               <Link
                 href="/signup"
                 role="menuitem"

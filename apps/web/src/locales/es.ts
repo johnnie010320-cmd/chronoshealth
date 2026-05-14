@@ -161,6 +161,34 @@ export const es: Dictionary = {
     profile: 'Mi perfil',
     logout: 'Cerrar sesión',
   },
+  login: {
+    pageTitle: 'Iniciar sesión',
+    heroTitle: 'Bienvenido de nuevo',
+    heroBody: 'Inicia sesión con correo, teléfono, Kakao o Google.',
+    notice:
+      'Esta pantalla es una vista previa de UI. La función de inicio de sesión llegará más adelante. Por ahora usa el menú de Registro.',
+    email: {
+      sectionTitle: 'Correo',
+      emailLabel: 'Correo',
+      emailPlaceholder: 'tu@ejemplo.com',
+      passwordLabel: 'Contraseña',
+      passwordPlaceholder: '••••••••',
+      submit: 'Continuar con correo',
+    },
+    phone: {
+      sectionTitle: 'Teléfono',
+      phoneLabel: 'Teléfono',
+      phonePlaceholder: '+34-600-000-000',
+      submit: 'Enviar código de verificación',
+    },
+    divider: 'o',
+    kakao: 'Continuar con Kakao',
+    google: 'Continuar con Google',
+    noAccount: '¿No tienes cuenta?',
+    signupCta: 'Registro',
+    unavailable:
+      'Esta función está en preparación. Por favor usa el menú de Registro por ahora.',
+  },
   comingSoon: {
     title: 'Próximamente',
     body: 'Esta pantalla llegará en una etapa posterior. En esta beta solo funcionan Inicio y Encuesta.',

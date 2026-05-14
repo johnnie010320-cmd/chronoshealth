@@ -154,6 +154,34 @@ export const ko = {
     profile: '내 정보',
     logout: '로그아웃',
   },
+  login: {
+    pageTitle: '로그인',
+    heroTitle: '다시 오신 것을 환영합니다',
+    heroBody: '이메일 · 전화번호 · 카카오 · 구글 계정으로 로그인합니다.',
+    notice:
+      '본 화면은 UI 미리보기이며, 로그인 기능은 추후 단계에서 추가됩니다. 현재는 회원가입을 통해서만 진입 가능합니다.',
+    email: {
+      sectionTitle: '이메일',
+      emailLabel: '이메일',
+      emailPlaceholder: 'you@example.com',
+      passwordLabel: '비밀번호',
+      passwordPlaceholder: '••••••••',
+      submit: '이메일로 로그인',
+    },
+    phone: {
+      sectionTitle: '전화번호',
+      phoneLabel: '전화번호',
+      phonePlaceholder: '010-1234-5678',
+      submit: '인증 코드 받기',
+    },
+    divider: '또는',
+    kakao: '카카오로 계속하기',
+    google: 'Google로 계속하기',
+    noAccount: '아직 계정이 없으신가요?',
+    signupCta: '회원가입',
+    unavailable:
+      '본 기능은 준비 중입니다. 현재는 회원가입 메뉴를 통해 가입해주세요.',
+  },
   comingSoon: {
     title: '준비 중',
     body: '이 화면은 향후 단계에서 추가됩니다. 베타에서는 홈과 설문만 동작합니다.',
