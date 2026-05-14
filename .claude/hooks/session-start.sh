@@ -10,7 +10,7 @@ echo "════════════════════════�
 
 # 1. 현재 단계 (CLAUDE.md에서 추출)
 if [ -f CLAUDE.md ]; then
-  stage=$(grep -A1 '^## 현재 단계' CLAUDE.md | tail -1 | sed 's/\*\*//g')
+  stage=$(awk '/^## 현재 단계/{f=1; next} f && NF{gsub(/\*\*/,""); print; exit}' CLAUDE.md)
   [ -n "$stage" ] && echo "📍 현재 단계: $stage"
 fi
 
