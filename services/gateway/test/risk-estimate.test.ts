@@ -3,7 +3,11 @@ import app from '../src/index.js';
 import { __clearRateLimit } from '../src/middleware/rate-limit.js';
 import { __clearIpRateLimit } from '../src/middleware/ip-rate-limit.js';
 import { MODEL_VERSION } from '../src/risk/index.js';
-import { makeMockIdentityDb, issueTestToken } from './helpers/mock-d1.js';
+import {
+  makeMockIdentityDb,
+  makeMockAnalysisDb,
+  issueTestToken,
+} from './helpers/mock-d1.js';
 
 type SurveyBody = {
   birthYear: number;
@@ -109,12 +113,14 @@ type ResponseShape = {
 
 describe('POST /api/v1/risk-estimate (Slice 03 real model)', () => {
   let mock: ReturnType<typeof makeMockIdentityDb>;
+  let analysis: ReturnType<typeof makeMockAnalysisDb>;
   let token: string;
 
   beforeEach(() => {
     __clearRateLimit();
     __clearIpRateLimit();
     mock = makeMockIdentityDb();
+    analysis = makeMockAnalysisDb();
     token = issueTestToken(mock.state).token;
   });
 
@@ -132,7 +138,7 @@ describe('POST /api/v1/risk-estimate (Slice 03 real model)', () => {
         },
         body: typeof body === 'string' ? body : JSON.stringify(body),
       },
-      { IDENTITY_DB: mock.db, ENVIRONMENT: 'dev' },
+      { IDENTITY_DB: mock.db, DB: analysis.db, ENVIRONMENT: 'dev' },
     );
 
   describe('정상 흐름', () => {
@@ -311,6 +317,65 @@ describe('POST /api/v1/risk-estimate (Slice 03 real model)', () => {
       const res = await post(healthyMale30);
       const data = (await res.json()) as ResponseShape;
       expect(data.disclaimer.length).toBeGreaterThan(20);
+    });
+  });
+
+  describe('Slice 05 — 저장 + 동의', () => {
+    it('consentToStore=true → responses 1 + reports 1 + consent_log(store) 1', async () => {
+      const res = await post({ ...healthyMale30, consentToStore: true, consentToResearch: false });
+      expect(res.status).toBe(200);
+      expect(analysis.state.responses).toHaveLength(1);
+      expect(analysis.state.reports).toHaveLength(1);
+      expect(analysis.state.consents).toHaveLength(1);
+      expect(analysis.state.consents[0]!.consent_kind).toBe('store');
+    });
+
+    it('consentToStore=false → 분석 DB 부수효과 0', async () => {
+      const res = await post({ ...healthyMale30, consentToStore: false, consentToResearch: false });
+      expect(res.status).toBe(200);
+      expect(analysis.state.responses).toHaveLength(0);
+      expect(analysis.state.reports).toHaveLength(0);
+      expect(analysis.state.consents).toHaveLength(0);
+    });
+
+    it('consentToResearch=true → consent_log에 store + research 2건', async () => {
+      const res = await post({ ...healthyMale30, consentToStore: true, consentToResearch: true });
+      expect(res.status).toBe(200);
+      expect(analysis.state.consents).toHaveLength(2);
+      const kinds = analysis.state.consents.map((c) => c.consent_kind).sort();
+      expect(kinds).toEqual(['research', 'store']);
+    });
+
+    it('저장된 row는 모두 purpose_code=risk_estimate', async () => {
+      await post({ ...healthyMale30, consentToStore: true, consentToResearch: true });
+      expect(analysis.state.responses.every((r) => r.purpose_code === 'risk_estimate')).toBe(true);
+      expect(analysis.state.reports.every((r) => r.purpose_code === 'risk_estimate')).toBe(true);
+      expect(analysis.state.consents.every((c) => c.purpose_code === 'risk_estimate')).toBe(true);
+    });
+
+    it('reports.payload는 응답 JSON 전체 + reportId / generatedAt / modelVersion 매칭', async () => {
+      const res = await post({ ...healthyMale30, consentToStore: true });
+      const body = (await res.json()) as ResponseShape;
+      const row = analysis.state.reports[0]!;
+      expect(row.report_id).toBe(body.reportId);
+      expect(row.generated_at).toBe(body.generatedAt);
+      expect(row.model_version).toBe(body.modelVersion);
+      const parsed = JSON.parse(row.payload) as ResponseShape;
+      expect(parsed.bioAge.value).toBe(body.bioAge.value);
+    });
+
+    it('reports.response_id는 같은 트랜잭션의 responses.id 참조', async () => {
+      await post({ ...healthyMale30, consentToStore: true });
+      const respId = analysis.state.responses[0]!.id;
+      expect(analysis.state.reports[0]!.response_id).toBe(respId);
+    });
+
+    it('저장된 row의 user_pseudonym_id = 토큰 발급 시 pseudonym', async () => {
+      const pseudonym = mock.state.tokens[0]!.user_pseudonym_id;
+      await post({ ...healthyMale30, consentToStore: true });
+      expect(analysis.state.responses[0]!.user_pseudonym_id).toBe(pseudonym);
+      expect(analysis.state.reports[0]!.user_pseudonym_id).toBe(pseudonym);
+      expect(analysis.state.consents[0]!.user_pseudonym_id).toBe(pseudonym);
     });
   });
 });

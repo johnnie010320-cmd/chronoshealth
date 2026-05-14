@@ -6,17 +6,18 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "dev"
 
-# identity-vault D1 (ADR 0003 / ADR 0010 / spec docs/spec/identity.md)
-# PII + pseudonym 매핑 + 세션 토큰 보관. 분석 DB와 별도 인스턴스.
+# identity-vault D1 (ADR 0003 / ADR 0010 / spec docs/spec/identity.md 5.1)
+# PII + pseudonym 매핑 + 세션 토큰. 분석 DB와 별도 인스턴스.
 [[d1_databases]]
 binding = "IDENTITY_DB"
 database_name = "chronoshealth-identity"
 database_id = "1d2cb90a-b35c-46e3-bdaf-7ce8c471921d"
 migrations_dir = "migrations/identity"
 
-# 향후 추가 예정 (ADR 0008):
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "chronoshealth-analysis"
-# database_id = "<발급 후 입력>"
-# migrations_dir = "migrations/analysis"
+# analysis D1 (ADR 0003 / ADR 0008 / spec docs/spec/risk-survey/05-storage-consent.md)
+# 설문 답변 + 리포트 + 동의 이력. user_pseudonym_id만 보유 (PII 0).
+[[d1_databases]]
+binding = "DB"
+database_name = "chronoshealth-analysis"
+database_id = "0ca4eed5-3786-40da-bd24-d78bea7cfb44"
+migrations_dir = "migrations/analysis"

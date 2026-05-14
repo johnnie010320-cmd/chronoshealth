@@ -183,3 +183,150 @@ export function issueTestToken(
   });
   return { token, pseudonym };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// analysis DB mock (chronoshealth-analysis 바인딩 DB)
+// spec docs/spec/risk-survey/05-storage-consent.md
+
+type ResponseRow = {
+  id: number;
+  user_pseudonym_id: string;
+  purpose_code: string;
+  // 나머지 필드는 raw로 보관 (검증용 inspect만)
+  raw: Record<string, unknown>;
+};
+
+type ReportRow = {
+  report_id: string;
+  response_id: number;
+  user_pseudonym_id: string;
+  purpose_code: string;
+  model_version: string;
+  payload: string;
+  generated_at: string;
+};
+
+type AnalysisConsentRow = {
+  user_pseudonym_id: string;
+  purpose_code: string;
+  consent_kind: 'store' | 'research';
+  granted: number;
+  source: string;
+  recorded_at: string;
+};
+
+export type MockAnalysisState = {
+  responses: ResponseRow[];
+  reports: ReportRow[];
+  consents: AnalysisConsentRow[];
+};
+
+export function makeMockAnalysisDb(): {
+  db: D1Database;
+  state: MockAnalysisState;
+} {
+  const state: MockAnalysisState = { responses: [], reports: [], consents: [] };
+  let nextResponseId = 1;
+
+  function runStmt(sql: string, args: unknown[]): {
+    success: true;
+    meta: { last_row_id?: number };
+  } {
+    const trimmed = sql.trim();
+
+    if (trimmed.startsWith('INSERT INTO risk_survey_responses')) {
+      const [
+        user_pseudonym_id,
+        purpose_code,
+        ...rest
+      ] = args as [string, string, ...unknown[]];
+      const id = nextResponseId++;
+      state.responses.push({
+        id,
+        user_pseudonym_id,
+        purpose_code,
+        raw: { rest },
+      });
+      return { success: true, meta: { last_row_id: id } };
+    }
+
+    if (trimmed.startsWith('INSERT INTO risk_survey_reports')) {
+      const [
+        report_id,
+        response_id,
+        user_pseudonym_id,
+        purpose_code,
+        model_version,
+        payload,
+        generated_at,
+      ] = args as [string, number, string, string, string, string, string];
+      state.reports.push({
+        report_id,
+        response_id,
+        user_pseudonym_id,
+        purpose_code,
+        model_version,
+        payload,
+        generated_at,
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO consent_log')) {
+      const [user_pseudonym_id, purpose_code] = args as [string, string];
+      const kindMatch = sql.match(/'(store|research)'/);
+      state.consents.push({
+        user_pseudonym_id,
+        purpose_code,
+        consent_kind: (kindMatch?.[1] as 'store' | 'research') ?? 'store',
+        granted: 1,
+        source: 'risk_estimate_api',
+        recorded_at: new Date().toISOString(),
+      });
+      return { success: true, meta: {} };
+    }
+
+    throw new Error(`mock-analysis-d1 unknown statement: ${trimmed.substring(0, 80)}`);
+  }
+
+  const makeStmt = (sql: string) => {
+    const stmt = {
+      _args: [] as unknown[],
+      bind(...args: unknown[]) {
+        stmt._args = args;
+        return stmt;
+      },
+      async first<T>(): Promise<T | null> {
+        throw new Error(`mock-analysis-d1 first() not used: ${sql}`);
+      },
+      async run() {
+        return runStmt(sql, stmt._args);
+      },
+    };
+    return stmt;
+  };
+
+  const db = {
+    prepare(sql: string) {
+      return makeStmt(sql);
+    },
+    async batch(stmts: Array<{ run: () => Promise<unknown> }>) {
+      const results = [];
+      for (const s of stmts) {
+        results.push(await s.run());
+      }
+      return results;
+    },
+    exec() {
+      throw new Error('mock-analysis-d1 exec() not implemented');
+    },
+    dump() {
+      throw new Error('mock-analysis-d1 dump() not implemented');
+    },
+    withSession() {
+      return db;
+    },
+  } as unknown as D1Database;
+
+  return { db, state };
+}

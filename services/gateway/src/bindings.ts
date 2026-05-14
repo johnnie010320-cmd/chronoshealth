@@ -4,5 +4,5 @@
 export type Bindings = {
   ENVIRONMENT: 'dev' | 'staging' | 'prod';
   IDENTITY_DB: D1Database;
-  // DB: D1Database;  // 향후 analysis DB 추가 시 활성화 (ADR 0008)
+  DB: D1Database;
 };

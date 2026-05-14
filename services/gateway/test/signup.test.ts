@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import app from '../src/index.js';
-import { makeMockIdentityDb } from './helpers/mock-d1.js';
+import { makeMockIdentityDb, makeMockAnalysisDb } from './helpers/mock-d1.js';
 import { __clearIpRateLimit } from '../src/middleware/ip-rate-limit.js';
 
 type SignupBody = {
@@ -45,7 +45,7 @@ describe('POST /api/v1/auth/signup', () => {
         headers: { 'Content-Type': 'application/json', ...headers },
         body: typeof body === 'string' ? body : JSON.stringify(body),
       },
-      { IDENTITY_DB: mock.db, ENVIRONMENT: 'dev' },
+      { IDENTITY_DB: mock.db, DB: makeMockAnalysisDb().db, ENVIRONMENT: 'dev' },
     );
 
   describe('정상 흐름', () => {
@@ -205,7 +205,7 @@ describe('signup → risk-estimate 통합', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validBody()),
       },
-      { IDENTITY_DB: mock.db, ENVIRONMENT: 'dev' },
+      { IDENTITY_DB: mock.db, DB: makeMockAnalysisDb().db, ENVIRONMENT: 'dev' },
     );
     expect(signupRes.status).toBe(201);
     const { sessionToken } = (await signupRes.json()) as SignupOk;
@@ -243,7 +243,7 @@ describe('signup → risk-estimate 통합', () => {
         },
         body: JSON.stringify(surveyBody),
       },
-      { IDENTITY_DB: mock.db, ENVIRONMENT: 'dev' },
+      { IDENTITY_DB: mock.db, DB: makeMockAnalysisDb().db, ENVIRONMENT: 'dev' },
     );
     expect(res.status).toBe(200);
   });
@@ -260,7 +260,7 @@ describe('signup → risk-estimate 통합', () => {
         },
         body: JSON.stringify(surveyBody),
       },
-      { IDENTITY_DB: mock.db, ENVIRONMENT: 'dev' },
+      { IDENTITY_DB: mock.db, DB: makeMockAnalysisDb().db, ENVIRONMENT: 'dev' },
     );
     expect(res.status).toBe(401);
   });
