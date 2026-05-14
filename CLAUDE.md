@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-**P0 W20 (1주차) 완료 / 0~4주차** — Day 1~7 절차서 가이드 완주. Slice 02 mock 구현 + CI 통과. 다음 W21: Slice 02 deploy + Slice 01/04 병렬 진행 (죠니 폼→결과 e2e 체험 목표). `docs/work-procedure.txt` 5장 로드맵 / `docs/journal/2026-W20.md` 회고록 참조
+**P0 W21 — 죠니 폼→결과 e2e 체험 가능 (0~4주차)** — Slice 02 라이브 + Slice 01/04 완료. `chronoshealth.ever-day.com`에서 23문항 입력 → 모의 리포트 즉시 표시. 다음: Slice 03 (실제 Framingham + PhenoAge) + Slice 05 (저장). `docs/work-procedure.txt` 5장
 
 ## 임시 도메인 (ADR 0006)
 
