@@ -8,6 +8,9 @@ node_modules/
 out/
 build/
 
+# turbo
+.turbo/
+
 # testing
 coverage/
 .nyc_output/

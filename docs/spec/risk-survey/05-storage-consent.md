@@ -4,11 +4,11 @@
 - **Estimate**: 2일
 - **Linear**: TBD
 - **Dependencies**: Slice 02 (API 흐름), Slice 01 (동의 토글 UI)
-- **Status**: Blocked until Slice 01 + 02 done
+- **Status**: Ready (저장소 결정 완료 — ADR 0008 D1 채택)
 
 ## 완료 정의 (Definition of Done)
 
-- [ ] 마이그레이션 — `risk_survey_responses` 테이블 (CF D1 또는 외부 Postgres, 결정은 본 슬라이스 진입 시 별도 ADR)
+- [ ] 마이그레이션 — `risk_survey_responses` 테이블 (Cloudflare D1, ADR 0008)
 - [ ] 마이그레이션 — `risk_survey_reports` 테이블
 - [ ] 마이그레이션 — `consent_log` 테이블 (append-only 트리거 포함)
 - [ ] 모든 테이블 `user_pseudonym_id` 컬럼만 (PII 컬럼 절대 없음)
@@ -28,8 +28,8 @@
 
 ## 의존성
 
-- 저장소 결정 — CF D1 vs 외부 Postgres (Neon/Supabase) — **본 슬라이스 진입 시 별도 ADR**
-- 동의 변경 이력 추적 메커니즘 — D1/Postgres 모두 trigger 또는 application-level append-only 구현 가능
+- 저장소: **Cloudflare D1 (ADR 0008 채택 완료)**
+- 동의 변경 이력 추적: D1 트리거 (sqlite syntax) 또는 application-level append-only — 본 슬라이스 진입 시 결정
 
 ## 검증 시나리오
 
@@ -55,6 +55,7 @@
 - 다중 리포트 비교 (P1 후반)
 - 데이터 export (사용자 자기 데이터 다운로드) — P1 후반
 
-## 사전 조건 (본 슬라이스 진입 전 필요)
+## 사전 조건
 
-- **저장소 ADR 작성** — CF D1 vs 외부 Postgres 결정. 의료 데이터 BYOK 요구사항 검토.
+- ✅ 저장소 ADR 작성 완료 (ADR 0008 — Cloudflare D1)
+- ⏳ Slice 01 + Slice 02 완료 (UI 토글 + API 흐름)

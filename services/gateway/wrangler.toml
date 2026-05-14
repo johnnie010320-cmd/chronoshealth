@@ -1,0 +1,13 @@
+name = "chronoshealth-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "dev"
+
+# 향후 추가 예정 (ADR 0008):
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "chronoshealth-dev"
+# database_id = "<발급 후 입력>"
