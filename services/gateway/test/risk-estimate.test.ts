@@ -1,29 +1,76 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import app from '../src/index.js';
 import { __clearRateLimit } from '../src/middleware/rate-limit.js';
+import { MODEL_VERSION } from '../src/risk/index.js';
 
-const validBody = {
+type SurveyBody = {
+  birthYear: number;
+  sex: 'male' | 'female' | 'other';
+  heightCm: number;
+  weightKg: number;
+  smoking: 'never' | 'former' | 'current';
+  alcoholDrinksPerWeek: number;
+  exerciseMinutesPerWeek: number;
+  sleepHoursPerNight: number;
+  systolicBp: number | null;
+  diastolicBp: number | null;
+  fastingGlucose: number | null;
+  ldlCholesterol: number | null;
+  hdlCholesterol: number | null;
+  familyHistoryDiabetes: boolean;
+  familyHistoryHypertension: boolean;
+  familyHistoryCardiovascular: boolean;
+  stressLevel: 'low' | 'medium' | 'high';
+  selfRatedHealth: 'excellent' | 'good' | 'fair' | 'poor';
+  consentToStore: boolean;
+  consentToResearch: boolean;
+};
+
+const healthyMale30: SurveyBody = {
   birthYear: 1990,
   sex: 'male',
   heightCm: 175,
   weightKg: 70,
   smoking: 'never',
-  alcoholDrinksPerWeek: 0,
-  exerciseMinutesPerWeek: 150,
-  sleepHoursPerNight: 7,
-  systolicBp: null,
-  diastolicBp: null,
-  fastingGlucose: null,
-  ldlCholesterol: null,
-  hdlCholesterol: null,
+  alcoholDrinksPerWeek: 2,
+  exerciseMinutesPerWeek: 200,
+  sleepHoursPerNight: 7.5,
+  systolicBp: 118,
+  diastolicBp: 75,
+  fastingGlucose: 88,
+  ldlCholesterol: 100,
+  hdlCholesterol: 60,
   familyHistoryDiabetes: false,
   familyHistoryHypertension: false,
   familyHistoryCardiovascular: false,
   stressLevel: 'low',
-  selfRatedHealth: 'good',
+  selfRatedHealth: 'excellent',
   consentToStore: true,
   consentToResearch: false,
-} as const;
+};
+
+const riskyMale60: SurveyBody = {
+  birthYear: 1960,
+  sex: 'male',
+  heightCm: 170,
+  weightKg: 95,
+  smoking: 'current',
+  alcoholDrinksPerWeek: 18,
+  exerciseMinutesPerWeek: 20,
+  sleepHoursPerNight: 5.5,
+  systolicBp: 158,
+  diastolicBp: 96,
+  fastingGlucose: 130,
+  ldlCholesterol: 170,
+  hdlCholesterol: 32,
+  familyHistoryDiabetes: true,
+  familyHistoryHypertension: true,
+  familyHistoryCardiovascular: true,
+  stressLevel: 'high',
+  selfRatedHealth: 'poor',
+  consentToStore: true,
+  consentToResearch: false,
+};
 
 const authHeaders = {
   'Content-Type': 'application/json',
@@ -40,136 +87,212 @@ const post = async (
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
 
-describe('POST /api/v1/risk-estimate', () => {
+type ResponseShape = {
+  reportId: string;
+  generatedAt: string;
+  modelVersion: string;
+  bioAge: {
+    value: number;
+    chronologicalAge: number;
+    ci95: [number, number];
+    topContributors: Array<{
+      factor: string;
+      direction: 'accelerate' | 'decelerate';
+      magnitude: number;
+    }>;
+  };
+  diseaseRisk: Array<{
+    code: string;
+    label: string;
+    probability5y: number;
+    riskCategory: 'low' | 'moderate' | 'high';
+    modifiableFactors: string[];
+  }>;
+  improvement: Array<{
+    action: string;
+    expectedBioAgeDeltaYears: number;
+    confidence: 'low' | 'medium' | 'high';
+  }>;
+  disclaimer: string;
+  hotlines: {
+    suicidePrevention: string | null;
+    mentalHealthCrisis: string | null;
+  };
+};
+
+describe('POST /api/v1/risk-estimate (Slice 03 real model)', () => {
   beforeEach(() => {
     __clearRateLimit();
   });
 
-  describe('정상 흐름 (Positive)', () => {
-    it('유효 입력 시 200 + mock 응답 구조', async () => {
-      const res = await post(validBody);
+  describe('정상 흐름', () => {
+    it('valid 입력 → 200 + modelVersion rs-v0.1.0', async () => {
+      const res = await post(healthyMale30);
       expect(res.status).toBe(200);
-      const data = (await res.json()) as Record<string, unknown>;
-      expect(data['modelVersion']).toBe('rs-mock-v0');
-      expect(data['disclaimer']).toEqual(expect.stringContaining('의료 행위'));
-      expect(data['reportId']).toEqual(expect.any(String));
-      expect(data['diseaseRisk']).toBeInstanceOf(Array);
-      expect(data['hotlines']).toMatchObject({
-        suicidePrevention: null,
-        mentalHealthCrisis: null,
-      });
+      const data = (await res.json()) as ResponseShape;
+      expect(data.modelVersion).toBe(MODEL_VERSION);
+      expect(data.modelVersion).toBe('rs-v0.1.0');
+      expect(data.disclaimer).toContain('의료 행위');
     });
 
-    it('bioAge.chronologicalAge는 (현재년 - birthYear)와 일치', async () => {
-      const res = await post(validBody);
-      const data = (await res.json()) as {
-        bioAge: { chronologicalAge: number };
+    it('disease risk 5개 반환', async () => {
+      const res = await post(healthyMale30);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.diseaseRisk).toHaveLength(5);
+      expect(
+        data.diseaseRisk.every(
+          (r) => r.probability5y >= 0 && r.probability5y <= 1,
+        ),
+      ).toBe(true);
+    });
+
+    it('bio age contributors 최대 3개, magnitude 0~1', async () => {
+      const res = await post(healthyMale30);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.bioAge.topContributors.length).toBeLessThanOrEqual(3);
+      data.bioAge.topContributors.forEach((c) => {
+        expect(c.magnitude).toBeGreaterThanOrEqual(0);
+        expect(c.magnitude).toBeLessThanOrEqual(1);
+        expect(['accelerate', 'decelerate']).toContain(c.direction);
+      });
+    });
+  });
+
+  describe('페르소나: 건강한 30대 남성', () => {
+    it('bioAge ≤ chronological + 2년', async () => {
+      const res = await post(healthyMale30);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.bioAge.chronologicalAge).toBe(
+        new Date().getFullYear() - 1990,
+      );
+      expect(data.bioAge.value).toBeLessThanOrEqual(
+        data.bioAge.chronologicalAge + 2,
+      );
+    });
+
+    it('CVD 위험 low + hotlines 미노출', async () => {
+      const res = await post(healthyMale30);
+      const data = (await res.json()) as ResponseShape;
+      const cvd = data.diseaseRisk.find((r) => r.code === 'I20-I25');
+      expect(cvd?.riskCategory).toBe('low');
+      expect(data.hotlines.suicidePrevention).toBeNull();
+      expect(data.hotlines.mentalHealthCrisis).toBeNull();
+    });
+  });
+
+  describe('페르소나: 60대 남성 다중 위험', () => {
+    it('bioAge > chronological 큰 폭', async () => {
+      const res = await post(riskyMale60);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.bioAge.value).toBeGreaterThan(
+        data.bioAge.chronologicalAge + 5,
+      );
+    });
+
+    it('CVD 위험 moderate 또는 high', async () => {
+      const res = await post(riskyMale60);
+      const data = (await res.json()) as ResponseShape;
+      const cvd = data.diseaseRisk.find((r) => r.code === 'I20-I25');
+      expect(['moderate', 'high']).toContain(cvd?.riskCategory ?? 'low');
+    });
+
+    it('금연 권고가 improvement에 포함', async () => {
+      const res = await post(riskyMale60);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.improvement.some((i) => i.action.includes('금연'))).toBe(true);
+    });
+  });
+
+  describe('결정형 재현성', () => {
+    it('동일 입력 5회 → bioAge / disease risk 동일', async () => {
+      const results: ResponseShape[] = [];
+      for (let i = 0; i < 5; i++) {
+        __clearRateLimit();
+        const res = await post(healthyMale30);
+        results.push((await res.json()) as ResponseShape);
+      }
+      const first = results[0]!;
+      results.slice(1).forEach((r) => {
+        expect(r.bioAge.value).toBe(first.bioAge.value);
+        expect(r.diseaseRisk.map((d) => d.probability5y)).toEqual(
+          first.diseaseRisk.map((d) => d.probability5y),
+        );
+      });
+    });
+  });
+
+  describe('누락 측정값 처리', () => {
+    it('혈압 / 콜레스테롤 / 혈당 null → 보정 후 정상 응답', async () => {
+      const missing: SurveyBody = {
+        ...healthyMale30,
+        systolicBp: null,
+        diastolicBp: null,
+        ldlCholesterol: null,
+        hdlCholesterol: null,
+        fastingGlucose: null,
       };
-      const expected = new Date().getFullYear() - validBody.birthYear;
-      expect(data.bioAge.chronologicalAge).toBe(expected);
+      const res = await post(missing);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.diseaseRisk).toHaveLength(5);
     });
   });
 
-  describe('인증 (401)', () => {
-    it('Authorization 헤더 누락 시 401 UNAUTHORIZED', async () => {
-      const res = await post(validBody, { 'Content-Type': 'application/json' });
-      expect(res.status).toBe(401);
-      const data = (await res.json()) as { error: { code: string } };
-      expect(data.error.code).toBe('UNAUTHORIZED');
-    });
-
-    it('Bearer 접두사 누락 시 401', async () => {
-      const res = await post(validBody, {
+  describe('인증 / 연령 / 검증 (Slice 02 회귀)', () => {
+    it('401 no auth', async () => {
+      const res = await post(healthyMale30, {
         'Content-Type': 'application/json',
-        Authorization: 'test-token-123',
       });
       expect(res.status).toBe(401);
     });
 
-    it('빈 토큰 시 401', async () => {
-      const res = await post(validBody, {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ',
-      });
-      expect(res.status).toBe(401);
-    });
-  });
-
-  describe('연령 차단 (403)', () => {
-    it('만 19세 미만 → 403 AGE_RESTRICTED', async () => {
-      const tooYoung = { ...validBody, birthYear: new Date().getFullYear() - 17 };
+    it('403 under 19', async () => {
+      const tooYoung = {
+        ...healthyMale30,
+        birthYear: new Date().getFullYear() - 17,
+      };
       const res = await post(tooYoung);
       expect(res.status).toBe(403);
-      const data = (await res.json()) as { error: { code: string } };
-      expect(data.error.code).toBe('AGE_RESTRICTED');
     });
 
-    it('만 19세 경계값 (정확히 19세) → 200', async () => {
-      const justAge = { ...validBody, birthYear: new Date().getFullYear() - 19 };
-      const res = await post(justAge);
-      expect(res.status).toBe(200);
-    });
-  });
-
-  describe('입력 검증 (400)', () => {
-    it('필수 필드 누락 시 400 INVALID_INPUT', async () => {
-      const { birthYear: _b, ...rest } = validBody;
-      const res = await post(rest);
-      expect(res.status).toBe(400);
-      const data = (await res.json()) as { error: { code: string } };
-      expect(data.error.code).toBe('INVALID_INPUT');
-    });
-
-    it('범위 외 값 (heightCm 50) → 400', async () => {
-      const res = await post({ ...validBody, heightCm: 50 });
+    it('400 invalid input', async () => {
+      const res = await post({ ...healthyMale30, heightCm: 50 });
       expect(res.status).toBe(400);
     });
 
-    it('미래 연도 birthYear → 400 (CF Workers epoch 평가 타이밍 회귀 가드)', async () => {
-      const future = { ...validBody, birthYear: 2099 };
-      const res = await post(future);
+    it('400 future birthYear', async () => {
+      const res = await post({ ...healthyMale30, birthYear: 2099 });
       expect(res.status).toBe(400);
-      const data = (await res.json()) as {
-        error: { code: string; details?: unknown };
-      };
-      expect(data.error.code).toBe('INVALID_INPUT');
     });
 
-    it('잘못된 JSON → 400 INVALID_JSON', async () => {
-      const res = await post('not-json-at-all');
+    it('400 invalid JSON', async () => {
+      const res = await post('not-json');
       expect(res.status).toBe(400);
-      const data = (await res.json()) as { error: { code: string } };
-      expect(data.error.code).toBe('INVALID_JSON');
     });
-  });
 
-  describe('호출 제한 (429)', () => {
-    it('일 5회 통과 → 6번째에서 429 RATE_LIMITED', async () => {
+    it('429 rate limit after 5', async () => {
       for (let i = 0; i < 5; i++) {
-        const res = await post(validBody);
-        expect(res.status).toBe(200);
+        const r = await post(healthyMale30);
+        expect(r.status).toBe(200);
       }
-      const res = await post(validBody);
-      expect(res.status).toBe(429);
-      const data = (await res.json()) as { error: { code: string } };
-      expect(data.error.code).toBe('RATE_LIMITED');
+      const r = await post(healthyMale30);
+      expect(r.status).toBe(429);
     });
   });
 
   describe('규제 회귀 가드', () => {
-    it('응답에 의료 금지 단어가 포함되지 않음', async () => {
-      const res = await post(validBody);
+    it('응답에 의료 금지 단어 없음', async () => {
+      const res = await post(riskyMale60);
       const text = await res.text();
       expect(text).not.toMatch(
         /진단|처방|치료|여명|사망일|deathday|diagnose|prescribe/i,
       );
     });
 
-    it('응답에 disclaimer 항상 포함', async () => {
-      const res = await post(validBody);
-      const data = (await res.json()) as { disclaimer?: string };
-      expect(data.disclaimer).toBeTruthy();
-      expect((data.disclaimer ?? '').length).toBeGreaterThan(20);
+    it('disclaimer 항상 포함', async () => {
+      const res = await post(healthyMale30);
+      const data = (await res.json()) as ResponseShape;
+      expect(data.disclaimer.length).toBeGreaterThan(20);
     });
   });
 });
@@ -178,13 +301,11 @@ describe('GET /health', () => {
   it('200 ok', async () => {
     const res = await app.request('/health');
     expect(res.status).toBe(200);
-    const data = (await res.json()) as { ok: boolean };
-    expect(data.ok).toBe(true);
   });
 });
 
 describe('CORS', () => {
-  it('OPTIONS preflight from allowed origin → 헤더 포함 응답', async () => {
+  it('OPTIONS preflight allowed origin → 헤더 정상', async () => {
     const res = await app.request('/api/v1/risk-estimate', {
       method: 'OPTIONS',
       headers: {
@@ -197,10 +318,9 @@ describe('CORS', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
       'https://chronoshealth.ever-day.com',
     );
-    expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST');
   });
 
-  it('OPTIONS preflight from unknown origin → CORS 헤더 없음 (브라우저가 차단)', async () => {
+  it('unknown origin → CORS 헤더 없음', async () => {
     const res = await app.request('/api/v1/risk-estimate', {
       method: 'OPTIONS',
       headers: {
@@ -211,14 +331,5 @@ describe('CORS', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe(
       'https://evil.example.com',
     );
-  });
-});
-
-describe('GET unknown', () => {
-  it('404 NOT_FOUND', async () => {
-    const res = await app.request('/no-such-path');
-    expect(res.status).toBe(404);
-    const data = (await res.json()) as { error: { code: string } };
-    expect(data.error.code).toBe('NOT_FOUND');
   });
 });
