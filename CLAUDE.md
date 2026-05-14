@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-**P0 기반 구축 (Day 3 진행 중 / 0~4주차)** — `docs/work-procedure.txt` 5장 로드맵 참조
+**P0 기반 구축 (Day 4 진행 중 — 첫 명세 검토 대기 / 0~4주차)** — `docs/work-procedure.txt` 5장 로드맵 참조
 
 ## 임시 도메인 (ADR 0006)
 
