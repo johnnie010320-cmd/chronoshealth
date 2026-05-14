@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-**P0 기반 구축 (Day 4 진행 중 — 첫 명세 검토 대기 / 0~4주차)** — `docs/work-procedure.txt` 5장 로드맵 참조
+**P0 기반 구축 (Day 5 완료 / 0~4주차)** — first spec `risk-survey` Accepted + 5 슬라이스 분해 완료. 다음 Day 6 (TDD 구현). `docs/work-procedure.txt` 5장 로드맵 참조
 
 ## 임시 도메인 (ADR 0006)
 
