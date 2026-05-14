@@ -125,6 +125,16 @@ describe('POST /api/v1/risk-estimate', () => {
       expect(res.status).toBe(400);
     });
 
+    it('미래 연도 birthYear → 400 (CF Workers epoch 평가 타이밍 회귀 가드)', async () => {
+      const future = { ...validBody, birthYear: 2099 };
+      const res = await post(future);
+      expect(res.status).toBe(400);
+      const data = (await res.json()) as {
+        error: { code: string; details?: unknown };
+      };
+      expect(data.error.code).toBe('INVALID_INPUT');
+    });
+
     it('잘못된 JSON → 400 INVALID_JSON', async () => {
       const res = await post('not-json-at-all');
       expect(res.status).toBe(400);
