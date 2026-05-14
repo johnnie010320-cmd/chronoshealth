@@ -7,6 +7,8 @@ import {
 import { authMiddleware, type AuthVariables } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 
+// Slice 02 (mock). 실제 계산식은 Slice 03(Framingham + PhenoAge)에서
+// MOCK_MODEL_VERSION → 'rs-v0.1.0'으로 교체.
 const RATE_LIMIT_PER_DAY = 5;
 const MIN_AGE = 19;
 const MOCK_MODEL_VERSION = 'rs-mock-v0';
