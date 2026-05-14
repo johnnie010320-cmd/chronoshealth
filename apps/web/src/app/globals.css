@@ -1,12 +1,29 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+
+  --color-accent-500: #f43f5e;
+  --color-accent-600: #e11d48;
+}
+
 :root {
   color-scheme: light dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 html,
 body {
   font-family:
+    'Pretendard',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -18,10 +35,71 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+body {
+  background: linear-gradient(180deg, #f0fdfa 0%, #fafaf9 35%, #ffffff 100%);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 @media (prefers-color-scheme: dark) {
-  html,
   body {
-    background: #0a0a0a;
-    color: #fafafa;
+    background: linear-gradient(180deg, #042f2e 0%, #0c0a09 50%, #000000 100%);
+    color: #fafaf9;
+  }
+}
+
+/* 도트 패턴 (의료 차트지 느낌) */
+.bg-dot-pattern {
+  background-image: radial-gradient(
+    circle,
+    rgba(15, 118, 110, 0.08) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-dot-pattern {
+    background-image: radial-gradient(
+      circle,
+      rgba(45, 212, 191, 0.06) 1px,
+      transparent 1px
+    );
+  }
+}
+
+/* 앱 셸 안전영역 */
+.safe-top {
+  padding-top: max(1rem, var(--safe-top));
+}
+.safe-bottom {
+  padding-bottom: max(1.5rem, var(--safe-bottom));
+}
+
+/* 스크롤바 모바일 친화 */
+* {
+  scrollbar-width: thin;
+}
+
+/* 입력 포커스 일관성 (앱 느낌) */
+input,
+select,
+textarea,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 카드 부드러운 그림자 */
+.card-shadow {
+  box-shadow:
+    0 1px 2px 0 rgba(15, 23, 42, 0.04),
+    0 4px 16px -4px rgba(15, 118, 110, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-shadow {
+    box-shadow:
+      0 1px 2px 0 rgba(0, 0, 0, 0.4),
+      0 4px 16px -4px rgba(0, 0, 0, 0.6);
   }
 }

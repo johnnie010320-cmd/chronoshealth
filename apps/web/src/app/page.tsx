@@ -1,30 +1,88 @@
+'use client';
+
 import Link from 'next/link';
+import { AppShell } from '@/components/AppShell';
+import { PulseBackground } from '@/components/PulseBackground';
+import {
+  HeartPulseIcon,
+  LeafIcon,
+  ShieldIcon,
+  ChevronRightIcon,
+} from '@/components/HealthIcons';
+import { useI18n } from '@/lib/i18n';
 
 export default function HomePage() {
+  const { t } = useI18n();
+  const L = t.landing;
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="max-w-2xl text-center">
-        <p className="text-[11px] font-medium tracking-[0.18em] uppercase text-gray-500 mb-6">
-          Coming soon · 2026
-        </p>
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
-          Chronos Health
-        </h1>
-        <p className="text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-10">
-          Digital twin healthcare × decentralized data sovereignty.
-          <br />
-          당신의 건강 데이터로 더 오래 건강한 삶을.
-        </p>
+    <AppShell decoration="dots">
+      <section className="card-shadow relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-teal-500 px-6 py-10 text-white">
+        <PulseBackground variant="bottom" />
+        <div className="relative">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] opacity-80">
+            {L.eyebrow}
+          </p>
+          <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight">
+            {L.headingLine1}
+            <br />
+            {L.headingLine2}
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-white/90">{L.body}</p>
+          <div className="mt-8 flex items-center gap-2">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+              <HeartPulseIcon className="h-5 w-5" />
+            </span>
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+              <LeafIcon className="h-5 w-5" />
+            </span>
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+              <ShieldIcon className="h-5 w-5" />
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-8 space-y-3">
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {L.howItWorks}
+        </h2>
+        <Step n={1} title={L.step1Title} body={L.step1Body} />
+        <Step n={2} title={L.step2Title} body={L.step2Body} />
+        <Step n={3} title={L.step3Title} body={L.step3Body} />
+      </section>
+
+      <section className="mt-10">
+        <div className="rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
+          {L.disclaimer}
+        </div>
+
         <Link
           href="/survey"
-          className="inline-block px-8 py-4 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-800 transition dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          className="mt-5 inline-flex w-full items-center justify-between rounded-2xl bg-stone-900 px-6 py-4 text-base font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
         >
-          베타 설문 시작 →
+          <span>{L.cta}</span>
+          <ChevronRightIcon className="h-5 w-5" />
         </Link>
-        <p className="mt-10 text-xs text-gray-400">
-          Phase 0 · Foundation · 만 19세 이상만 참여 가능
+      </section>
+    </AppShell>
+  );
+}
+
+function Step({ n, title, body }: { n: number; title: string; body: string }) {
+  return (
+    <div className="card-shadow flex items-start gap-3 rounded-2xl bg-white/80 p-4 backdrop-blur dark:bg-stone-900/70">
+      <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+        {n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+          {title}
+        </p>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-stone-600 dark:text-stone-400">
+          {body}
         </p>
       </div>
-    </main>
+    </div>
   );
 }

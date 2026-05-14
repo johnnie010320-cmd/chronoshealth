@@ -1,32 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { AppShell } from '@/components/AppShell';
 import { SurveyForm } from '@/features/risk-survey/SurveyForm';
 import { ResultDisplay } from '@/features/risk-survey/ResultDisplay';
+import { useI18n } from '@/lib/i18n';
 import type { RiskSurveyResponse } from '@/lib/schemas';
 
 export default function SurveyPage() {
+  const { t } = useI18n();
   const [result, setResult] = useState<RiskSurveyResponse | null>(null);
 
   return (
-    <main className="min-h-screen px-4 py-8 md:py-12">
-      <div className="max-w-3xl mx-auto">
-        <header className="mb-8">
-          <Link
-            href="/"
-            className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white"
-          >
-            ← Chronos Health
-          </Link>
-        </header>
-
+    <AppShell
+      showBack
+      backHref="/"
+      title={result ? t.result.pageTitle : t.survey.pageTitle}
+      decoration="dots"
+    >
+      <div className="mt-2">
         {result ? (
           <ResultDisplay data={result} onReset={() => setResult(null)} />
         ) : (
           <SurveyForm onSuccess={setResult} />
         )}
       </div>
-    </main>
+    </AppShell>
   );
 }

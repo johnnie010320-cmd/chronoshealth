@@ -1,0 +1,100 @@
+import type { Dictionary } from './ko';
+
+export const ja: Dictionary = {
+  meta: {
+    title: 'Chronos Health — ベータ',
+    description:
+      '健康データから始める予防医学。生体年齢と5年以内のリスク推定レポートを即時に発行。',
+  },
+  brand: 'Chronos Health',
+  beta: 'BETA',
+  language: {
+    label: '言語',
+    ko: '한국어',
+    en: 'English',
+    ja: '日本語',
+    es: 'Español',
+  },
+  common: {
+    back: '戻る',
+    cancel: 'キャンセル',
+    retry: '再試行',
+  },
+  landing: {
+    eyebrow: 'Preventive medicine · 2026',
+    headingLine1: '長く生きるための',
+    headingLine2: '今日の習慣',
+    body: '過去の健康情報と生活データから、生体年齢と5年リスクを推定します。',
+    howItWorks: '仕組み',
+    step1Title: '23問のアンケート',
+    step1Body: '生活習慣・身体測定値・家族歴。2〜3分。',
+    step2Title: 'モックレポートを即時発行',
+    step2Body: '生体年齢 + 5年主要リスク + 改善行動。',
+    step3Title: 'データは自分で管理',
+    step3Body: '保存・匿名活用は任意。いつでも撤回可能。',
+    disclaimer:
+      '本サービスは医療行為を代替するものではなく、健康増進の参考用です。満19歳以上のみご利用いただけます。',
+    cta: 'アンケート開始',
+  },
+  survey: {
+    pageTitle: 'ベータ アンケート',
+    heroTitle: '今日の健康を入力してください',
+    heroBody:
+      '23問 · 2〜3分 · 同意なしに回答が保存されることはありません。',
+    section: {
+      step: 'STEP',
+      demographics: '基本情報',
+      lifestyle: '生活習慣',
+      vitals: '身体測定値',
+      vitalsHint: '不明なら空欄でOK。推定精度は若干下がります。',
+      familyHistory: '家族歴',
+      perception: '自己認識',
+      consent: 'データ同意（任意）',
+    },
+    submit: 'モックレポートを受け取る',
+    submitting: '計算中…',
+    bottomDisclaimer:
+      '本レポートは医療行為を代替するものではなく、健康増進の参考用です。',
+    error: {
+      validation: '入力値の確認が必要',
+      UNAUTHORIZED: '認証が必要です（ベータトークン不足）。',
+      AGE_RESTRICTED: '満19歳未満は利用できません。',
+      RATE_LIMITED: '1日のリクエスト上限（5回）を超過しました。',
+      INVALID_INPUT: '入力値を再確認してください。',
+      INVALID_JSON: 'リクエスト形式が正しくありません。',
+      generic: 'サーバーエラー',
+    },
+  },
+  result: {
+    pageTitle: 'マイレポート',
+    bioAgeEyebrow: '生体年齢の推定',
+    bioAgeUnit: '歳',
+    bioAgeDiffPrefix: '実年齢',
+    bioAgeDiffSuffix: '歳と比較',
+    bioAgeYearSuffix: '年',
+    bioAgeCi: '95% 信頼区間',
+    contributorsTitle: '主要な寄与要因',
+    diseaseRiskTitle: '5年主要リスク',
+    diseaseRiskEmpty: '表示するリスクがありません。',
+    diseaseRiskCategory: {
+      low: '低',
+      moderate: '中',
+      high: '高',
+    },
+    diseaseRisk5yLabel: '5年',
+    improvementTitle: '改善行動の提案',
+    improvementEmpty:
+      '現段階はモック値です。実モデル導入後に個人最適化された提案が表示されます。',
+    improvementConfidence: '信頼度',
+    improvementBioAgeUnit: '生体年齢',
+    improvementFactorPrefix: '改善可能',
+    modelLabel: 'モデル',
+    reportIdLabel: 'ID',
+    resetCta: 'アンケートをやり直す',
+    hotlines: {
+      title: '支援を受けられます — すぐにご連絡を',
+      suicide: '自殺予防相談',
+      mentalHealth: '精神保健危機相談',
+    },
+  },
+};

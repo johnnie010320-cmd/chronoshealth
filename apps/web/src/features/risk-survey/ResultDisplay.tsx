@@ -1,3 +1,12 @@
+'use client';
+
+import { PulseBackground } from '@/components/PulseBackground';
+import {
+  AlertIcon,
+  HeartPulseIcon,
+  LeafIcon,
+} from '@/components/HealthIcons';
+import { useI18n } from '@/lib/i18n';
 import type { RiskSurveyResponse } from '@/lib/schemas';
 
 type Props = {
@@ -5,43 +14,30 @@ type Props = {
   onReset: () => void;
 };
 
-const CATEGORY_COLOR: Record<'low' | 'moderate' | 'high', string> = {
-  low: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-900',
-  moderate: 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-900',
-  high: 'bg-red-50 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-900',
-};
-
-const CATEGORY_LABEL: Record<'low' | 'moderate' | 'high', string> = {
-  low: '낮음',
-  moderate: '보통',
-  high: '높음',
+const CATEGORY_CLASSES: Record<'low' | 'moderate' | 'high', string> = {
+  low: 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-100 dark:border-emerald-900',
+  moderate:
+    'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-900',
+  high: 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:text-rose-100 dark:border-rose-900',
 };
 
 export function ResultDisplay({ data, onReset }: Props) {
+  const { t, locale } = useI18n();
+  const R = t.result;
   const hasHotlines =
-    data.hotlines.suicidePrevention || data.hotlines.mentalHealthCrisis;
+    !!data.hotlines.suicidePrevention || !!data.hotlines.mentalHealthCrisis;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 pb-28">
       {hasHotlines && <HotlinesBanner hotlines={data.hotlines} />}
 
-      <header className="space-y-1">
-        <p className="text-xs uppercase tracking-widest text-gray-500">
-          모의 리포트 · {data.modelVersion}
-        </p>
-        <h1 className="text-2xl md:text-3xl font-bold">건강 위험 추정 리포트</h1>
-        <p className="text-xs text-gray-500">
-          생성: {new Date(data.generatedAt).toLocaleString('ko-KR')} · ID: {data.reportId.slice(0, 8)}
-        </p>
-      </header>
+      <BioAgeHero bio={data.bioAge} generatedAt={data.generatedAt} locale={locale} />
 
-      <BioAgeCard bio={data.bioAge} />
-
-      <Section title="5년 주요 질병 위험">
+      <Section title={R.diseaseRiskTitle}>
         {data.diseaseRisk.length === 0 ? (
-          <Empty>표시할 위험 항목이 없습니다.</Empty>
+          <Empty>{R.diseaseRiskEmpty}</Empty>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-2.5">
             {data.diseaseRisk.map((r) => (
               <DiseaseRiskCard key={r.code} risk={r} />
             ))}
@@ -49,9 +45,12 @@ export function ResultDisplay({ data, onReset }: Props) {
         )}
       </Section>
 
-      <Section title="개선 행동 제안">
+      <Section
+        title={R.improvementTitle}
+        icon={<LeafIcon className="h-4 w-4" />}
+      >
         {data.improvement.length === 0 ? (
-          <Empty>현 단계는 모의값입니다. 실제 계산식 도입 후 개인 맞춤 제안이 표시됩니다.</Empty>
+          <Empty>{R.improvementEmpty}</Empty>
         ) : (
           <div className="space-y-2">
             {data.improvement.map((i, idx) => (
@@ -61,82 +60,139 @@ export function ResultDisplay({ data, onReset }: Props) {
         )}
       </Section>
 
-      <div className="p-4 rounded-lg border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900">
-        <p className="text-sm text-gray-700 dark:text-gray-300">{data.disclaimer}</p>
+      <div className="rounded-2xl border border-stone-200 bg-white/80 p-4 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70">
+        <p className="text-[12px] leading-relaxed text-stone-600 dark:text-stone-400">
+          {data.disclaimer}
+        </p>
+        <p className="mt-2 text-[10px] text-stone-400 dark:text-stone-500">
+          {R.modelLabel}: {data.modelVersion} · {R.reportIdLabel}{' '}
+          {data.reportId.slice(0, 8)}
+        </p>
       </div>
 
-      <button
-        type="button"
-        onClick={onReset}
-        className="w-full py-3 border border-gray-300 dark:border-neutral-700 rounded-full text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-900 transition"
-      >
-        설문 다시 작성
-      </button>
+      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-stone-200/60 bg-white/80 px-5 pt-3 pb-5 backdrop-blur-md dark:border-stone-800/60 dark:bg-stone-950/80">
+        <button
+          type="button"
+          onClick={onReset}
+          className="inline-flex w-full items-center justify-center rounded-2xl border border-stone-300 bg-white px-6 py-4 text-base font-semibold text-stone-900 transition active:scale-[0.98] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+        >
+          {R.resetCta}
+        </button>
+      </div>
     </div>
   );
 }
 
-function BioAgeCard({ bio }: { bio: RiskSurveyResponse['bioAge'] }) {
+function BioAgeHero({
+  bio,
+  generatedAt,
+  locale,
+}: {
+  bio: RiskSurveyResponse['bioAge'];
+  generatedAt: string;
+  locale: string;
+}) {
+  const { t } = useI18n();
+  const R = t.result;
   const diff = bio.value - bio.chronologicalAge;
   const tone =
     diff <= 0
-      ? 'text-emerald-700 dark:text-emerald-300'
+      ? 'text-emerald-100'
       : diff <= 3
-        ? 'text-amber-700 dark:text-amber-300'
-        : 'text-red-700 dark:text-red-300';
+        ? 'text-amber-100'
+        : 'text-rose-100';
+
+  const intlLocale =
+    locale === 'ko' ? 'ko-KR' : locale === 'ja' ? 'ja-JP' : locale === 'es' ? 'es-ES' : 'en-US';
 
   return (
-    <div className="p-6 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-      <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">생체 나이 추정</p>
-      <div className="flex items-baseline gap-3 flex-wrap">
-        <span className="text-5xl font-bold">{bio.value}</span>
-        <span className="text-sm text-gray-500">세</span>
-        <span className={`text-sm font-medium ${tone}`}>
-          실제 나이 {bio.chronologicalAge}세 대비 {diff >= 0 ? '+' : ''}
-          {diff}년
-        </span>
-      </div>
-      <p className="text-xs text-gray-500 mt-2">
-        95% 신뢰구간: {bio.ci95[0]} ~ {bio.ci95[1]}세
-      </p>
-      {bio.topContributors.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-neutral-800">
-          <p className="text-xs text-gray-500 mb-2">주요 기여 요인 (상위 3)</p>
-          <ul className="space-y-1 text-sm">
-            {bio.topContributors.map((c, i) => (
-              <li key={i} className="flex items-center gap-2">
-                <span
-                  className={
-                    c.direction === 'accelerate'
-                      ? 'text-red-600'
-                      : 'text-emerald-600'
-                  }
-                >
-                  {c.direction === 'accelerate' ? '↑' : '↓'}
-                </span>
-                <span>{c.factor}</span>
-              </li>
-            ))}
-          </ul>
+    <section className="card-shadow relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-800 via-brand-700 to-teal-600 px-6 py-7 text-white">
+      <PulseBackground variant="bottom" />
+      <div className="relative">
+        <div className="flex items-center gap-2 text-white/80">
+          <HeartPulseIcon className="h-4 w-4" />
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em]">
+            {R.bioAgeEyebrow}
+          </p>
         </div>
-      )}
-    </div>
+        <div className="mt-3 flex items-baseline gap-2">
+          <span className="text-6xl font-bold leading-none tracking-tight">
+            {bio.value}
+          </span>
+          <span className="text-sm text-white/70">{R.bioAgeUnit}</span>
+        </div>
+        <p className={`mt-2 text-sm font-medium ${tone}`}>
+          {R.bioAgeDiffPrefix} {bio.chronologicalAge}
+          {R.bioAgeDiffSuffix} {diff >= 0 ? '+' : ''}
+          {diff} {R.bioAgeYearSuffix}
+        </p>
+        <p className="mt-1 text-[11px] text-white/60">
+          {R.bioAgeCi} {bio.ci95[0]} ~ {bio.ci95[1]} {R.bioAgeUnit} ·{' '}
+          {new Date(generatedAt).toLocaleString(intlLocale, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </p>
+
+        {bio.topContributors.length > 0 && (
+          <div className="mt-4 border-t border-white/15 pt-4">
+            <p className="mb-2 text-[11px] uppercase tracking-widest text-white/70">
+              {R.contributorsTitle}
+            </p>
+            <ul className="space-y-1.5 text-sm">
+              {bio.topContributors.map((c, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs ${
+                      c.direction === 'accelerate'
+                        ? 'bg-rose-400/20 text-rose-100'
+                        : 'bg-emerald-400/20 text-emerald-100'
+                    }`}
+                  >
+                    {c.direction === 'accelerate' ? '↑' : '↓'}
+                  </span>
+                  <span>{c.factor}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
-function DiseaseRiskCard({ risk }: { risk: RiskSurveyResponse['diseaseRisk'][number] }) {
+function DiseaseRiskCard({
+  risk,
+}: {
+  risk: RiskSurveyResponse['diseaseRisk'][number];
+}) {
+  const { t } = useI18n();
+  const R = t.result;
   const pct = (risk.probability5y * 100).toFixed(1);
   return (
-    <div className={`p-4 rounded-lg border ${CATEGORY_COLOR[risk.riskCategory]}`}>
-      <p className="text-xs uppercase tracking-widest opacity-75">{risk.code}</p>
-      <p className="text-base font-semibold mt-1">{risk.label}</p>
-      <div className="flex items-baseline gap-2 mt-2">
-        <span className="text-2xl font-bold">{pct}%</span>
-        <span className="text-xs opacity-80">5년 위험 · {CATEGORY_LABEL[risk.riskCategory]}</span>
+    <div
+      className={`rounded-2xl border p-4 ${CATEGORY_CLASSES[risk.riskCategory]}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-widest opacity-70">
+            {risk.code}
+          </p>
+          <p className="mt-0.5 text-sm font-semibold">{risk.label}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xl font-bold leading-none">{pct}%</p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-widest opacity-70">
+            {R.diseaseRiskCategory[risk.riskCategory]} · {R.diseaseRisk5yLabel}
+          </p>
+        </div>
       </div>
       {risk.modifiableFactors.length > 0 && (
-        <p className="text-xs opacity-80 mt-2">
-          개선 가능: {risk.modifiableFactors.join(', ')}
+        <p className="mt-2 text-[11px] opacity-80">
+          {R.improvementFactorPrefix}: {risk.modifiableFactors.join(', ')}
         </p>
       )}
     </div>
@@ -148,18 +204,26 @@ function ImprovementCard({
 }: {
   improvement: RiskSurveyResponse['improvement'][number];
 }) {
+  const { t } = useI18n();
+  const R = t.result;
   return (
-    <div className="p-4 rounded-lg border border-gray-200 dark:border-neutral-800 flex items-start justify-between gap-3">
-      <div>
-        <p className="text-sm font-medium">{improvement.action}</p>
-        <p className="text-xs text-gray-500 mt-0.5">신뢰도: {improvement.confidence}</p>
-      </div>
-      <div className="text-right">
-        <p className="text-sm font-semibold text-emerald-600">
-          {improvement.expectedBioAgeDeltaYears >= 0 ? '+' : ''}
-          {improvement.expectedBioAgeDeltaYears.toFixed(1)}년
+    <div className="card-shadow flex items-start justify-between gap-3 rounded-2xl bg-white p-4 dark:bg-stone-900">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+          {improvement.action}
         </p>
-        <p className="text-xs text-gray-500">생체 나이</p>
+        <p className="mt-0.5 text-[11px] text-stone-500">
+          {R.improvementConfidence} {improvement.confidence}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+          {improvement.expectedBioAgeDeltaYears >= 0 ? '+' : ''}
+          {improvement.expectedBioAgeDeltaYears.toFixed(1)} {R.bioAgeYearSuffix}
+        </p>
+        <p className="text-[10px] uppercase tracking-widest text-stone-400">
+          {R.improvementBioAgeUnit}
+        </p>
       </div>
     </div>
   );
@@ -170,33 +234,52 @@ function HotlinesBanner({
 }: {
   hotlines: RiskSurveyResponse['hotlines'];
 }) {
+  const { t } = useI18n();
+  const H = t.result.hotlines;
   return (
-    <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-100">
-      <p className="text-sm font-semibold mb-1">🚨 도움이 필요하시면 즉시 연락해주세요</p>
-      <ul className="text-sm space-y-1">
-        {hotlines.suicidePrevention && (
-          <li>자살예방상담전화: <strong>{hotlines.suicidePrevention}</strong></li>
-        )}
-        {hotlines.mentalHealthCrisis && (
-          <li>정신건강위기상담전화: <strong>{hotlines.mentalHealthCrisis}</strong></li>
-        )}
-      </ul>
+    <div
+      role="alert"
+      className="flex items-start gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100"
+    >
+      <AlertIcon className="mt-0.5 h-5 w-5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">{H.title}</p>
+        <ul className="mt-1.5 space-y-0.5 text-sm">
+          {hotlines.suicidePrevention && (
+            <li>
+              {H.suicide}: <strong>{hotlines.suicidePrevention}</strong>
+            </li>
+          )}
+          {hotlines.mentalHealthCrisis && (
+            <li>
+              {H.mentalHealth}: <strong>{hotlines.mentalHealthCrisis}</strong>
+            </li>
+          )}
+        </ul>
+      </div>
     </div>
   );
 }
 
 function Section({
   title,
+  icon,
   children,
 }: {
   title: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section>
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500 mb-3">
-        {title}
-      </h2>
+      <div className="mb-2 flex items-center gap-1.5 px-1">
+        {icon && (
+          <span className="text-stone-500 dark:text-stone-400">{icon}</span>
+        )}
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {title}
+        </h2>
+      </div>
       {children}
     </section>
   );
@@ -204,7 +287,7 @@ function Section({
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-sm text-gray-500 italic p-4 border border-dashed border-gray-200 dark:border-neutral-800 rounded-lg text-center">
+    <p className="rounded-2xl border border-dashed border-stone-200 p-4 text-center text-[12px] italic text-stone-500 dark:border-stone-800">
       {children}
     </p>
   );
