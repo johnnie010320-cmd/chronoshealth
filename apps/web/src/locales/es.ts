@@ -145,4 +145,52 @@ export const es: Dictionary = {
       mentalHealth: 'Crisis de salud mental',
     },
   },
+  signup: {
+    pageTitle: 'Registro',
+    heroTitle: 'Regístrate antes de empezar',
+    heroBody:
+      'Tu nombre, teléfono y correo se guardan en un almacén de identidad aislado y nunca se comparten fuera del servicio.',
+    section: {
+      identity: 'Sobre ti',
+      consent: 'Consentimiento',
+    },
+    fields: {
+      name: { label: 'Nombre', placeholder: 'Tu nombre' },
+      email: { label: 'Correo', placeholder: 'tu@ejemplo.com' },
+      phone: { label: 'Teléfono', placeholder: '+34-600-000-000' },
+      birthYear: { label: 'Año de nacimiento', placeholder: 'ej.: 1990' },
+      sex: {
+        label: 'Sexo',
+        options: { male: 'Hombre', female: 'Mujer', other: 'Otro' },
+      },
+    },
+    consent: {
+      medical: {
+        label: 'Procesamiento de datos de salud (obligatorio)',
+        description:
+          'Acepto que se procesen mi encuesta, mediciones e historial familiar con fines de estimación de riesgo.',
+      },
+      terms: {
+        label: 'Términos del servicio y política de privacidad (obligatorio)',
+        description:
+          'Acepto los términos del servicio y la política de privacidad.',
+      },
+    },
+    submit: 'Registrarme y empezar',
+    submitting: 'Registrando…',
+    bottomNote:
+      'La verificación de identidad y el inicio de sesión con contraseña llegarán más adelante. Esto es una beta privada.',
+    error: {
+      validation: 'Revisa los datos',
+      AGE_RESTRICTED: 'Debes tener 19+ para registrarte.',
+      CONSENT_REQUIRED:
+        'Se requieren los consentimientos de datos de salud y términos.',
+      IDENTITY_EXISTS:
+        'Esta cuenta ya existe. El inicio de sesión en varios dispositivos llegará con la verificación de identidad.',
+      RATE_LIMITED: 'Límite diario de registros (10) superado.',
+      INVALID_INPUT: 'Revisa los datos ingresados.',
+      INVALID_JSON: 'Formato de solicitud inválido.',
+      generic: 'Error del servidor',
+    },
+  },
 };

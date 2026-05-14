@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { PulseBackground } from '@/components/PulseBackground';
@@ -10,10 +11,16 @@ import {
   ChevronRightIcon,
 } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
+import { readSession } from '@/lib/session';
 
 export default function HomePage() {
   const { t } = useI18n();
   const L = t.landing;
+  const [ctaHref, setCtaHref] = useState('/signup');
+
+  useEffect(() => {
+    setCtaHref(readSession() ? '/survey' : '/signup');
+  }, []);
 
   return (
     <AppShell decoration="dots">
@@ -58,7 +65,7 @@ export default function HomePage() {
         </div>
 
         <Link
-          href="/survey"
+          href={ctaHref}
           className="mt-5 inline-flex w-full items-center justify-between rounded-2xl bg-stone-900 px-6 py-4 text-base font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
         >
           <span>{L.cta}</span>

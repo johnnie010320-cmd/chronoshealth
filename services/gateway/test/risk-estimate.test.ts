@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import app from '../src/index.js';
 import { __clearRateLimit } from '../src/middleware/rate-limit.js';
+import { __clearIpRateLimit } from '../src/middleware/ip-rate-limit.js';
 import { MODEL_VERSION } from '../src/risk/index.js';
+import { makeMockIdentityDb, issueTestToken } from './helpers/mock-d1.js';
 
 type SurveyBody = {
   birthYear: number;
@@ -72,21 +74,6 @@ const riskyMale60: SurveyBody = {
   consentToResearch: false,
 };
 
-const authHeaders = {
-  'Content-Type': 'application/json',
-  Authorization: 'Bearer test-token-123',
-};
-
-const post = async (
-  body: unknown,
-  headers: Record<string, string> = authHeaders,
-): Promise<Response> =>
-  app.request('/api/v1/risk-estimate', {
-    method: 'POST',
-    headers,
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  });
-
 type ResponseShape = {
   reportId: string;
   generatedAt: string;
@@ -121,9 +108,32 @@ type ResponseShape = {
 };
 
 describe('POST /api/v1/risk-estimate (Slice 03 real model)', () => {
+  let mock: ReturnType<typeof makeMockIdentityDb>;
+  let token: string;
+
   beforeEach(() => {
     __clearRateLimit();
+    __clearIpRateLimit();
+    mock = makeMockIdentityDb();
+    token = issueTestToken(mock.state).token;
   });
+
+  const post = async (
+    body: unknown,
+    overrideHeaders?: Record<string, string>,
+  ): Promise<Response> =>
+    app.request(
+      '/api/v1/risk-estimate',
+      {
+        method: 'POST',
+        headers: overrideHeaders ?? {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: typeof body === 'string' ? body : JSON.stringify(body),
+      },
+      { IDENTITY_DB: mock.db, ENVIRONMENT: 'dev' },
+    );
 
   describe('정상 흐름', () => {
     it('valid 입력 → 200 + modelVersion rs-v0.1.0', async () => {
@@ -242,6 +252,14 @@ describe('POST /api/v1/risk-estimate (Slice 03 real model)', () => {
     it('401 no auth', async () => {
       const res = await post(healthyMale30, {
         'Content-Type': 'application/json',
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it('401 invalid token', async () => {
+      const res = await post(healthyMale30, {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer not-a-real-token',
       });
       expect(res.status).toBe(401);
     });

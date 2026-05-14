@@ -142,4 +142,51 @@ export const ja: Dictionary = {
       mentalHealth: '精神保健危機相談',
     },
   },
+  signup: {
+    pageTitle: '会員登録',
+    heroTitle: 'はじめる前にご登録ください',
+    heroBody:
+      '氏名・電話番号・メールは本サービスの隔離保管庫に保存され、外部に共有されることはありません。',
+    section: {
+      identity: 'ご本人の情報',
+      consent: '同意',
+    },
+    fields: {
+      name: { label: '氏名', placeholder: '山田 太郎' },
+      email: { label: 'メール', placeholder: 'you@example.com' },
+      phone: { label: '電話番号', placeholder: '+81-90-1234-5678' },
+      birthYear: { label: '生年', placeholder: '例: 1990' },
+      sex: {
+        label: '性別',
+        options: { male: '男性', female: '女性', other: 'その他' },
+      },
+    },
+    consent: {
+      medical: {
+        label: '健康データ処理への同意（必須）',
+        description:
+          'アンケート・測定値・家族歴を健康リスク推定の目的で処理することに同意します。',
+      },
+      terms: {
+        label: '利用規約・プライバシーポリシーへの同意（必須）',
+        description:
+          '利用規約およびプライバシーポリシーに同意します。',
+      },
+    },
+    submit: '登録してアンケート開始',
+    submitting: '登録中…',
+    bottomNote:
+      '本人認証・パスワードログインは後続段階で追加されます。現段階は非公開ベータです。',
+    error: {
+      validation: '入力値の確認が必要',
+      AGE_RESTRICTED: '満19歳未満は登録できません。',
+      CONSENT_REQUIRED: '健康データ処理および利用規約への同意が必要です。',
+      IDENTITY_EXISTS:
+        'すでに登録されている情報です。マルチデバイスログインは本人認証導入後に提供されます。',
+      RATE_LIMITED: '1日の登録試行上限（10回）を超過しました。',
+      INVALID_INPUT: '入力値を再確認してください。',
+      INVALID_JSON: 'リクエスト形式が正しくありません。',
+      generic: 'サーバーエラー',
+    },
+  },
 };

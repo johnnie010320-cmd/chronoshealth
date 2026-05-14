@@ -139,6 +139,53 @@ export const ko = {
       mentalHealth: '정신건강위기상담전화',
     },
   },
+  signup: {
+    pageTitle: '회원가입',
+    heroTitle: '시작하기 전에 가입해주세요',
+    heroBody:
+      '이름·전화·이메일은 본 서비스 외부로 공유되지 않으며 별도 격리 저장소에 보관됩니다.',
+    section: {
+      identity: '본인 정보',
+      consent: '동의',
+    },
+    fields: {
+      name: { label: '이름', placeholder: '홍길동' },
+      email: { label: '이메일', placeholder: 'you@example.com' },
+      phone: { label: '전화번호', placeholder: '010-1234-5678' },
+      birthYear: { label: '출생 연도', placeholder: '예: 1990' },
+      sex: {
+        label: '성별',
+        options: { male: '남성', female: '여성', other: '기타' },
+      },
+    },
+    consent: {
+      medical: {
+        label: '건강 데이터 처리 동의 (필수)',
+        description:
+          '입력하신 설문·측정값·가족력을 위험 추정 목적으로 처리하는 데 동의합니다.',
+      },
+      terms: {
+        label: '이용약관 및 개인정보 처리방침 동의 (필수)',
+        description:
+          '서비스 이용약관 및 개인정보 처리방침에 동의합니다.',
+      },
+    },
+    submit: '가입하고 설문 시작',
+    submitting: '가입 중…',
+    bottomNote:
+      '본인 인증 / 비밀번호는 향후 단계에서 추가됩니다. 현 단계는 비공개 베타 입니다.',
+    error: {
+      validation: '입력값 확인 필요',
+      AGE_RESTRICTED: '만 19세 미만은 가입할 수 없습니다.',
+      CONSENT_REQUIRED: '건강 데이터 처리 및 이용약관 동의가 필요합니다.',
+      IDENTITY_EXISTS:
+        '이미 가입된 정보입니다. 멀티 디바이스 로그인은 향후 본인 인증 도입 후 제공됩니다.',
+      RATE_LIMITED: '일일 가입 시도 한도(10회)를 초과했습니다.',
+      INVALID_INPUT: '입력값을 다시 확인해주세요.',
+      INVALID_JSON: '요청 형식이 올바르지 않습니다.',
+      generic: '서버 오류',
+    },
+  },
 };
 
 export type Dictionary = typeof ko;

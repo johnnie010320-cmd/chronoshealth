@@ -3,12 +3,16 @@ import { RiskSurveyRequest } from '../schemas/risk-survey.js';
 import { authMiddleware, type AuthVariables } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import { estimate } from '../risk/index.js';
+import type { Bindings } from '../bindings.js';
 
 // Slice 03: 실제 계산식 (Framingham + 경험적 bio age 모델). modelVersion = 'rs-v0.1.0'.
 const RATE_LIMIT_PER_DAY = 5;
 const MIN_AGE = 19;
 
-export const riskEstimateRoute = new Hono<{ Variables: AuthVariables }>();
+export const riskEstimateRoute = new Hono<{
+  Bindings: Bindings;
+  Variables: AuthVariables;
+}>();
 
 riskEstimateRoute.post(
   '/',

@@ -145,4 +145,51 @@ export const en: Dictionary = {
       mentalHealth: 'Mental health crisis',
     },
   },
+  signup: {
+    pageTitle: 'Sign up',
+    heroTitle: 'Sign up before you start',
+    heroBody:
+      'Your name, phone, and email are kept in an isolated identity store and are never shared outside this service.',
+    section: {
+      identity: 'About you',
+      consent: 'Consent',
+    },
+    fields: {
+      name: { label: 'Name', placeholder: 'Your name' },
+      email: { label: 'Email', placeholder: 'you@example.com' },
+      phone: { label: 'Phone', placeholder: '+1-555-555-5555' },
+      birthYear: { label: 'Birth year', placeholder: 'e.g., 1990' },
+      sex: {
+        label: 'Sex',
+        options: { male: 'Male', female: 'Female', other: 'Other' },
+      },
+    },
+    consent: {
+      medical: {
+        label: 'Health data processing (required)',
+        description:
+          'I consent to using my survey, measurements, and family history for risk estimation.',
+      },
+      terms: {
+        label: 'Terms of service and privacy policy (required)',
+        description:
+          'I agree to the terms of service and privacy policy.',
+      },
+    },
+    submit: 'Sign up and start',
+    submitting: 'Signing up…',
+    bottomNote:
+      'Identity verification and password sign-in arrive later. This is a private beta.',
+    error: {
+      validation: 'Input check needed',
+      AGE_RESTRICTED: 'You must be 19+ to sign up.',
+      CONSENT_REQUIRED: 'Health data and terms consent are required.',
+      IDENTITY_EXISTS:
+        'This account already exists. Multi-device login will arrive with identity verification later.',
+      RATE_LIMITED: 'Daily signup limit (10) exceeded.',
+      INVALID_INPUT: 'Please re-check your inputs.',
+      INVALID_JSON: 'Invalid request format.',
+      generic: 'Server error',
+    },
+  },
 };
