@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { HeartPulseIcon, ArrowLeftIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { UserMenu } from './UserMenu';
+import { BottomNav } from './BottomNav';
 import { useI18n } from '@/lib/i18n';
 
 type Props = {
@@ -12,6 +14,7 @@ type Props = {
   backHref?: string;
   title?: string;
   decoration?: 'pulse' | 'dots' | 'none';
+  hideBottomNav?: boolean;
 };
 
 export function AppShell({
@@ -20,6 +23,7 @@ export function AppShell({
   backHref = '/',
   title,
   decoration = 'dots',
+  hideBottomNav = false,
 }: Props) {
   const { t } = useI18n();
 
@@ -56,22 +60,26 @@ export function AppShell({
           </Link>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {title ? (
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <span className="mr-1 text-sm font-medium text-stone-700 dark:text-stone-300">
               {title}
             </span>
           ) : (
-            <span className="text-[10px] font-medium uppercase tracking-widest text-brand-700 dark:text-brand-400">
+            <span className="mr-1 text-[10px] font-medium uppercase tracking-widest text-brand-700 dark:text-brand-400">
               {t.beta}
             </span>
           )}
           <LanguageSwitcher />
+          <UserMenu />
         </div>
       </header>
 
-      <div className="flex-1 px-5 pb-8">{children}</div>
+      <div className={`flex-1 px-5 ${hideBottomNav ? 'pb-8' : 'pb-24'}`}>
+        {children}
+      </div>
 
+      {!hideBottomNav && <BottomNav />}
       <div className="safe-bottom" />
     </div>
   );

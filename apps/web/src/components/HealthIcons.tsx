@@ -118,3 +118,71 @@ export function AlertIcon({ className, strokeWidth }: IconProps) {
     </svg>
   );
 }
+
+export function HomeIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+      <path d="M9 22V12h6v10" />
+    </svg>
+  );
+}
+
+export function FileTextIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v5h6" />
+      <path d="M8 13h8" />
+      <path d="M8 17h6" />
+    </svg>
+  );
+}
+
+export function ChartIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M3 3v18h18" />
+      <path d="m7 14 4-4 4 4 5-6" />
+    </svg>
+  );
+}
+
+export function UserCircleIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6.5 19a6 6 0 0 1 11 0" />
+    </svg>
+  );
+}
+
+export function MenuIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+export function LogoutIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}

@@ -22,6 +22,7 @@ export default function SignupPage() {
       backHref="/"
       title={t.signup.pageTitle}
       decoration="dots"
+      hideBottomNav
     >
       <div className="mt-2">
         <SignupForm />

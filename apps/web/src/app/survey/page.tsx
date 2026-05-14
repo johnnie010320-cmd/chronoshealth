@@ -31,6 +31,7 @@ export default function SurveyPage() {
       backHref="/"
       title={result ? t.result.pageTitle : t.survey.pageTitle}
       decoration="dots"
+      hideBottomNav={result === null}
     >
       <div className="mt-2">
         {result ? (

@@ -145,6 +145,42 @@ export const es: Dictionary = {
       mentalHealth: 'Crisis de salud mental',
     },
   },
+  nav: {
+    home: 'Inicio',
+    survey: 'Encuesta',
+    reports: 'Informes',
+    stats: 'Estadísticas',
+    profile: 'Perfil',
+  },
+  userMenu: {
+    open: 'Abrir menú',
+    login: 'Iniciar sesión',
+    loginUnavailable:
+      'El inicio de sesión llegará con la verificación de identidad',
+    signup: 'Registro',
+    profile: 'Mi perfil',
+    logout: 'Cerrar sesión',
+  },
+  comingSoon: {
+    title: 'Próximamente',
+    body: 'Esta pantalla llegará en una etapa posterior. En esta beta solo funcionan Inicio y Encuesta.',
+    backHome: 'Volver al inicio',
+  },
+  profile: {
+    pageTitle: 'Mi perfil',
+    sectionAccount: 'Cuenta',
+    sectionPrivacy: 'Privacidad / Consentimiento',
+    pseudonymLabel: 'ID anónimo',
+    expiresAtLabel: 'Sesión expira',
+    note: 'Tu nombre, teléfono y correo se guardan en una bóveda de identidad aislada y no se muestran en esta pantalla (ADR 0003).',
+    consentMedical: 'Consentimiento de procesamiento de datos de salud',
+    consentTerms: 'Consentimiento de términos del servicio',
+    consentResearch: 'Consentimiento de uso anónimo en investigación (opcional)',
+    consentGrantedAt: 'Otorgado el',
+    logout: 'Cerrar sesión',
+    logoutConfirm:
+      'Cerrar sesión elimina la sesión en este dispositivo. El reinicio de sesión llegará con la verificación de identidad.',
+  },
   signup: {
     pageTitle: 'Registro',
     heroTitle: 'Regístrate antes de empezar',
