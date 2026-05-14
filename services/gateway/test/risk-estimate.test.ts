@@ -183,6 +183,37 @@ describe('GET /health', () => {
   });
 });
 
+describe('CORS', () => {
+  it('OPTIONS preflight from allowed origin → 헤더 포함 응답', async () => {
+    const res = await app.request('/api/v1/risk-estimate', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://chronoshealth.ever-day.com',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'Content-Type,Authorization',
+      },
+    });
+    expect(res.status).toBeLessThan(400);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://chronoshealth.ever-day.com',
+    );
+    expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+  });
+
+  it('OPTIONS preflight from unknown origin → CORS 헤더 없음 (브라우저가 차단)', async () => {
+    const res = await app.request('/api/v1/risk-estimate', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://evil.example.com',
+        'Access-Control-Request-Method': 'POST',
+      },
+    });
+    expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe(
+      'https://evil.example.com',
+    );
+  });
+});
+
 describe('GET unknown', () => {
   it('404 NOT_FOUND', async () => {
     const res = await app.request('/no-such-path');
