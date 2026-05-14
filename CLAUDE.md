@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-**P0 기반 구축 (Day 5 완료 / 0~4주차)** — first spec `risk-survey` Accepted + 5 슬라이스 분해 완료. 다음 Day 6 (TDD 구현). `docs/work-procedure.txt` 5장 로드맵 참조
+**P0 기반 구축 (Day 6 완료 / 0~4주차)** — Slice 02 (risk-estimate mock API) 구현 + 15 테스트 통과. 다음 Day 7 (1주차 회고) 또는 Slice 01/03/04/05 진행. `docs/work-procedure.txt` 5장 로드맵 참조
 
 ## 임시 도메인 (ADR 0006)
 
