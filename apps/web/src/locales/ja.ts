@@ -35,6 +35,7 @@ export const ja: Dictionary = {
     disclaimer:
       '本サービスは医療行為を代替するものではなく、健康増進の参考用です。満19歳以上のみご利用いただけます。',
     cta: 'アンケート開始',
+    roadmapLink: '全体ロードマップを見る',
   },
   survey: {
     pageTitle: 'ベータ アンケート',
@@ -204,6 +205,69 @@ export const ja: Dictionary = {
     logout: 'ログアウト',
     logoutConfirm:
       'ログアウトするとこの端末のセッションが削除されます。再ログインは本人認証導入後に提供されます。',
+  },
+  roadmap: {
+    pageTitle: 'ロードマップ',
+    nav: 'ロードマップ',
+    hero: {
+      eyebrow: 'Roadmap · 11 modules · 64 weeks',
+      title: 'Chronos Health を作り上げる道のり',
+      body: 'AI 健康リスク予測 + 分散型データ主権 + Health-to-Earn トークン。ベータから本格リリースまでの全体像。',
+    },
+    currentLive: {
+      badge: '現在ご利用可能',
+      title: 'P0 W21 — ベータ基盤',
+      items: [
+        '23 項目の生活アンケート → 生体年齢推定（Framingham + ヒューリスティック）',
+        '5 大慢性疾患の 5 年リスク推定',
+        '会員登録（ADR 0010）— 氏名・電話・メール',
+      ],
+      cta: '23 項目アンケートを試す',
+    },
+    modulesTitle: '11 のプロダクトモジュール',
+    modulesBody: 'ベータから Health-to-Earn エコシステムへの成長過程。',
+    phaseLabel: 'フェーズ',
+    modules: {
+      m1: { title: '認証・オンボーディング', body: 'シンプル登録 → OAuth → KYC → DID.' },
+      m2: { title: 'データ 1 次 — 自己申告 + ウェアラブル', body: '23 項目 → HealthKit · Samsung · Oura → EHR (FHIR).' },
+      m3: { title: '予測エンジン — 5 種年齢 + 5 種疾患リスク', body: '決定ルール → 韓国コホート補正 → ML AUROC ≥ 0.78 → ZK 推論.' },
+      m4: { title: 'データ 2 次 — 家族歴・健診', body: '手動入力 → FHIR 自動連携.' },
+      m5: { title: 'データ 3 次 — ゲノム・テロメア', body: '外部検査機関連携（Macrogen · 23andMe）.' },
+      m6: { title: 'ランキング — 世界・国・都市', body: '静的分布 → 実測ランキング + 月次変動報酬.' },
+      m7: { title: '個人シミュレーション — Vitality Score What-if', body: '決定ルール → ウェアラブル適応 → ML パーソナライズ.' },
+      m8: { title: 'デジタルツインアバター — 「クロノス」', body: '静的カード → 2D → 3D → ゲームメカニクス → オプション NFT.' },
+      m9: { title: 'ソーシャルネットワーク', body: 'ショート動画 + 同質患者マッチング + Q&A.' },
+      m10: { title: 'CHRO トークノミクス', body: 'オフチェーンポイント → テストネット ERC-20 → メインネット + CertiK → LBank 上場.' },
+      m11: { title: 'シニアケアモニタリング', body: 'ウェアラブル閾値 → ML 異常検知 → プレミアム SMS 通知.' },
+      mdid: { title: 'W3C 分散型 ID（DID）', body: 'PoC → メインネット分散型 ID.' },
+    },
+    phaseTimelineTitle: 'フェーズ（64 週）',
+    phases: {
+      p0: { name: '基盤構築', weeks: '0~4 週', summary: 'モノレポ · CI/CD · ADR · ベータアンケート稼働' },
+      p1: { name: '予測 MVP', weeks: '5~12 週', summary: '決定ルール推定 · 100 名クローズドベータ' },
+      p2: { name: 'ウェアラブル · EHR', weeks: '13~22 週', summary: 'HealthKit · Samsung · Oura · FHIR' },
+      p3: { name: 'ML エンジン v1', weeks: '23~34 週', summary: 'PhenoAge · DeepSurv · Transformer · AUROC ≥ 0.78' },
+      p4: { name: 'Web3 アルファ', weeks: '35~44 週', summary: 'テストネット ERC-20 + ZK PoC' },
+      p5: { name: 'メインネット · 監査', weeks: '45~52 週', summary: 'メインネット + CertiK 監査合格' },
+      p6: { name: '上場 · 拡張', weeks: '53~64 週', summary: 'LBank 上場 + マーケットメーカー + アプリ内利用' },
+    },
+    nowMarker: '現在',
+    nonGoalsTitle: '意図的な非目標',
+    nonGoals: [
+      '医療診断・処方・治療行為',
+      '満 19 歳未満の登録',
+      '医療データの平文保存',
+      'カウントダウン UI · 死亡断定表現',
+      '医薬品・サプリメント直販',
+    ],
+    waitlist: {
+      title: 'リリース通知を受け取る',
+      body: 'リリース時に最優先でお知らせします。報酬・トークンは検討中の機能であり、登録は将来の受領を保証しません。',
+      cta: 'ウェイティングリストに参加（準備中）',
+    },
+    disclaimer:
+      'Chronos Health は医療診断・処方・治療を提供しません。すべての予測は信頼区間と共に表示されます。満 19 歳未満の登録はブロックされます。トークン報酬は検討中の機能です。',
+    backHome: 'ホームへ',
   },
   signup: {
     pageTitle: '会員登録',

@@ -35,6 +35,7 @@ export const es: Dictionary = {
     disclaimer:
       'Este servicio no sustituye la atención médica. Sólo para referencia de bienestar. Adultos 19+.',
     cta: 'Iniciar encuesta',
+    roadmapLink: 'Ver hoja de ruta completa',
   },
   survey: {
     pageTitle: 'Encuesta beta',
@@ -208,6 +209,69 @@ export const es: Dictionary = {
     logout: 'Cerrar sesión',
     logoutConfirm:
       'Cerrar sesión elimina la sesión en este dispositivo. El reinicio de sesión llegará con la verificación de identidad.',
+  },
+  roadmap: {
+    pageTitle: 'Hoja de ruta',
+    nav: 'Hoja de ruta',
+    hero: {
+      eyebrow: 'Roadmap · 11 módulos · 64 semanas',
+      title: 'Construyendo Chronos Health',
+      body: 'Predicción de riesgo de salud con IA + soberanía descentralizada de datos + Health-to-Earn. El panorama completo de la beta al lanzamiento.',
+    },
+    currentLive: {
+      badge: 'Disponible ahora',
+      title: 'P0 W21 — Bases de la beta',
+      items: [
+        'Encuesta de 23 preguntas → estimación de edad biológica (Framingham + heurísticas)',
+        'Estimación de riesgo a 5 años para 5 enfermedades crónicas',
+        'Registro beta (ADR 0010) — nombre · teléfono · correo',
+      ],
+      cta: 'Probar la encuesta de 23 preguntas',
+    },
+    modulesTitle: '11 módulos del producto',
+    modulesBody: 'Cómo crece el producto desde la beta hasta un ecosistema Health-to-Earn completo.',
+    phaseLabel: 'Fase',
+    modules: {
+      m1: { title: 'Autenticación · Onboarding', body: 'Registro simple → OAuth → KYC → DID.' },
+      m2: { title: 'Datos nivel 1 — autoinforme + wearables', body: 'Encuesta → HealthKit · Samsung · Oura → EHR (FHIR).' },
+      m3: { title: 'Motor de predicción — 5 edades + 5 riesgos', body: 'Regla determinista → cohorte coreana → ML AUROC ≥ 0.78 → inferencia ZK.' },
+      m4: { title: 'Datos nivel 2 — historial familiar · exámenes', body: 'Entrada manual → sincronización FHIR automática.' },
+      m5: { title: 'Datos nivel 3 — genómica · telómeros', body: 'Integración con laboratorios externos (Macrogen · 23andMe).' },
+      m6: { title: 'Clasificación — mundo · país · ciudad', body: 'Distribución estática → ranking en vivo con recompensas mensuales.' },
+      m7: { title: 'Simulación personal — Vitality Score What-if', body: 'Regla determinista → adaptación wearable → ML personalizado.' },
+      m8: { title: 'Avatar gemelo digital — "Chronos"', body: 'Tarjeta estática → 2D → 3D → mecánicas de juego → NFT opcional.' },
+      m9: { title: 'Red social', body: 'Videos cortos + emparejamiento de pacientes similares + Q&A.' },
+      m10: { title: 'Tokenómica CHRO', body: 'Puntos off-chain → testnet ERC-20 → mainnet + CertiK → listado LBank.' },
+      m11: { title: 'Monitoreo de cuidado senior', body: 'Umbrales wearable → detección de anomalías ML → SMS premium de emergencia.' },
+      mdid: { title: 'Identidad descentralizada W3C (DID)', body: 'PoC → identidad descentralizada en mainnet.' },
+    },
+    phaseTimelineTitle: 'Fases (64 semanas)',
+    phases: {
+      p0: { name: 'Bases', weeks: 'sem 0~4', summary: 'Monorepo · CI/CD · ADRs · encuesta beta en vivo' },
+      p1: { name: 'MVP predicción', weeks: 'sem 5~12', summary: 'Estimaciones deterministas · beta cerrada 100 personas' },
+      p2: { name: 'Wearables · EHR', weeks: 'sem 13~22', summary: 'HealthKit · Samsung · Oura · FHIR' },
+      p3: { name: 'Motor ML v1', weeks: 'sem 23~34', summary: 'PhenoAge · DeepSurv · Transformer · AUROC ≥ 0.78' },
+      p4: { name: 'Web3 alpha', weeks: 'sem 35~44', summary: 'Testnet ERC-20 + ZK PoC' },
+      p5: { name: 'Mainnet · auditoría', weeks: 'sem 45~52', summary: 'Mainnet + auditoría CertiK aprobada' },
+      p6: { name: 'Listado · expansión', weeks: 'sem 53~64', summary: 'Listado LBank + market maker + usos in-app' },
+    },
+    nowMarker: 'Ahora',
+    nonGoalsTitle: 'No objetivos intencionales',
+    nonGoals: [
+      'Diagnóstico · prescripción · tratamiento médico',
+      'Registro de menores de 19',
+      'Almacenamiento de datos médicos en texto plano',
+      'UI de cuenta regresiva · lenguaje de mortalidad definitivo',
+      'Venta directa de medicamentos o suplementos',
+    ],
+    waitlist: {
+      title: 'Recibe la notificación de lanzamiento',
+      body: 'Te avisamos primero al lanzar. Las recompensas y tokens están en revisión; registrarse no garantiza recepción futura.',
+      cta: 'Unirme a la lista (próximamente)',
+    },
+    disclaimer:
+      'Chronos Health no proporciona diagnóstico, prescripción ni tratamiento médico. Todas las predicciones se muestran con intervalos de confianza. El registro de menores de 19 está bloqueado. Las recompensas por tokens están en revisión.',
+    backHome: 'Volver al inicio',
   },
   signup: {
     pageTitle: 'Registro',

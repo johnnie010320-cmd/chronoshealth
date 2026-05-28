@@ -71,6 +71,14 @@ export default function HomePage() {
           <span>{L.cta}</span>
           <ChevronRightIcon className="h-5 w-5" />
         </Link>
+
+        <Link
+          href="/roadmap"
+          className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-2xl border border-stone-200 bg-white/60 px-5 py-3 text-sm font-medium text-stone-700 transition active:scale-[0.98] dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-200"
+        >
+          <span>{L.roadmapLink}</span>
+          <ChevronRightIcon className="h-4 w-4" />
+        </Link>
       </section>
     </AppShell>
   );
