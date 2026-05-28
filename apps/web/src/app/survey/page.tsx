@@ -7,12 +7,15 @@ import { SurveyForm } from '@/features/risk-survey/SurveyForm';
 import { ResultDisplay } from '@/features/risk-survey/ResultDisplay';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
-import type { RiskSurveyResponse } from '@/lib/schemas';
+import type { RiskSurveyRequest, RiskSurveyResponse } from '@/lib/schemas';
 
 export default function SurveyPage() {
   const { t } = useI18n();
   const router = useRouter();
-  const [result, setResult] = useState<RiskSurveyResponse | null>(null);
+  const [result, setResult] = useState<{
+    data: RiskSurveyResponse;
+    request: RiskSurveyRequest;
+  } | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -35,9 +38,15 @@ export default function SurveyPage() {
     >
       <div className="mt-2">
         {result ? (
-          <ResultDisplay data={result} onReset={() => setResult(null)} />
+          <ResultDisplay
+            data={result.data}
+            request={result.request}
+            onReset={() => setResult(null)}
+          />
         ) : (
-          <SurveyForm onSuccess={setResult} />
+          <SurveyForm
+            onSuccess={(data, request) => setResult({ data, request })}
+          />
         )}
       </div>
     </AppShell>

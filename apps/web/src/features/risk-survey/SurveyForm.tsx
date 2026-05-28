@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { RiskSurveyRequest, type RiskSurveyResponse } from '@/lib/schemas';
+import { RiskSurveyRequest, type RiskSurveyRequest as TRiskSurveyRequest, type RiskSurveyResponse } from '@/lib/schemas';
 import { submitRiskEstimate } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -15,7 +15,7 @@ import {
 } from '@/components/HealthIcons';
 
 type Props = {
-  onSuccess: (data: RiskSurveyResponse) => void;
+  onSuccess: (data: RiskSurveyResponse, request: TRiskSurveyRequest) => void;
 };
 
 export function SurveyForm({ onSuccess }: Props) {
@@ -68,7 +68,7 @@ export function SurveyForm({ onSuccess }: Props) {
       }
 
       const data = await submitRiskEstimate(parsed.data);
-      onSuccess(data);
+      onSuccess(data, parsed.data);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       const code = err instanceof Error ? err.message : String(err);

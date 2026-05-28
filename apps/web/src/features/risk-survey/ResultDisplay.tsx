@@ -7,11 +7,13 @@ import {
   LeafIcon,
 } from '@/components/HealthIcons';
 import { TeaserCard } from '@/components/result/TeaserCard';
+import { WhatIfPanel } from '@/components/result/WhatIfPanel';
 import { useI18n } from '@/lib/i18n';
-import type { RiskSurveyResponse } from '@/lib/schemas';
+import type { RiskSurveyRequest, RiskSurveyResponse } from '@/lib/schemas';
 
 type Props = {
   data: RiskSurveyResponse;
+  request?: RiskSurveyRequest;
   onReset: () => void;
 };
 
@@ -22,7 +24,7 @@ const CATEGORY_CLASSES: Record<'low' | 'moderate' | 'high', string> = {
   high: 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:text-rose-100 dark:border-rose-900',
 };
 
-export function ResultDisplay({ data, onReset }: Props) {
+export function ResultDisplay({ data, request, onReset }: Props) {
   const { t, locale } = useI18n();
   const R = t.result;
   const hasHotlines =
@@ -70,6 +72,8 @@ export function ResultDisplay({ data, onReset }: Props) {
           {data.reportId.slice(0, 8)}
         </p>
       </div>
+
+      {request && <WhatIfPanel base={request} />}
 
       <TeaserCard />
 

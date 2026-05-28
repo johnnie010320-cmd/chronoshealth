@@ -83,3 +83,126 @@ export async function submitBetaSignup(
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as BetaSignupResponse;
 }
+
+// M7 Simulation
+export type SimulateOverrides = {
+  exerciseMinutesPerWeek?: number;
+  sleepHoursPerNight?: number;
+  alcoholDrinksPerWeek?: number;
+  smoking?: 'never' | 'former' | 'current';
+  weightKg?: number;
+  stressLevel?: 'low' | 'medium' | 'high';
+};
+
+export type SimulateResponse = {
+  baseline: RiskSurveyResponse;
+  simulated: RiskSurveyResponse;
+  delta: {
+    bioAgeYears: number;
+    predictedYearsRemaining: { median: number; ci95: [number, number] };
+    diseaseRiskPctPoints: {
+      cvd: number;
+      diabetes: number;
+      ckd: number;
+      dementia: number;
+      cancer: number;
+    };
+  };
+  disclaimer: string;
+  modelVersion: string;
+};
+
+export async function submitSimulate(
+  base: RiskSurveyRequest,
+  overrides: SimulateOverrides,
+): Promise<SimulateResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+
+  const res = await fetch(`${GATEWAY_URL}/api/v1/simulate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify({ base, overrides }),
+  });
+
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as SimulateResponse;
+}
+
+// M8 Avatar
+export type AvatarResponse = {
+  name: string;
+  chronologicalAge: number;
+  vitalityScore: {
+    value: number;
+    tier: 'excellent' | 'good' | 'fair' | 'attention';
+  };
+  predictedYearsRemaining: { median: number; ci95: [number, number] };
+  fiveAges: {
+    life: number;
+    vitality: number;
+    skin: number;
+    vascular: number;
+    joint: number;
+  };
+  lastReportAt: string;
+  modelVersion: string;
+  disclaimer: string;
+};
+
+export async function fetchAvatarMe(): Promise<AvatarResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+
+  const res = await fetch(`${GATEWAY_URL}/api/v1/avatar/me`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as AvatarResponse;
+}
+
+// M6 Leaderboard
+export type LeaderboardResponse = {
+  scope: 'world' | 'country';
+  country?: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER';
+  ageBand: string;
+  sex: 'male' | 'female' | 'other';
+  userVitalityScore: number;
+  vitalityTier: 'excellent' | 'good' | 'fair' | 'attention';
+  percentile: number;
+  rankWithin: { value: number; total: number };
+  tierDistribution: {
+    excellent: number;
+    good: number;
+    fair: number;
+    attention: number;
+  };
+  delta: { monthOverMonth: null; nextTierGap: number };
+  modelVersion: string;
+  disclaimer: string;
+};
+
+export async function fetchLeaderboardMe(
+  scope: 'world' | 'country',
+  country?: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER',
+): Promise<LeaderboardResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+
+  const qs = new URLSearchParams({ scope });
+  if (scope === 'country' && country) qs.set('country', country);
+
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/leaderboard/me?${qs.toString()}`,
+    {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as LeaderboardResponse;
+}

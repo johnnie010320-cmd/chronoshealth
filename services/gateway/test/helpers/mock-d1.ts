@@ -153,6 +153,12 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       };
     }
 
+    if (trimmed.includes('FROM users WHERE user_pseudonym_id = ?')) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u ? { name: u.name } : null;
+    }
+
     throw new Error(`mock-d1 unknown first(): ${trimmed.substring(0, 80)}`);
   }
 
@@ -299,14 +305,23 @@ export function makeMockAnalysisDb(): {
       const [
         user_pseudonym_id,
         purpose_code,
+        birth_year,
+        sex,
         ...rest
-      ] = args as [string, string, ...unknown[]];
+      ] = args as [string, string, number, string, ...unknown[]];
       const id = nextResponseId++;
+      // stress_level 은 19개 컬럼 중 18번째 (0-based) → birth_year/sex 이후 16번째 rest item.
+      // 컬럼 순서: birth_year, sex, height_cm, weight_kg,
+      //  smoking, alcohol_drinks_per_week, exercise_minutes_per_week, sleep_hours_per_night,
+      //  systolic_bp, diastolic_bp, fasting_glucose, ldl_cholesterol, hdl_cholesterol,
+      //  family_history_diabetes, family_history_hypertension, family_history_cardiovascular,
+      //  stress_level, self_rated_health
+      const stress_level = rest[16];
       state.responses.push({
         id,
         user_pseudonym_id,
         purpose_code,
-        raw: { rest },
+        raw: { birth_year, sex, stress_level, rest },
       });
       return { success: true, meta: { last_row_id: id } };
     }
@@ -381,6 +396,25 @@ export function makeMockAnalysisDb(): {
       return state.betaSignups.find((r) => r.email_pseudonym === pseudonym)
         ? { '1': 1 }
         : null;
+    }
+    if (
+      trimmed.includes('FROM risk_survey_reports r') &&
+      trimmed.includes('WHERE r.user_pseudonym_id = ?')
+    ) {
+      const [pseudonym] = args as [string];
+      const reports = state.reports
+        .filter((r) => r.user_pseudonym_id === pseudonym)
+        .sort((a, b) => (a.generated_at < b.generated_at ? 1 : -1));
+      const latest = reports[0];
+      if (!latest) return null;
+      const resp = state.responses.find((r) => r.id === latest.response_id);
+      return {
+        payload: latest.payload,
+        generated_at: latest.generated_at,
+        stress_level: (resp?.raw?.stress_level as string) ?? null,
+        sex: (resp?.raw?.sex as string) ?? 'other',
+        birth_year: (resp?.raw?.birth_year as number) ?? 1990,
+      };
     }
     throw new Error(`mock-analysis-d1 first() unknown: ${trimmed.substring(0, 80)}`);
   }
