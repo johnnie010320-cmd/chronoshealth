@@ -32,7 +32,7 @@
   - ADR 0009 — API 프레임워크 Hono on CF Workers
   - ADR 0010 — 인증 / 회원관리: P0/P1 단순 가입 (이름·전화·이메일, 비밀번호/OTP/OAuth 미도입)
   - ADR 0011 — 베타 등록 데이터 모델: identity-vault 격리 (이메일 평문 / HMAC pseudonym 분리)
-- `docs/spec/` — 기능별 명세 (risk-survey, identity, product-mvp, roadmap-ui)
+- `docs/spec/` — 기능별 명세 (risk-survey, identity, product-mvp, roadmap-ui, simulation, avatar-chronos, leaderboard)
 
 **모든 작업은 위 3개 문서 중 하나에 근거해야 한다.** 근거 없는 결정은 ADR로 먼저 합의.
 

@@ -354,13 +354,14 @@
 
 - ✅ `docs/spec/risk-survey.md` (M2·M3 P1) — Accepted
 - ✅ `docs/spec/identity.md` (M1 P0/P1) — Accepted
+- ✅ `docs/spec/roadmap-ui.md` (R1~R3, beta-signup) — Accepted (CTA + 베타 등록)
+- 📝 `docs/spec/simulation.md` (M7 P1 후반) — Draft
+- 📝 `docs/spec/avatar-chronos.md` (M8 P1 후반) — Draft
+- 📝 `docs/spec/leaderboard.md` (M6 P1 후반) — Draft
 - ⏳ `docs/spec/wearables-integration.md` (M2 P2) — P2 시작 시
+- ⏳ `docs/spec/senior-care.md` (M11 P2) — P2 시작 시
 - ⏳ `docs/spec/ml-engine-v1.md` (M3 P3) — P3 시작 시
-- ⏳ `docs/spec/avatar-chronos.md` (M8) — P1 후반
-- ⏳ `docs/spec/leaderboard.md` (M6) — P1 후반
-- ⏳ `docs/spec/simulation.md` (M7) — P1 후반
 - ⏳ `docs/spec/social-network.md` (M9) — P3 후반
-- ⏳ `docs/spec/senior-care.md` (M11) — P2 시작 시
 - ⏳ `docs/spec/rewards-chro.md` (M10) — P3 (오프체인 포인트 단계)
 - ⏳ `docs/spec/did-integration.md` (M_DID) — P3 PoC
 
