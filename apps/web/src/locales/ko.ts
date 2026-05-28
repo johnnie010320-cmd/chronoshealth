@@ -139,6 +139,13 @@ export const ko = {
       suicide: '자살예방상담전화',
       mentalHealth: '정신건강위기상담전화',
     },
+    teaser: {
+      eyebrow: '다음 단계는?',
+      title: '당신의 크로노스가 자라고 있습니다',
+      body: '곧 활력 점수 시뮬레이션 · 5종 나이 · 랭킹이 도착합니다. 출시 시점 미확정, 의료 진단·처방·치료가 아닙니다.',
+      roadmapCta: '전체 로드맵 보기',
+      betaSignupCta: '베타 출시 알림 받기',
+    },
   },
   nav: {
     home: '홈',
@@ -259,11 +266,90 @@ export const ko = {
     waitlist: {
       title: '베타 출시 알림 받기',
       body: '출시 시 가장 먼저 알려드립니다. 보상·코인은 검토 중인 기능이며 등록이 미래 수령을 보장하지 않습니다.',
-      cta: '베타 등록 (준비 중)',
+      cta: '베타 등록하기',
     },
     disclaimer:
       'Chronos Health는 의료 진단·처방·치료를 제공하지 않습니다. 모든 예측은 신뢰구간과 함께 표시됩니다. 만 19세 미만 가입은 차단됩니다. 토큰 보상은 검토 중인 기능입니다.',
     backHome: '홈으로',
+  },
+  betaSignup: {
+    pageTitle: '베타 등록',
+    heroTitle: '베타 출시 시 알려드릴게요',
+    heroBody:
+      '출시 시점에 가장 먼저 안내드립니다. 등록은 약속이 아닌 알림 신청이며, 보상·코인은 검토 중인 기능입니다.',
+    section: {
+      contact: '연락처',
+      region: '지역 / 연령대',
+      interests: '관심 모듈',
+      consent: '동의 (모두 필수)',
+    },
+    fields: {
+      email: { label: '이메일', placeholder: 'you@example.com' },
+      country: {
+        label: '국가',
+        placeholder: '국가 선택',
+        options: {
+          KR: '대한민국',
+          US: '미국',
+          JP: '일본',
+          ES: '스페인',
+          OTHER: '기타',
+        },
+      },
+      ageGroup: {
+        label: '연령대',
+        placeholder: '선택',
+        options: {
+          'under-19': '19세 미만 (가입 불가)',
+          '19-29': '19~29세',
+          '30-39': '30~39세',
+          '40-49': '40~49세',
+          '50-59': '50~59세',
+          '60+': '60세 이상',
+        },
+      },
+      interestedModules: {
+        label: '관심 있는 모듈 (선택, 다중 가능)',
+        hint: '나중에 변경 가능합니다.',
+      },
+    },
+    consent: {
+      pii: {
+        label: '개인정보 수집·이용 동의 (필수)',
+        description:
+          '이메일·국가·연령대를 베타 출시 알림 목적으로 수집·저장하며, 동의 철회 시 삭제됩니다.',
+      },
+      medical: {
+        label: '의료 면책 확인 (필수)',
+        description:
+          'Chronos Health는 의료 진단·처방·치료를 제공하지 않으며, 예측 리포트는 의료 자문을 대체하지 않습니다.',
+      },
+      token: {
+        label: '토큰 보상 검토 중 확인 (필수)',
+        description:
+          'CHRO 토큰 및 보상은 검토 중인 기능이며, 등록이 미래 토큰 수령을 보장하지 않습니다.',
+      },
+    },
+    submit: '등록하고 알림 받기',
+    submitting: '등록 중…',
+    underageNotice: '만 19세 이상만 등록 가능합니다.',
+    bottomNote: '본 단계는 마케팅 알림 신청이며, 정식 가입과는 별개입니다.',
+    success: {
+      title: '등록되었습니다',
+      body: '출시 시점에 입력하신 이메일로 안내드립니다. 동일 이메일로 정식 가입은 추후 별도 진행됩니다.',
+      cta: '홈으로',
+    },
+    error: {
+      validation: '입력값 확인 필요',
+      UNDERAGE: '만 19세 이상만 등록 가능합니다.',
+      CONSENT_REQUIRED: '3가지 동의가 모두 필요합니다.',
+      ALREADY_REGISTERED: '이미 등록된 이메일입니다. 출시 시 안내드립니다.',
+      RATE_LIMITED: '일일 등록 한도(20회)를 초과했습니다.',
+      INVALID_INPUT: '입력값을 다시 확인해주세요.',
+      INVALID_JSON: '요청 형식이 올바르지 않습니다.',
+      INTERNAL_ERROR: '서버 오류 — 잠시 후 다시 시도해주세요.',
+      generic: '서버 오류',
+    },
   },
   signup: {
     pageTitle: '회원가입',

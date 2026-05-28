@@ -6,6 +6,7 @@ import {
   HeartPulseIcon,
   LeafIcon,
 } from '@/components/HealthIcons';
+import { TeaserCard } from '@/components/result/TeaserCard';
 import { useI18n } from '@/lib/i18n';
 import type { RiskSurveyResponse } from '@/lib/schemas';
 
@@ -69,6 +70,8 @@ export function ResultDisplay({ data, onReset }: Props) {
           {data.reportId.slice(0, 8)}
         </p>
       </div>
+
+      <TeaserCard />
 
       <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-stone-200/60 bg-white/80 px-5 pt-3 pb-5 backdrop-blur-md dark:border-stone-800/60 dark:bg-stone-950/80">
         <button

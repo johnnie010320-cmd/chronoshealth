@@ -51,3 +51,35 @@ export async function submitSignup(
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as SignupResponse;
 }
+
+// ADR 0011 / roadmap-ui.md Slice R3
+export type BetaSignupRequest = {
+  email: string;
+  country: string;
+  ageGroup: '19-29' | '30-39' | '40-49' | '50-59' | '60+';
+  interestedModules: string[];
+  locale: 'ko' | 'en' | 'ja' | 'es';
+  consentPii: boolean;
+  consentMedicalDisclaimer: boolean;
+  consentTokenReview: boolean;
+};
+
+export type BetaSignupResponse = {
+  id: string;
+  registeredAt: string;
+};
+
+export async function submitBetaSignup(
+  body: BetaSignupRequest,
+): Promise<BetaSignupResponse> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/beta-signup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as BetaSignupResponse;
+}

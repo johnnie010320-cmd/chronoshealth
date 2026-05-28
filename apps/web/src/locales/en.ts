@@ -145,6 +145,13 @@ export const en: Dictionary = {
       suicide: 'Suicide prevention',
       mentalHealth: 'Mental health crisis',
     },
+    teaser: {
+      eyebrow: 'What is next?',
+      title: 'Your Chronos is growing',
+      body: 'Vitality Score What-if, 5 ages, and rankings are coming soon. Launch date is not fixed. This is not medical diagnosis, prescription, or treatment.',
+      roadmapCta: 'View full roadmap',
+      betaSignupCta: 'Get launch notification',
+    },
   },
   nav: {
     home: 'Home',
@@ -265,11 +272,91 @@ export const en: Dictionary = {
     waitlist: {
       title: 'Get the launch notification',
       body: 'We will tell you first when we launch. Rewards and tokens are under review; signing up does not guarantee future receipt.',
-      cta: 'Join waitlist (coming soon)',
+      cta: 'Join the waitlist',
     },
     disclaimer:
       'Chronos Health does not provide medical diagnosis, prescription or treatment. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
     backHome: 'Back to home',
+  },
+  betaSignup: {
+    pageTitle: 'Beta waitlist',
+    heroTitle: 'Get notified when we launch the beta',
+    heroBody:
+      'We will tell you first when we launch. This is a notification request, not a promise. Rewards and tokens are under review.',
+    section: {
+      contact: 'Contact',
+      region: 'Region / Age',
+      interests: 'Modules of interest',
+      consent: 'Consent (all required)',
+    },
+    fields: {
+      email: { label: 'Email', placeholder: 'you@example.com' },
+      country: {
+        label: 'Country',
+        placeholder: 'Select country',
+        options: {
+          KR: 'Korea',
+          US: 'United States',
+          JP: 'Japan',
+          ES: 'Spain',
+          OTHER: 'Other',
+        },
+      },
+      ageGroup: {
+        label: 'Age group',
+        placeholder: 'Select',
+        options: {
+          'under-19': 'Under 19 (signup blocked)',
+          '19-29': '19~29',
+          '30-39': '30~39',
+          '40-49': '40~49',
+          '50-59': '50~59',
+          '60+': '60+',
+        },
+      },
+      interestedModules: {
+        label: 'Modules you are interested in (optional, multi-select)',
+        hint: 'You can change this later.',
+      },
+    },
+    consent: {
+      pii: {
+        label: 'PII collection & processing (required)',
+        description:
+          'I agree to collection and storage of my email, country, and age group for beta launch notification purposes. Deleted on consent withdrawal.',
+      },
+      medical: {
+        label: 'Medical disclaimer (required)',
+        description:
+          'I understand Chronos Health does not provide medical diagnosis, prescription or treatment, and prediction reports do not replace medical advice.',
+      },
+      token: {
+        label: 'Token rewards under review (required)',
+        description:
+          'I understand CHRO tokens and rewards are under review, and registration does not guarantee future token receipt.',
+      },
+    },
+    submit: 'Sign up for notification',
+    submitting: 'Signing up…',
+    underageNotice: 'You must be 19+ to sign up.',
+    bottomNote:
+      'This is a marketing notification signup, separate from full account registration.',
+    success: {
+      title: 'You are on the list',
+      body: 'We will email you at launch. Full account signup will require re-entering the same email later.',
+      cta: 'Back to home',
+    },
+    error: {
+      validation: 'Input check needed',
+      UNDERAGE: 'You must be 19+ to sign up.',
+      CONSENT_REQUIRED: 'All 3 consents are required.',
+      ALREADY_REGISTERED: 'This email is already registered. We will email you at launch.',
+      RATE_LIMITED: 'Daily signup limit (20) exceeded.',
+      INVALID_INPUT: 'Please re-check your inputs.',
+      INVALID_JSON: 'Invalid request format.',
+      INTERNAL_ERROR: 'Server error — please try again later.',
+      generic: 'Server error',
+    },
   },
   signup: {
     pageTitle: 'Sign up',

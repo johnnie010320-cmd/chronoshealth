@@ -26,10 +26,22 @@ type ConsentRow = {
   recorded_at: string;
 };
 
+type BetaIdentityRow = {
+  id: string;
+  email: string;
+  ip_hash: string;
+  user_agent: string | null;
+  consent_pii: 1;
+  consent_medical_disclaimer: 1;
+  consent_token_review: 1;
+  created_at: string;
+};
+
 export type MockD1State = {
   users: UserRow[];
   tokens: SessionRow[];
   consents: ConsentRow[];
+  betaIdentity: BetaIdentityRow[];
 };
 
 export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
@@ -40,6 +52,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     users: initial?.users ?? [],
     tokens: initial?.tokens ?? [],
     consents: initial?.consents ?? [],
+    betaIdentity: initial?.betaIdentity ?? [],
   };
 
   function runStmt(sql: string, args: unknown[]): { success: true } {
@@ -84,6 +97,36 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         source: 'signup',
         recorded_at: new Date().toISOString(),
       });
+      return { success: true };
+    }
+
+    if (trimmed.startsWith('INSERT INTO beta_signup_identity')) {
+      const [id, email, ip_hash, user_agent] = args as [
+        string,
+        string,
+        string,
+        string | null,
+      ];
+      if (state.betaIdentity.some((r) => r.email === email)) {
+        throw new Error('UNIQUE constraint failed: beta_signup_identity.email');
+      }
+      state.betaIdentity.push({
+        id,
+        email,
+        ip_hash,
+        user_agent,
+        consent_pii: 1,
+        consent_medical_disclaimer: 1,
+        consent_token_review: 1,
+        created_at: new Date().toISOString(),
+      });
+      return { success: true };
+    }
+
+    if (trimmed.startsWith('DELETE FROM beta_signup_identity WHERE id = ?')) {
+      const [id] = args as [string];
+      const idx = state.betaIdentity.findIndex((r) => r.id === id);
+      if (idx >= 0) state.betaIdentity.splice(idx, 1);
       return { success: true };
     }
 
@@ -139,6 +182,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         users: [...state.users],
         tokens: [...state.tokens],
         consents: [...state.consents],
+        betaIdentity: [...state.betaIdentity],
       };
       try {
         const results = [];
@@ -150,6 +194,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         state.users = snapshot.users;
         state.tokens = snapshot.tokens;
         state.consents = snapshot.consents;
+        state.betaIdentity = snapshot.betaIdentity;
         throw e;
       }
     },
@@ -215,17 +260,33 @@ type AnalysisConsentRow = {
   recorded_at: string;
 };
 
+type BetaSignupRow = {
+  id: string;
+  email_pseudonym: string;
+  country: string;
+  age_group: string;
+  interested_modules: string;
+  locale: string;
+  created_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
   consents: AnalysisConsentRow[];
+  betaSignups: BetaSignupRow[];
 };
 
 export function makeMockAnalysisDb(): {
   db: D1Database;
   state: MockAnalysisState;
 } {
-  const state: MockAnalysisState = { responses: [], reports: [], consents: [] };
+  const state: MockAnalysisState = {
+    responses: [],
+    reports: [],
+    consents: [],
+    betaSignups: [],
+  };
   let nextResponseId = 1;
 
   function runStmt(sql: string, args: unknown[]): {
@@ -286,7 +347,42 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: {} };
     }
 
+    if (trimmed.startsWith('INSERT INTO beta_signups')) {
+      const [
+        id,
+        email_pseudonym,
+        country,
+        age_group,
+        interested_modules,
+        locale,
+      ] = args as [string, string, string, string, string, string];
+      if (state.betaSignups.some((r) => r.email_pseudonym === email_pseudonym)) {
+        throw new Error('UNIQUE constraint failed: beta_signups.email_pseudonym');
+      }
+      state.betaSignups.push({
+        id,
+        email_pseudonym,
+        country,
+        age_group,
+        interested_modules,
+        locale,
+        created_at: new Date().toISOString(),
+      });
+      return { success: true, meta: {} };
+    }
+
     throw new Error(`mock-analysis-d1 unknown statement: ${trimmed.substring(0, 80)}`);
+  }
+
+  function firstStmtAnalysis(sql: string, args: unknown[]): unknown {
+    const trimmed = sql.trim();
+    if (trimmed.includes('FROM beta_signups WHERE email_pseudonym = ?')) {
+      const [pseudonym] = args as [string];
+      return state.betaSignups.find((r) => r.email_pseudonym === pseudonym)
+        ? { '1': 1 }
+        : null;
+    }
+    throw new Error(`mock-analysis-d1 first() unknown: ${trimmed.substring(0, 80)}`);
   }
 
   const makeStmt = (sql: string) => {
@@ -297,7 +393,7 @@ export function makeMockAnalysisDb(): {
         return stmt;
       },
       async first<T>(): Promise<T | null> {
-        throw new Error(`mock-analysis-d1 first() not used: ${sql}`);
+        return firstStmtAnalysis(sql, stmt._args) as T | null;
       },
       async run() {
         return runStmt(sql, stmt._args);

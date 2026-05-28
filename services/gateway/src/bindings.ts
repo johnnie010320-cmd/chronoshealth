@@ -5,4 +5,6 @@ export type Bindings = {
   ENVIRONMENT: 'dev' | 'staging' | 'prod';
   IDENTITY_DB: D1Database;
   DB: D1Database;
+  // ADR 0011 — HMAC-SHA256 키 (베타 등록 이메일 가명화). wrangler secret 으로 주입.
+  BETA_SIGNUP_HMAC_SALT: string;
 };

@@ -142,6 +142,13 @@ export const ja: Dictionary = {
       suicide: '自殺予防相談',
       mentalHealth: '精神保健危機相談',
     },
+    teaser: {
+      eyebrow: '次のステップは？',
+      title: 'あなたのクロノスが育っています',
+      body: 'まもなく活力スコアシミュレーション・5 種年齢・ランキングが登場します。リリース時期は未確定で、医療診断・処方・治療ではありません。',
+      roadmapCta: '全体ロードマップを見る',
+      betaSignupCta: 'リリース通知を受け取る',
+    },
   },
   nav: {
     home: 'ホーム',
@@ -263,11 +270,90 @@ export const ja: Dictionary = {
     waitlist: {
       title: 'リリース通知を受け取る',
       body: 'リリース時に最優先でお知らせします。報酬・トークンは検討中の機能であり、登録は将来の受領を保証しません。',
-      cta: 'ウェイティングリストに参加（準備中）',
+      cta: 'ウェイティングリストに参加',
     },
     disclaimer:
       'Chronos Health は医療診断・処方・治療を提供しません。すべての予測は信頼区間と共に表示されます。満 19 歳未満の登録はブロックされます。トークン報酬は検討中の機能です。',
     backHome: 'ホームへ',
+  },
+  betaSignup: {
+    pageTitle: 'ベータ登録',
+    heroTitle: 'ベータリリース時にお知らせします',
+    heroBody:
+      'リリース時に最優先でお知らせします。これは通知の申込みであり約束ではなく、報酬・トークンは検討中の機能です。',
+    section: {
+      contact: '連絡先',
+      region: '地域 / 年齢層',
+      interests: '関心モジュール',
+      consent: '同意 (すべて必須)',
+    },
+    fields: {
+      email: { label: 'メール', placeholder: 'you@example.com' },
+      country: {
+        label: '国',
+        placeholder: '国を選択',
+        options: {
+          KR: '韓国',
+          US: 'アメリカ',
+          JP: '日本',
+          ES: 'スペイン',
+          OTHER: 'その他',
+        },
+      },
+      ageGroup: {
+        label: '年齢層',
+        placeholder: '選択',
+        options: {
+          'under-19': '19 歳未満（登録不可）',
+          '19-29': '19~29 歳',
+          '30-39': '30~39 歳',
+          '40-49': '40~49 歳',
+          '50-59': '50~59 歳',
+          '60+': '60 歳以上',
+        },
+      },
+      interestedModules: {
+        label: '関心のあるモジュール（任意・複数選択可）',
+        hint: '後から変更できます。',
+      },
+    },
+    consent: {
+      pii: {
+        label: '個人情報の収集・利用同意（必須）',
+        description:
+          'メール・国・年齢層をベータリリース通知の目的で収集・保存することに同意します。同意撤回時に削除されます。',
+      },
+      medical: {
+        label: '医療免責確認（必須）',
+        description:
+          'Chronos Health は医療診断・処方・治療を提供せず、予測レポートは医療相談の代替ではありません。',
+      },
+      token: {
+        label: 'トークン報酬は検討中の確認（必須）',
+        description:
+          'CHRO トークン・報酬は検討中の機能であり、登録は将来のトークン受領を保証しません。',
+      },
+    },
+    submit: '登録して通知を受け取る',
+    submitting: '登録中…',
+    underageNotice: '満 19 歳以上のみ登録できます。',
+    bottomNote: '本ステップはマーケティング通知の申込みで、正式会員登録とは別です。',
+    success: {
+      title: '登録されました',
+      body: 'リリース時に入力されたメールにご案内します。同じメールでの正式登録は別途行います。',
+      cta: 'ホームへ',
+    },
+    error: {
+      validation: '入力値の確認が必要',
+      UNDERAGE: '満 19 歳以上のみ登録できます。',
+      CONSENT_REQUIRED: '3 つの同意がすべて必要です。',
+      ALREADY_REGISTERED: 'すでに登録されているメールです。リリース時にご案内します。',
+      RATE_LIMITED: '1 日の登録上限（20 回）を超過しました。',
+      INVALID_INPUT: '入力値を再確認してください。',
+      INVALID_JSON: 'リクエスト形式が正しくありません。',
+      INTERNAL_ERROR: 'サーバーエラー — しばらくしてから再試行してください。',
+      generic: 'サーバーエラー',
+    },
   },
   signup: {
     pageTitle: '会員登録',

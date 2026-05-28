@@ -184,15 +184,13 @@ export default function RoadmapPage() {
         <p className="mt-2 text-[13px] leading-relaxed text-stone-700 dark:text-stone-300">
           {R.waitlist.body}
         </p>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="mt-4 inline-flex w-full cursor-not-allowed items-center justify-between rounded-2xl bg-stone-300 px-4 py-3 text-sm font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-400"
+        <Link
+          href="/beta-signup"
+          className="mt-4 inline-flex w-full items-center justify-between rounded-2xl bg-stone-900 px-4 py-3 text-sm font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
         >
           <span>{R.waitlist.cta}</span>
           <ChevronRightIcon className="h-4 w-4" />
-        </button>
+        </Link>
       </section>
 
       <section className="mt-8 mb-4">

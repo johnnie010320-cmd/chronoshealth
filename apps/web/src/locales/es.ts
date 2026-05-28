@@ -145,6 +145,13 @@ export const es: Dictionary = {
       suicide: 'Prevención del suicidio',
       mentalHealth: 'Crisis de salud mental',
     },
+    teaser: {
+      eyebrow: '¿Cuál es el siguiente paso?',
+      title: 'Tu Chronos está creciendo',
+      body: 'Pronto llegan la simulación de Vitality Score, las 5 edades y las clasificaciones. La fecha de lanzamiento no está fijada. Esto no es diagnóstico, prescripción ni tratamiento médico.',
+      roadmapCta: 'Ver hoja de ruta completa',
+      betaSignupCta: 'Recibir notificación de lanzamiento',
+    },
   },
   nav: {
     home: 'Inicio',
@@ -267,11 +274,91 @@ export const es: Dictionary = {
     waitlist: {
       title: 'Recibe la notificación de lanzamiento',
       body: 'Te avisamos primero al lanzar. Las recompensas y tokens están en revisión; registrarse no garantiza recepción futura.',
-      cta: 'Unirme a la lista (próximamente)',
+      cta: 'Unirme a la lista',
     },
     disclaimer:
       'Chronos Health no proporciona diagnóstico, prescripción ni tratamiento médico. Todas las predicciones se muestran con intervalos de confianza. El registro de menores de 19 está bloqueado. Las recompensas por tokens están en revisión.',
     backHome: 'Volver al inicio',
+  },
+  betaSignup: {
+    pageTitle: 'Lista beta',
+    heroTitle: 'Te avisamos cuando lancemos la beta',
+    heroBody:
+      'Te avisamos primero al lanzar. Esto es una solicitud de notificación, no una promesa. Las recompensas y tokens están en revisión.',
+    section: {
+      contact: 'Contacto',
+      region: 'Región / Edad',
+      interests: 'Módulos de interés',
+      consent: 'Consentimientos (todos obligatorios)',
+    },
+    fields: {
+      email: { label: 'Correo', placeholder: 'tu@ejemplo.com' },
+      country: {
+        label: 'País',
+        placeholder: 'Seleccionar país',
+        options: {
+          KR: 'Corea',
+          US: 'Estados Unidos',
+          JP: 'Japón',
+          ES: 'España',
+          OTHER: 'Otro',
+        },
+      },
+      ageGroup: {
+        label: 'Grupo de edad',
+        placeholder: 'Seleccionar',
+        options: {
+          'under-19': 'Menor de 19 (no permitido)',
+          '19-29': '19~29',
+          '30-39': '30~39',
+          '40-49': '40~49',
+          '50-59': '50~59',
+          '60+': '60+',
+        },
+      },
+      interestedModules: {
+        label: 'Módulos que te interesan (opcional, selección múltiple)',
+        hint: 'Puedes cambiarlo después.',
+      },
+    },
+    consent: {
+      pii: {
+        label: 'Recolección y procesamiento de PII (obligatorio)',
+        description:
+          'Acepto la recolección y almacenamiento de mi correo, país y grupo de edad para fines de notificación de lanzamiento. Se eliminan al retirar el consentimiento.',
+      },
+      medical: {
+        label: 'Aviso médico (obligatorio)',
+        description:
+          'Entiendo que Chronos Health no proporciona diagnóstico, prescripción ni tratamiento médico, y los reportes no reemplazan la consulta médica.',
+      },
+      token: {
+        label: 'Recompensas en revisión (obligatorio)',
+        description:
+          'Entiendo que los tokens CHRO y recompensas están en revisión, y registrarme no garantiza recepción futura.',
+      },
+    },
+    submit: 'Registrarme para notificación',
+    submitting: 'Registrando…',
+    underageNotice: 'Debes tener 19+ para registrarte.',
+    bottomNote:
+      'Esto es una solicitud de notificación de marketing, separada del registro de cuenta completa.',
+    success: {
+      title: 'Estás en la lista',
+      body: 'Te enviaremos un correo al lanzar. El registro completo requerirá reingresar el mismo correo más tarde.',
+      cta: 'Volver al inicio',
+    },
+    error: {
+      validation: 'Revisa los datos',
+      UNDERAGE: 'Debes tener 19+ para registrarte.',
+      CONSENT_REQUIRED: 'Se requieren los 3 consentimientos.',
+      ALREADY_REGISTERED: 'Este correo ya está registrado. Te avisaremos al lanzar.',
+      RATE_LIMITED: 'Límite diario de registros (20) superado.',
+      INVALID_INPUT: 'Revisa los datos ingresados.',
+      INVALID_JSON: 'Formato de solicitud inválido.',
+      INTERNAL_ERROR: 'Error del servidor — intenta de nuevo más tarde.',
+      generic: 'Error del servidor',
+    },
   },
   signup: {
     pageTitle: 'Registro',
