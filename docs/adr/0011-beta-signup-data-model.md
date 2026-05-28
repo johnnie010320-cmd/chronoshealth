@@ -1,7 +1,8 @@
 # ADR 0011 — 베타 등록 데이터 모델: identity-vault 격리 (이메일 평문 / HMAC pseudonym 분리)
 
-- **Status**: Proposed (죠니 검토 대기)
+- **Status**: Accepted
 - **Date**: 2026-05-28
+- **Accepted**: 2026-05-28 (Johnnie)
 - **Decider**: Johnnie
 - **Related**: ADR 0003 (identity-vault PII 격리), ADR 0008 (D1 채택), ADR 0010 (단순 가입 — 본인 인증 미보유 상태)
 - **Source spec**: `docs/spec/roadmap-ui.md` (Slice R3 — `/beta-signup`)
