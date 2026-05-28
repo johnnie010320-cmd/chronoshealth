@@ -148,7 +148,7 @@ export const es: Dictionary = {
     teaser: {
       eyebrow: '¿Cuál es el siguiente paso?',
       title: 'Tu Chronos está creciendo',
-      body: 'Pronto llegan la simulación de Vitality Score, las 5 edades y las clasificaciones. La fecha de lanzamiento no está fijada. Esto no es diagnóstico, prescripción ni tratamiento médico.',
+      body: 'Pronto llegan la simulación de Vitality Score, las 5 edades y las clasificaciones. La fecha de lanzamiento no está fijada. Esto no es atención médica.',
       roadmapCta: 'Ver hoja de ruta completa',
       betaSignupCta: 'Recibir notificación de lanzamiento',
     },
@@ -265,10 +265,10 @@ export const es: Dictionary = {
     nowMarker: 'Ahora',
     nonGoalsTitle: 'No objetivos intencionales',
     nonGoals: [
-      'Diagnóstico · prescripción · tratamiento médico',
+      'Cualquier tipo de atención médica (sólo reportes de predicción / estimación de riesgo)',
       'Registro de menores de 19',
       'Almacenamiento de datos médicos en texto plano',
-      'UI de cuenta regresiva · lenguaje de mortalidad definitivo',
+      'UI con temporizador de días restantes · lenguaje de mortalidad definitivo',
       'Venta directa de medicamentos o suplementos',
     ],
     waitlist: {
@@ -277,7 +277,7 @@ export const es: Dictionary = {
       cta: 'Unirme a la lista',
     },
     disclaimer:
-      'Chronos Health no proporciona diagnóstico, prescripción ni tratamiento médico. Todas las predicciones se muestran con intervalos de confianza. El registro de menores de 19 está bloqueado. Las recompensas por tokens están en revisión.',
+      'Chronos Health no proporciona atención médica. Todas las predicciones se muestran con intervalos de confianza. El registro de menores de 19 está bloqueado. Las recompensas por tokens están en revisión.',
     backHome: 'Volver al inicio',
   },
   betaSignup: {
@@ -330,7 +330,7 @@ export const es: Dictionary = {
       medical: {
         label: 'Aviso médico (obligatorio)',
         description:
-          'Entiendo que Chronos Health no proporciona diagnóstico, prescripción ni tratamiento médico, y los reportes no reemplazan la consulta médica.',
+          'Entiendo que Chronos Health no proporciona atención médica, y los reportes no reemplazan la consulta médica.',
       },
       token: {
         label: 'Recompensas en revisión (obligatorio)',

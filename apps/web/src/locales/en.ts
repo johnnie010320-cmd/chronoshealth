@@ -148,7 +148,7 @@ export const en: Dictionary = {
     teaser: {
       eyebrow: 'What is next?',
       title: 'Your Chronos is growing',
-      body: 'Vitality Score What-if, 5 ages, and rankings are coming soon. Launch date is not fixed. This is not medical diagnosis, prescription, or treatment.',
+      body: 'Vitality Score What-if, 5 ages, and rankings are coming soon. Launch date is not fixed. This is not medical care.',
       roadmapCta: 'View full roadmap',
       betaSignupCta: 'Get launch notification',
     },
@@ -263,10 +263,10 @@ export const en: Dictionary = {
     nowMarker: 'Now',
     nonGoalsTitle: 'Intentional non-goals',
     nonGoals: [
-      'Medical diagnosis · prescription · treatment',
+      'Any form of medical care (prediction reports / risk estimates only)',
       'Underage signup (under 19)',
       'Plain-text storage of medical data',
-      'Countdown UI · definitive mortality language',
+      'Days-remaining timer UI · definitive mortality language',
       'Direct sale of drugs or supplements',
     ],
     waitlist: {
@@ -275,7 +275,7 @@ export const en: Dictionary = {
       cta: 'Join the waitlist',
     },
     disclaimer:
-      'Chronos Health does not provide medical diagnosis, prescription or treatment. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
+      'Chronos Health does not provide medical care. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
     backHome: 'Back to home',
   },
   betaSignup: {
@@ -328,7 +328,7 @@ export const en: Dictionary = {
       medical: {
         label: 'Medical disclaimer (required)',
         description:
-          'I understand Chronos Health does not provide medical diagnosis, prescription or treatment, and prediction reports do not replace medical advice.',
+          'I understand Chronos Health does not provide medical care, and prediction reports do not replace medical advice.',
       },
       token: {
         label: 'Token rewards under review (required)',
