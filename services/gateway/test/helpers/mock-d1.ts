@@ -8,6 +8,7 @@ type UserRow = {
   phone: string;
   birth_year: number;
   sex: 'male' | 'female' | 'other';
+  created_at?: string;
 };
 
 type SessionRow = {
@@ -153,13 +154,60 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       };
     }
 
+    if (trimmed.includes('FROM users WHERE user_pseudonym_id = ?') && trimmed.includes('name, email, phone')) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u
+        ? {
+            user_pseudonym_id: u.user_pseudonym_id,
+            created_at: new Date().toISOString(),
+            name: u.name,
+            email: u.email,
+            phone: u.phone,
+          }
+        : null;
+    }
+
     if (trimmed.includes('FROM users WHERE user_pseudonym_id = ?')) {
       const [pseudo] = args as [string];
       const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
       return u ? { name: u.name } : null;
     }
 
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM users')) {
+      return { c: state.users.length };
+    }
+
     throw new Error(`mock-d1 unknown first(): ${trimmed.substring(0, 80)}`);
+  }
+
+  function allStmt(sql: string, args: unknown[]): { results: unknown[] } {
+    const trimmed = sql.trim();
+    if (
+      trimmed.startsWith('SELECT user_pseudonym_id, created_at FROM users') &&
+      trimmed.includes('ORDER BY created_at DESC')
+    ) {
+      const limit = args[args.length - 1] as number;
+      let pool = [...state.users];
+      let argIdx = 0;
+      if (trimmed.includes('AND created_at < ?')) {
+        const cursor = args[argIdx++] as string;
+        pool = pool.filter((u) => (u.created_at ?? '') < cursor);
+      }
+      if (trimmed.includes('user_pseudonym_id LIKE ?')) {
+        const needle = (args[argIdx++] as string).replace(/^%|%$/g, '');
+        pool = pool.filter((u) => u.user_pseudonym_id.includes(needle));
+      }
+      const rows = pool
+        .sort((a, b) => ((a.created_at ?? '') > (b.created_at ?? '') ? -1 : 1))
+        .slice(0, limit)
+        .map((u) => ({
+          user_pseudonym_id: u.user_pseudonym_id,
+          created_at: u.created_at ?? new Date().toISOString(),
+        }));
+      return { results: rows };
+    }
+    throw new Error(`mock-identity-d1 all() unknown: ${trimmed.substring(0, 80)}`);
   }
 
   const makeStmt = (sql: string) => {
@@ -171,6 +219,9 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       },
       async first<T>(): Promise<T | null> {
         return firstStmt(sql, stmt._args) as T | null;
+      },
+      async all<T>(): Promise<{ results: T[] }> {
+        return allStmt(sql, stmt._args) as { results: T[] };
       },
       async run() {
         return runStmt(sql, stmt._args);
@@ -666,6 +717,49 @@ export function makeMockAnalysisDb(): {
       };
     }
 
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM beta_signups')) {
+      return { c: state.betaSignups.length };
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM risk_survey_reports')) {
+      if (trimmed.includes('user_pseudonym_id = ?')) {
+        const [pseudonym] = args as [string];
+        return {
+          c: state.reports.filter((r) => r.user_pseudonym_id === pseudonym).length,
+        };
+      }
+      return { c: state.reports.length };
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM community_posts')) {
+      return {
+        c: state.posts.filter((p) => p.deleted_at === null).length,
+      };
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM community_comments')) {
+      return {
+        c: state.comments.filter((cc) => cc.deleted_at === null).length,
+      };
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM community_likes')) {
+      return { c: state.likes.length };
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM chr_ledger')) {
+      return { c: state.ledger.length };
+    }
+    if (
+      trimmed.startsWith('SELECT COALESCE(SUM(amount), 0) AS c FROM chr_ledger') &&
+      trimmed.includes('user_pseudonym_id = ?')
+    ) {
+      const [pseudonym] = args as [string];
+      const sum = state.ledger
+        .filter((l) => l.user_pseudonym_id === pseudonym)
+        .reduce((acc, l) => acc + l.amount, 0);
+      return { c: sum };
+    }
+    if (trimmed.startsWith('SELECT COALESCE(SUM(amount), 0) AS c FROM chr_ledger')) {
+      const sum = state.ledger.reduce((acc, l) => acc + l.amount, 0);
+      return { c: sum };
+    }
+
     if (trimmed.startsWith('SELECT COALESCE(SUM(amount), 0) AS balance')) {
       const [pseudonym] = args as [string];
       const sum = state.ledger
@@ -787,6 +881,19 @@ export function makeMockAnalysisDb(): {
           source_ref: l.source_ref,
           created_at: l.created_at,
         }));
+      return { results: rows };
+    }
+
+    if (trimmed.startsWith('SELECT id, email_pseudonym, country, age_group')) {
+      const limit = args[args.length - 1] as number;
+      let pool = [...state.betaSignups];
+      if (trimmed.includes('AND created_at < ?')) {
+        const cursor = args[0] as string;
+        pool = pool.filter((b) => b.created_at < cursor);
+      }
+      const rows = pool
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .slice(0, limit);
       return { results: rows };
     }
 

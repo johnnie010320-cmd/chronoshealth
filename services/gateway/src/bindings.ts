@@ -7,4 +7,7 @@ export type Bindings = {
   DB: D1Database;
   // ADR 0011 — HMAC-SHA256 키 (베타 등록 이메일 가명화). wrangler secret 으로 주입.
   BETA_SIGNUP_HMAC_SALT: string;
+  // R-Admin-1 — 관리자 화이트리스트 (콤마 구분 user_pseudonym_id 목록).
+  // 본인 인증(ADR 0010) 도입 전 임시 매커니즘. wrangler secret 으로 주입.
+  ADMIN_PSEUDONYM_IDS?: string;
 };

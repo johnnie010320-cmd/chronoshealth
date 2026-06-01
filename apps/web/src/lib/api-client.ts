@@ -186,6 +186,109 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
+// R-Admin-1
+export type AdminWhoami = {
+  userPseudonymId: string;
+  isAdmin: boolean;
+};
+
+export type AdminStats = {
+  totalUsers: number;
+  totalBetaSignups: number;
+  totalRiskReports: number;
+  totalCommunityPosts: number;
+  totalCommunityComments: number;
+  totalLikes: number;
+  totalLedgerEntries: number;
+  totalLedgerSum: number;
+};
+
+export type AdminUserRow = {
+  userPseudonymId: string;
+  createdAt: string;
+  reportCount: number;
+  ledgerBalance: number;
+};
+
+export type AdminUserDetail = {
+  userPseudonymId: string;
+  createdAt: string;
+  name: string | null;
+  emailMasked: string | null;
+  phoneMasked: string | null;
+};
+
+export type AdminBetaSignupRow = {
+  id: string;
+  emailPseudonym: string;
+  country: string;
+  ageGroup: string;
+  interestedModules: string;
+  locale: string;
+  createdAt: string;
+};
+
+export async function fetchAdminWhoami(): Promise<AdminWhoami> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/whoami`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as AdminWhoami;
+}
+
+export async function fetchAdminStats(): Promise<{ stats: AdminStats }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/stats`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { stats: AdminStats };
+}
+
+export async function fetchAdminUsers(
+  search?: string,
+): Promise<{ users: AdminUserRow[] }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const qs = new URLSearchParams();
+  if (search) qs.set('search', search);
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/admin/users${qs.toString() ? `?${qs.toString()}` : ''}`,
+    { headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { users: AdminUserRow[] };
+}
+
+export async function fetchAdminUserDetail(
+  id: string,
+  unmask: boolean,
+): Promise<{ detail: AdminUserDetail }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/admin/users/${id}${unmask ? '?unmask=1' : ''}`,
+    { headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { detail: AdminUserDetail };
+}
+
+export async function fetchAdminBetaSignups(): Promise<{
+  signups: AdminBetaSignupRow[];
+}> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/beta-signups`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { signups: AdminBetaSignupRow[] };
+}
+
 // R8 Rewards
 export type LedgerKind =
   | 'survey_complete'
