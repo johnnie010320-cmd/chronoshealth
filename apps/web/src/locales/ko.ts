@@ -838,6 +838,12 @@ export const ko = {
     submitting: '가입 중…',
     bottomNote:
       '본인 인증 / 비밀번호는 향후 단계에서 추가됩니다. 현 단계는 비공개 베타 입니다.',
+    social: {
+      kakao: '카카오로 시작하기',
+      google: 'Google로 시작하기',
+      divider: '또는 이메일로 가입',
+      unavailable: '본 기능은 준비 중입니다. 아래 양식으로 가입해 주세요.',
+    },
     error: {
       validation: '입력값 확인 필요',
       AGE_RESTRICTED: '만 19세 미만은 가입할 수 없습니다.',

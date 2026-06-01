@@ -19,12 +19,16 @@ describe('Admin API', () => {
     adminPseudonym = '';
   });
 
-  const env = (overrides?: { ADMIN_PSEUDONYM_IDS?: string }) => ({
+  const env = (overrides?: {
+    ADMIN_PSEUDONYM_IDS?: string;
+    ADMIN_EMAILS?: string;
+  }) => ({
     IDENTITY_DB: identityMock.db,
     DB: analysisMock.db,
     BETA_SIGNUP_HMAC_SALT: 'test',
     ENVIRONMENT: 'dev' as const,
     ADMIN_PSEUDONYM_IDS: overrides?.ADMIN_PSEUDONYM_IDS,
+    ADMIN_EMAILS: overrides?.ADMIN_EMAILS,
   });
 
   function setupAdmin() {
@@ -85,11 +89,71 @@ describe('Admin API', () => {
     expect(data.isAdmin).toBe(false);
   });
 
-  it('whoami 200 — 화이트리스트 사용자는 isAdmin=true', async () => {
+  it('whoami 200 — pseudonym 화이트리스트 매칭 isAdmin=true', async () => {
     const { token, pseudonym } = issueTestToken(identityMock.state);
     const res = await getWhoami(token, pseudonym);
     const data = (await res.json()) as { isAdmin: boolean };
     expect(data.isAdmin).toBe(true);
+  });
+
+  it('whoami 200 — ADMIN_EMAILS 매칭 isAdmin=true', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    identityMock.state.users.push({
+      user_pseudonym_id: pseudonym,
+      name: 'l2p',
+      email: 'l2pamerica@gmail.com',
+      phone: '010-1111-2222',
+      birth_year: 1980,
+      sex: 'male',
+      created_at: new Date().toISOString(),
+    });
+    const res = await app.request(
+      '/api/v1/admin/whoami',
+      { method: 'GET', headers: { Authorization: `Bearer ${token}` } },
+      env({ ADMIN_EMAILS: 'l2pamerica@gmail.com,tiffany3ct@gmail.com' }),
+    );
+    const data = (await res.json()) as { isAdmin: boolean };
+    expect(data.isAdmin).toBe(true);
+  });
+
+  it('whoami 200 — ADMIN_EMAILS 대소문자 무시', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    identityMock.state.users.push({
+      user_pseudonym_id: pseudonym,
+      name: 'tiffany',
+      email: 'Tiffany3ct@Gmail.COM',
+      phone: '010-3333-4444',
+      birth_year: 1990,
+      sex: 'female',
+      created_at: new Date().toISOString(),
+    });
+    const res = await app.request(
+      '/api/v1/admin/whoami',
+      { method: 'GET', headers: { Authorization: `Bearer ${token}` } },
+      env({ ADMIN_EMAILS: 'l2pamerica@gmail.com,tiffany3ct@gmail.com' }),
+    );
+    const data = (await res.json()) as { isAdmin: boolean };
+    expect(data.isAdmin).toBe(true);
+  });
+
+  it('whoami 200 — ADMIN_EMAILS 미일치 isAdmin=false', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    identityMock.state.users.push({
+      user_pseudonym_id: pseudonym,
+      name: 'other',
+      email: 'other@example.com',
+      phone: '010-5555-6666',
+      birth_year: 1995,
+      sex: 'other',
+      created_at: new Date().toISOString(),
+    });
+    const res = await app.request(
+      '/api/v1/admin/whoami',
+      { method: 'GET', headers: { Authorization: `Bearer ${token}` } },
+      env({ ADMIN_EMAILS: 'l2pamerica@gmail.com,tiffany3ct@gmail.com' }),
+    );
+    const data = (await res.json()) as { isAdmin: boolean };
+    expect(data.isAdmin).toBe(false);
   });
 
   it('GET /stats 403 FORBIDDEN — 일반 사용자', async () => {

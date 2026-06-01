@@ -20,9 +20,10 @@ export const adminRoute = new Hono<{
 // 관리자 권한 검증만 (실제 데이터 노출 없음) — 로그인 후 admin 여부 클라이언트 측 판단용.
 adminRoute.get('/whoami', authMiddleware, rateLimit(200), async (c) => {
   const pseudonymId = c.get('userPseudonymId');
+  const admin = await isAdmin(c.env, pseudonymId);
   return c.json({
     userPseudonymId: pseudonymId,
-    isAdmin: isAdmin(c.env, pseudonymId),
+    isAdmin: admin,
     modelVersion: MODEL_VERSION,
   });
 });

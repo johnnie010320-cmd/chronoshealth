@@ -154,6 +154,12 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       };
     }
 
+    if (trimmed.startsWith('SELECT email FROM users WHERE user_pseudonym_id = ?')) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u ? { email: u.email } : null;
+    }
+
     if (trimmed.includes('FROM users WHERE user_pseudonym_id = ?') && trimmed.includes('name, email, phone')) {
       const [pseudo] = args as [string];
       const u = state.users.find((x) => x.user_pseudonym_id === pseudo);

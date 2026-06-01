@@ -845,6 +845,12 @@ export const en: Dictionary = {
     submitting: 'Signing up…',
     bottomNote:
       'Identity verification and password sign-in arrive later. This is a private beta.',
+    social: {
+      kakao: 'Sign up with Kakao',
+      google: 'Sign up with Google',
+      divider: 'Or sign up with email',
+      unavailable: 'This feature is in preparation. Please use the form below.',
+    },
     error: {
       validation: 'Input check needed',
       AGE_RESTRICTED: 'You must be 19+ to sign up.',

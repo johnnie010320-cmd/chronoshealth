@@ -842,6 +842,12 @@ export const ja: Dictionary = {
     submitting: '登録中…',
     bottomNote:
       '本人認証・パスワードログインは後続段階で追加されます。現段階は非公開ベータです。',
+    social: {
+      kakao: 'カカオで開始',
+      google: 'Googleで開始',
+      divider: 'またはメールで登録',
+      unavailable: '本機能は準備中です。下のフォームから登録してください。',
+    },
     error: {
       validation: '入力値の確認が必要',
       AGE_RESTRICTED: '満19歳未満は登録できません。',

@@ -11,6 +11,7 @@ import {
   ShieldIcon,
   AlertIcon,
 } from '@/components/HealthIcons';
+import { KakaoLogo, GoogleLogo } from '@/components/SocialIcons';
 
 export function SignupForm() {
   const { t } = useI18n();
@@ -74,6 +75,12 @@ export function SignupForm() {
     }
   }
 
+  const notifySocialUnavailable = () => {
+    if (typeof window !== 'undefined') {
+      window.alert(S.social.unavailable);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-32">
       <header className="space-y-2 px-1">
@@ -84,6 +91,33 @@ export function SignupForm() {
           {S.heroBody}
         </p>
       </header>
+
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={notifySocialUnavailable}
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#FEE500] px-6 py-3.5 text-sm font-semibold text-[#191919] transition active:scale-[0.98] hover:brightness-95"
+        >
+          <KakaoLogo className="h-5 w-5" />
+          {S.social.kakao}
+        </button>
+        <button
+          type="button"
+          onClick={notifySocialUnavailable}
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-stone-300 bg-white px-6 py-3.5 text-sm font-semibold text-stone-800 transition active:scale-[0.98] hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
+        >
+          <GoogleLogo className="h-5 w-5" />
+          {S.social.google}
+        </button>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-stone-200 dark:bg-stone-800" />
+        <span className="text-[11px] font-medium uppercase tracking-widest text-stone-400 dark:text-stone-500">
+          {S.social.divider}
+        </span>
+        <span className="h-px flex-1 bg-stone-200 dark:bg-stone-800" />
+      </div>
 
       {error && (
         <div

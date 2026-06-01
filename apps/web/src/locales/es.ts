@@ -847,6 +847,12 @@ export const es: Dictionary = {
     submitting: 'Registrando…',
     bottomNote:
       'La verificación de identidad y el inicio de sesión con contraseña llegarán más adelante. Esto es una beta privada.',
+    social: {
+      kakao: 'Continuar con Kakao',
+      google: 'Continuar con Google',
+      divider: 'O regístrate por email',
+      unavailable: 'Esta función está en preparación. Usa el formulario debajo.',
+    },
     error: {
       validation: 'Revisa los datos',
       AGE_RESTRICTED: 'Debes tener 19+ para registrarte.',
