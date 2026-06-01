@@ -43,9 +43,9 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     groupKey: 'groupRoutine',
     items: [
-      { itemKey: 'itemRoutineFood', href: '/menu', disabled: true, phaseHint: 'phaseHintR6' },
-      { itemKey: 'itemRoutineExercise', href: '/menu', disabled: true, phaseHint: 'phaseHintR6' },
-      { itemKey: 'itemRoutineSleep', href: '/menu', disabled: true, phaseHint: 'phaseHintR6' },
+      { itemKey: 'itemRoutineFood', href: '/routine' },
+      { itemKey: 'itemRoutineExercise', href: '/routine' },
+      { itemKey: 'itemRoutineSleep', href: '/routine' },
     ],
   },
   {

@@ -276,11 +276,22 @@ type BetaSignupRow = {
   created_at: string;
 };
 
+type RoutineRow = {
+  user_pseudonym_id: string;
+  entry_date: string;
+  calories_kcal: number | null;
+  exercise_minutes: number | null;
+  sleep_hours: number | null;
+  note: string | null;
+  updated_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
   consents: AnalysisConsentRow[];
   betaSignups: BetaSignupRow[];
+  routine: RoutineRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -292,6 +303,7 @@ export function makeMockAnalysisDb(): {
     reports: [],
     consents: [],
     betaSignups: [],
+    routine: [],
   };
   let nextResponseId = 1;
 
@@ -406,6 +418,45 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: {} };
     }
 
+    if (trimmed.startsWith('INSERT INTO routine_entries')) {
+      const [
+        user_pseudonym_id,
+        entry_date,
+        calories_kcal,
+        exercise_minutes,
+        sleep_hours,
+        note,
+      ] = args as [
+        string,
+        string,
+        number | null,
+        number | null,
+        number | null,
+        string | null,
+      ];
+      const existing = state.routine.find(
+        (r) => r.user_pseudonym_id === user_pseudonym_id && r.entry_date === entry_date,
+      );
+      if (existing) {
+        existing.calories_kcal = calories_kcal;
+        existing.exercise_minutes = exercise_minutes;
+        existing.sleep_hours = sleep_hours;
+        existing.note = note;
+        existing.updated_at = new Date().toISOString();
+      } else {
+        state.routine.push({
+          user_pseudonym_id,
+          entry_date,
+          calories_kcal,
+          exercise_minutes,
+          sleep_hours,
+          note,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
     throw new Error(`mock-analysis-d1 unknown statement: ${trimmed.substring(0, 80)}`);
   }
 
@@ -470,7 +521,49 @@ export function makeMockAnalysisDb(): {
         self_rated_health: raw.self_rated_health,
       };
     }
+    if (trimmed.includes('FROM routine_entries') && trimmed.includes('AND entry_date = ?')) {
+      const [pseudonym, entryDate] = args as [string, string];
+      const r = state.routine.find(
+        (x) => x.user_pseudonym_id === pseudonym && x.entry_date === entryDate,
+      );
+      if (!r) return null;
+      return {
+        entry_date: r.entry_date,
+        calories_kcal: r.calories_kcal,
+        exercise_minutes: r.exercise_minutes,
+        sleep_hours: r.sleep_hours,
+        note: r.note,
+      };
+    }
     throw new Error(`mock-analysis-d1 first() unknown: ${trimmed.substring(0, 80)}`);
+  }
+
+  function allStmtAnalysis(sql: string, args: unknown[]): { results: unknown[] } {
+    const trimmed = sql.trim();
+    if (
+      trimmed.includes('FROM routine_entries') &&
+      trimmed.includes('entry_date >= ?') &&
+      trimmed.includes('entry_date <= ?')
+    ) {
+      const [pseudonym, fromDate, toDate] = args as [string, string, string];
+      const rows = state.routine
+        .filter(
+          (r) =>
+            r.user_pseudonym_id === pseudonym &&
+            r.entry_date >= fromDate &&
+            r.entry_date <= toDate,
+        )
+        .sort((a, b) => (a.entry_date > b.entry_date ? 1 : -1))
+        .map((r) => ({
+          entry_date: r.entry_date,
+          calories_kcal: r.calories_kcal,
+          exercise_minutes: r.exercise_minutes,
+          sleep_hours: r.sleep_hours,
+          note: r.note,
+        }));
+      return { results: rows };
+    }
+    throw new Error(`mock-analysis-d1 all() unknown: ${trimmed.substring(0, 80)}`);
   }
 
   const makeStmt = (sql: string) => {
@@ -482,6 +575,9 @@ export function makeMockAnalysisDb(): {
       },
       async first<T>(): Promise<T | null> {
         return firstStmtAnalysis(sql, stmt._args) as T | null;
+      },
+      async all<T>(): Promise<{ results: T[] }> {
+        return allStmtAnalysis(sql, stmt._args) as { results: T[] };
       },
       async run() {
         return runStmt(sql, stmt._args);

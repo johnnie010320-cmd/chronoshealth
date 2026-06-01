@@ -186,6 +186,84 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
+// R6 Routine
+export type RoutineEntry = {
+  entryDate: string;
+  caloriesKcal: number | null;
+  exerciseMinutes: number | null;
+  sleepHours: number | null;
+  note: string | null;
+};
+
+export type RoutineSummary = {
+  from: string;
+  to: string;
+  days: number;
+  totals: { calories: number; exerciseMinutes: number; sleepHours: number };
+  averages: { calories: number; exerciseMinutes: number; sleepHours: number };
+  streakDays: number;
+};
+
+export type RoutineRangeResponse = {
+  entries: RoutineEntry[];
+  summary: RoutineSummary;
+  modelVersion: string;
+};
+
+export type RoutineTodayResponse = {
+  entry: RoutineEntry | null;
+  today: string;
+  modelVersion: string;
+};
+
+export type RoutineUpsertResponse = {
+  entry: RoutineEntry | null;
+  modelVersion: string;
+};
+
+export async function fetchRoutineToday(): Promise<RoutineTodayResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/routine/today`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as RoutineTodayResponse;
+}
+
+export async function fetchRoutineRange(
+  from: string,
+  to: string,
+): Promise<RoutineRangeResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const qs = new URLSearchParams({ from, to });
+  const res = await fetch(`${GATEWAY_URL}/api/v1/routine/range?${qs.toString()}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as RoutineRangeResponse;
+}
+
+export async function submitRoutineDaily(
+  body: RoutineEntry,
+): Promise<RoutineUpsertResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/routine/daily`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as RoutineUpsertResponse;
+}
+
 // M5 Care
 export type CareSeverity = 'info' | 'recommend' | 'attention';
 
