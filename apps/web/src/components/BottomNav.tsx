@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import {
   HomeIcon,
-  ActivityIcon,
   FileTextIcon,
-  ChartIcon,
+  HeartPulseIcon,
+  ShieldIcon,
   UserCircleIcon,
 } from './HealthIcons';
 
@@ -16,15 +16,15 @@ type IconCmp = (p: { className?: string; strokeWidth?: number }) => ReactElement
 
 type Item = {
   href: string;
-  labelKey: 'home' | 'survey' | 'avatar' | 'leaderboard' | 'profile';
+  labelKey: 'home' | 'reports' | 'care' | 'rewards' | 'profile';
   Icon: IconCmp;
 };
 
 const ITEMS: Item[] = [
   { href: '/', labelKey: 'home', Icon: HomeIcon },
-  { href: '/survey', labelKey: 'survey', Icon: ActivityIcon },
-  { href: '/avatar', labelKey: 'avatar', Icon: FileTextIcon },
-  { href: '/leaderboard', labelKey: 'leaderboard', Icon: ChartIcon },
+  { href: '/reports', labelKey: 'reports', Icon: FileTextIcon },
+  { href: '/care', labelKey: 'care', Icon: HeartPulseIcon },
+  { href: '/rewards', labelKey: 'rewards', Icon: ShieldIcon },
   { href: '/profile', labelKey: 'profile', Icon: UserCircleIcon },
 ];
 
@@ -57,13 +57,7 @@ export function BottomNav() {
                 }`}
               >
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
-                <span className="tracking-tight">
-                  {labelKey === 'avatar'
-                    ? t.avatar.nav
-                    : labelKey === 'leaderboard'
-                      ? t.leaderboard.nav
-                      : t.nav[labelKey]}
-                </span>
+                <span className="tracking-tight">{t.nav[labelKey]}</span>
               </Link>
             </li>
           );
