@@ -6,6 +6,7 @@ import { betaSignupRoute } from './routes/beta/signup.js';
 import { simulateRoute } from './routes/simulate.js';
 import { avatarMeRoute } from './routes/avatar/me.js';
 import { leaderboardMeRoute } from './routes/leaderboard/me.js';
+import { careMeRoute } from './routes/care/me.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -34,6 +35,7 @@ app.route('/api/v1/beta-signup', betaSignupRoute);
 app.route('/api/v1/simulate', simulateRoute);
 app.route('/api/v1/avatar/me', avatarMeRoute);
 app.route('/api/v1/leaderboard/me', leaderboardMeRoute);
+app.route('/api/v1/care/me', careMeRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));
 

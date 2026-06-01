@@ -307,21 +307,41 @@ export function makeMockAnalysisDb(): {
         purpose_code,
         birth_year,
         sex,
-        ...rest
-      ] = args as [string, string, number, string, ...unknown[]];
+        height_cm,
+        weight_kg,
+        smoking,
+        alcohol_drinks_per_week,
+        exercise_minutes_per_week,
+        sleep_hours_per_night,
+        systolic_bp,
+        diastolic_bp,
+        fasting_glucose,
+        ldl_cholesterol,
+        hdl_cholesterol,
+        family_history_diabetes,
+        family_history_hypertension,
+        family_history_cardiovascular,
+        stress_level,
+        self_rated_health,
+      ] = args as [
+        string, string, number, string, number, number,
+        string, number, number, number,
+        number | null, number | null, number | null, number | null, number | null,
+        number, number, number,
+        string, string,
+      ];
       const id = nextResponseId++;
-      // stress_level 은 19개 컬럼 중 18번째 (0-based) → birth_year/sex 이후 16번째 rest item.
-      // 컬럼 순서: birth_year, sex, height_cm, weight_kg,
-      //  smoking, alcohol_drinks_per_week, exercise_minutes_per_week, sleep_hours_per_night,
-      //  systolic_bp, diastolic_bp, fasting_glucose, ldl_cholesterol, hdl_cholesterol,
-      //  family_history_diabetes, family_history_hypertension, family_history_cardiovascular,
-      //  stress_level, self_rated_health
-      const stress_level = rest[16];
       state.responses.push({
         id,
         user_pseudonym_id,
         purpose_code,
-        raw: { birth_year, sex, stress_level, rest },
+        raw: {
+          birth_year, sex, height_cm, weight_kg,
+          smoking, alcohol_drinks_per_week, exercise_minutes_per_week, sleep_hours_per_night,
+          systolic_bp, diastolic_bp, fasting_glucose, ldl_cholesterol, hdl_cholesterol,
+          family_history_diabetes, family_history_hypertension, family_history_cardiovascular,
+          stress_level, self_rated_health,
+        },
       });
       return { success: true, meta: { last_row_id: id } };
     }
@@ -414,6 +434,40 @@ export function makeMockAnalysisDb(): {
         stress_level: (resp?.raw?.stress_level as string) ?? null,
         sex: (resp?.raw?.sex as string) ?? 'other',
         birth_year: (resp?.raw?.birth_year as number) ?? 1990,
+      };
+    }
+    if (
+      trimmed.includes('FROM risk_survey_responses s') &&
+      trimmed.includes('JOIN risk_survey_reports r')
+    ) {
+      const [pseudonym] = args as [string];
+      const reports = state.reports
+        .filter((r) => r.user_pseudonym_id === pseudonym)
+        .sort((a, b) => (a.generated_at < b.generated_at ? 1 : -1));
+      const latest = reports[0];
+      if (!latest) return null;
+      const resp = state.responses.find((r) => r.id === latest.response_id);
+      if (!resp) return null;
+      const raw = resp.raw as Record<string, unknown>;
+      return {
+        birth_year: raw.birth_year,
+        sex: raw.sex,
+        height_cm: raw.height_cm,
+        weight_kg: raw.weight_kg,
+        smoking: raw.smoking,
+        alcohol_drinks_per_week: raw.alcohol_drinks_per_week,
+        exercise_minutes_per_week: raw.exercise_minutes_per_week,
+        sleep_hours_per_night: raw.sleep_hours_per_night,
+        systolic_bp: raw.systolic_bp,
+        diastolic_bp: raw.diastolic_bp,
+        fasting_glucose: raw.fasting_glucose,
+        ldl_cholesterol: raw.ldl_cholesterol,
+        hdl_cholesterol: raw.hdl_cholesterol,
+        family_history_diabetes: raw.family_history_diabetes,
+        family_history_hypertension: raw.family_history_hypertension,
+        family_history_cardiovascular: raw.family_history_cardiovascular,
+        stress_level: raw.stress_level,
+        self_rated_health: raw.self_rated_health,
       };
     }
     throw new Error(`mock-analysis-d1 first() unknown: ${trimmed.substring(0, 80)}`);

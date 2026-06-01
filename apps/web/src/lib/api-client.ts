@@ -186,6 +186,54 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
+// M5 Care
+export type CareSeverity = 'info' | 'recommend' | 'attention';
+
+export type CareRule = { ruleId: string; severity: CareSeverity };
+
+export type CareAffiliate = {
+  slug: string;
+  category: 'diet' | 'exercise' | 'medical';
+  partner: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaUrl: string;
+};
+
+export type CareContext = {
+  bmi: number | null;
+  age: number;
+  exerciseMinutesPerWeek: number;
+  alcoholDrinksPerWeek: number;
+  smoking: 'never' | 'former' | 'current';
+  sleepHoursPerNight: number;
+  stressLevel: 'low' | 'medium' | 'high';
+};
+
+export type CareResponse = {
+  diet: { rules: CareRule[]; affiliates: CareAffiliate[] };
+  exercise: { rules: CareRule[]; affiliates: CareAffiliate[] };
+  medical: { rules: CareRule[]; affiliates: CareAffiliate[] };
+  context: CareContext;
+  modelVersion: string;
+  disclaimer: string;
+};
+
+export async function fetchCareMe(
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<CareResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+
+  const res = await fetch(`${GATEWAY_URL}/api/v1/care/me?locale=${locale}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as CareResponse;
+}
+
 export async function fetchLeaderboardMe(
   scope: 'world' | 'country',
   country?: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER',
