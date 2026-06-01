@@ -311,6 +311,16 @@ type CommunityLikeRow = {
   created_at: string;
 };
 
+type LedgerRow = {
+  id: number;
+  user_pseudonym_id: string;
+  txn_id: string;
+  amount: number;
+  kind: string;
+  source_ref: string | null;
+  created_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
@@ -320,6 +330,7 @@ export type MockAnalysisState = {
   posts: CommunityPostRow[];
   comments: CommunityCommentRow[];
   likes: CommunityLikeRow[];
+  ledger: LedgerRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -335,8 +346,10 @@ export function makeMockAnalysisDb(): {
     posts: [],
     comments: [],
     likes: [],
+    ledger: [],
   };
   let nextResponseId = 1;
+  let nextLedgerId = 1;
 
   function runStmt(sql: string, args: unknown[]): {
     success: true;
@@ -444,6 +457,25 @@ export function makeMockAnalysisDb(): {
         age_group,
         interested_modules,
         locale,
+        created_at: new Date().toISOString(),
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO chr_ledger')) {
+      const [user_pseudonym_id, txn_id, amount, kind, source_ref] = args as [
+        string, string, number, string, string | null,
+      ];
+      if (state.ledger.some((l) => l.txn_id === txn_id)) {
+        throw new Error('UNIQUE constraint failed: chr_ledger.txn_id');
+      }
+      state.ledger.push({
+        id: nextLedgerId++,
+        user_pseudonym_id,
+        txn_id,
+        amount,
+        kind,
+        source_ref,
         created_at: new Date().toISOString(),
       });
       return { success: true, meta: {} };
@@ -634,6 +666,25 @@ export function makeMockAnalysisDb(): {
       };
     }
 
+    if (trimmed.startsWith('SELECT COALESCE(SUM(amount), 0) AS balance')) {
+      const [pseudonym] = args as [string];
+      const sum = state.ledger
+        .filter((l) => l.user_pseudonym_id === pseudonym)
+        .reduce((acc, l) => acc + l.amount, 0);
+      return { balance: sum };
+    }
+
+    if (trimmed.startsWith('SELECT 1 FROM chr_ledger')) {
+      const [pseudonym, kind, sourceRef] = args as [string, string, string];
+      const hit = state.ledger.find(
+        (l) =>
+          l.user_pseudonym_id === pseudonym &&
+          l.kind === kind &&
+          l.source_ref === sourceRef,
+      );
+      return hit ? { '1': 1 } : null;
+    }
+
     if (trimmed.startsWith('SELECT 1 FROM community_likes')) {
       const [userPseudonymId, postId] = args as [string, string];
       const exists = state.likes.some(
@@ -717,6 +768,25 @@ export function makeMockAnalysisDb(): {
           return a.created_at > b.created_at ? -1 : 1;
         })
         .slice(0, limit);
+      return { results: rows };
+    }
+
+    if (
+      trimmed.startsWith('SELECT txn_id, amount, kind, source_ref, created_at') &&
+      trimmed.includes('FROM chr_ledger')
+    ) {
+      const [pseudonym, limit] = args as [string, number];
+      const rows = state.ledger
+        .filter((l) => l.user_pseudonym_id === pseudonym)
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .slice(0, limit)
+        .map((l) => ({
+          txn_id: l.txn_id,
+          amount: l.amount,
+          kind: l.kind,
+          source_ref: l.source_ref,
+          created_at: l.created_at,
+        }));
       return { results: rows };
     }
 

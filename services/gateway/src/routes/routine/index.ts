@@ -11,6 +11,7 @@ import {
   upsertRoutineEntry,
 } from '../../routine/storage.js';
 import { summarize } from '../../routine/summary.js';
+import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'routine-v0.1.0';
@@ -35,6 +36,34 @@ routineRoute.post('/daily', authMiddleware, rateLimit(200), async (c) => {
 
   await upsertRoutineEntry(c.env.DB, pseudonymId, parsed.data);
   const saved = await readRoutineByDate(c.env.DB, pseudonymId, parsed.data.entryDate);
+
+  // R8: 7일 연속 기록 달성 시 적립 (entryDate 기준 주차 1회).
+  try {
+    const from = new Date();
+    from.setUTCDate(from.getUTCDate() - 6);
+    const to = new Date();
+    const window = await readRoutineRange(
+      c.env.DB,
+      pseudonymId,
+      from.toISOString().slice(0, 10),
+      to.toISOString().slice(0, 10),
+    );
+    const summary = summarize(window, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10));
+    if (summary.streakDays >= 7) {
+      const weekKey = parsed.data.entryDate;
+      const already = await hasEarnedFor(c.env.DB, pseudonymId, 'routine_streak_7', weekKey);
+      if (!already) {
+        await appendLedger(c.env.DB, pseudonymId, {
+          kind: 'routine_streak_7',
+          amount: EARN_AMOUNTS.routine_streak_7,
+          sourceRef: weekKey,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('appendLedger routine_streak_7 failed', err);
+  }
+
   return c.json({ entry: saved, modelVersion: MODEL_VERSION });
 });
 

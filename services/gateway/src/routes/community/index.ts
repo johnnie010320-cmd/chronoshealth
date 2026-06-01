@@ -20,6 +20,7 @@ import {
   moderateText,
   moderateVideoUrl,
 } from '../../community/moderation.js';
+import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'community-v0.1.0';
@@ -59,6 +60,15 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
     body: parsed.data.body,
     videoUrl: parsed.data.videoUrl,
   });
+  try {
+    await appendLedger(c.env.DB, pseudonymId, {
+      kind: 'community_post',
+      amount: EARN_AMOUNTS.community_post,
+      sourceRef: id,
+    });
+  } catch (err) {
+    console.error('appendLedger community_post failed', err);
+  }
   const post = await readPost(c.env.DB, id);
   return c.json({ post, modelVersion: MODEL_VERSION });
 });
@@ -120,6 +130,15 @@ communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async
     userPseudonymId: pseudonymId,
     body: parsed.data.body,
   });
+  try {
+    await appendLedger(c.env.DB, pseudonymId, {
+      kind: 'community_comment',
+      amount: EARN_AMOUNTS.community_comment,
+      sourceRef: id,
+    });
+  } catch (err) {
+    console.error('appendLedger community_comment failed', err);
+  }
   return c.json({ id, postId, body: parsed.data.body, modelVersion: MODEL_VERSION });
 });
 
@@ -131,6 +150,27 @@ communityRoute.post('/posts/:id/like', authMiddleware, rateLimit(200), async (c)
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
   const result = await toggleLike(c.env.DB, postId, pseudonymId);
+  // R8: like-received 적립 (게시자 본인이 아닐 때만, 첫 좋아요 1회).
+  if (result.liked && post.userPseudonymId !== pseudonymId) {
+    try {
+      const sourceRef = `${postId}:${pseudonymId}`;
+      const already = await hasEarnedFor(
+        c.env.DB,
+        post.userPseudonymId,
+        'community_like_received',
+        sourceRef,
+      );
+      if (!already) {
+        await appendLedger(c.env.DB, post.userPseudonymId, {
+          kind: 'community_like_received',
+          amount: EARN_AMOUNTS.community_like_received,
+          sourceRef,
+        });
+      }
+    } catch (err) {
+      console.error('appendLedger community_like_received failed', err);
+    }
+  }
   return c.json({ ...result, modelVersion: MODEL_VERSION });
 });
 

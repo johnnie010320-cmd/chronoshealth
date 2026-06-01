@@ -186,6 +186,73 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
+// R8 Rewards
+export type LedgerKind =
+  | 'survey_complete'
+  | 'routine_streak_7'
+  | 'community_post'
+  | 'community_comment'
+  | 'community_like_received'
+  | 'spend_coupon'
+  | 'admin_adjust';
+
+export type LedgerEntry = {
+  txnId: string;
+  amount: number;
+  kind: LedgerKind;
+  sourceRef: string | null;
+  createdAt: string;
+};
+
+export type SpendItem = {
+  slug: string;
+  cost: number;
+  partner: string;
+  title: string;
+  body: string;
+};
+
+export type RewardsMeResponse = {
+  balance: number;
+  history: LedgerEntry[];
+  spendCatalog: SpendItem[];
+  earnRules: Partial<Record<LedgerKind, number>>;
+  modelVersion: string;
+  disclaimer: string;
+};
+
+export async function fetchRewardsMe(
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<RewardsMeResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/rewards/me?locale=${locale}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as RewardsMeResponse;
+}
+
+export type SpendResponse = {
+  txnId: string;
+  spent: number;
+  item: { slug: string; partner: string };
+  newBalance: number;
+};
+
+export async function submitRewardsSpend(slug: string): Promise<SpendResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/rewards/spend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ slug }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as SpendResponse;
+}
+
 // R7a Community
 export type CommunityPost = {
   id: string;
