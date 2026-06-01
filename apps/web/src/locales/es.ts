@@ -2,12 +2,11 @@ import type { Dictionary } from './ko';
 
 export const es: Dictionary = {
   meta: {
-    title: 'Chronos Health — Beta',
+    title: 'Chronos Health',
     description:
       'Medicina preventiva con tus datos de salud. Recibe al instante una estimación de tu edad biológica y riesgos a 5 años.',
   },
   brand: 'Chronos Health',
-  beta: 'BETA',
   language: {
     label: 'Idioma',
     ko: '한국어',
@@ -555,16 +554,17 @@ export const es: Dictionary = {
   login: {
     pageTitle: 'Iniciar sesión',
     heroTitle: 'Bienvenido de nuevo',
-    heroBody: 'Inicia sesión con correo, teléfono, Kakao o Google.',
+    heroBody: 'Inicia sesión con email y contraseña.',
     notice:
-      'Esta pantalla es una vista previa de UI. La función de inicio de sesión llegará más adelante. Por ahora usa el menú de Registro.',
+      'Las contraseñas se comparan tras hash PBKDF2-SHA256. Los fallos responden siempre con un código genérico.',
     email: {
       sectionTitle: 'Correo',
       emailLabel: 'Correo',
       emailPlaceholder: 'tu@ejemplo.com',
       passwordLabel: 'Contraseña',
       passwordPlaceholder: '••••••••',
-      submit: 'Continuar con correo',
+      submit: 'Iniciar sesión',
+      submitting: 'Comprobando…',
     },
     phone: {
       sectionTitle: 'Teléfono',
@@ -578,7 +578,29 @@ export const es: Dictionary = {
     noAccount: '¿No tienes cuenta?',
     signupCta: 'Registro',
     unavailable:
-      'Esta función está en preparación. Por favor usa el menú de Registro por ahora.',
+      'Esta función está en preparación. Por favor usa el inicio de sesión por email o regístrate.',
+    setPasswordTitle: 'Configurar contraseña',
+    setPasswordBody:
+      'Te registraste antes. Verifica tu teléfono y establece una nueva contraseña.',
+    setPasswordPhoneLabel: 'Teléfono de registro',
+    setPasswordPhonePlaceholder: '010-1234-5678',
+    setPasswordNewLabel: 'Nueva contraseña',
+    setPasswordSubmit: 'Establecer e iniciar sesión',
+    setPasswordSubmitting: 'Estableciendo…',
+    error: {
+      INVALID_CREDENTIALS: 'Email o contraseña incorrectos.',
+      PASSWORD_REQUIRED: 'Se requiere configurar contraseña.',
+      NOT_FOUND: 'El teléfono no coincide.',
+      ALREADY_SET: 'La contraseña ya está configurada. Inicia sesión.',
+      PASSWORD_TOO_SHORT: 'La contraseña debe tener al menos 8 caracteres.',
+      PASSWORD_KOREAN_NOT_ALLOWED: 'No se permiten contraseñas en coreano.',
+      PASSWORD_NOT_COMPLEX:
+        'Incluye al menos 3 de: mayúscula, minúscula, número, símbolo.',
+      INVALID_INPUT: 'Revisa los datos.',
+      INVALID_JSON: 'Solicitud mal formada.',
+      INTERNAL_ERROR: 'Error del servidor — inténtalo más tarde.',
+      generic: 'Falló el inicio de sesión.',
+    },
   },
   comingSoon: {
     title: 'Próximamente',
@@ -816,9 +838,10 @@ export const es: Dictionary = {
     pageTitle: 'Registro',
     heroTitle: 'Regístrate antes de empezar',
     heroBody:
-      'Tu nombre, teléfono y correo se guardan en un almacén de identidad aislado y nunca se comparten fuera del servicio.',
+      'Nombre, teléfono, correo y contraseña se guardan en un almacén aislado y nunca se comparten fuera del servicio.',
     section: {
       identity: 'Sobre ti',
+      credentials: 'Seguridad de la cuenta',
       consent: 'Consentimiento',
     },
     fields: {
@@ -830,6 +853,24 @@ export const es: Dictionary = {
         label: 'Sexo',
         options: { male: 'Hombre', female: 'Mujer', other: 'Otro' },
       },
+      nationality: {
+        label: 'Nacionalidad',
+        options: {
+          KR: 'República de Corea',
+          US: 'Estados Unidos',
+          JP: 'Japón',
+          ES: 'España',
+          OTHER: 'Otro',
+        },
+      },
+      password: {
+        label: 'Contraseña',
+        placeholder: '8+ caracteres, 3 de: mayúsc/minúsc/número/símbolo',
+      },
+      passwordConfirm: {
+        label: 'Confirmar contraseña',
+        placeholder: 'Repite la misma contraseña',
+      },
     },
     consent: {
       medical: {
@@ -838,15 +879,18 @@ export const es: Dictionary = {
           'Acepto que se procesen mi encuesta, mediciones e historial familiar con fines de estimación de riesgo.',
       },
       terms: {
-        label: 'Términos del servicio y política de privacidad (obligatorio)',
-        description:
-          'Acepto los términos del servicio y la política de privacidad.',
+        label: 'Términos del servicio (obligatorio)',
+        description: 'Ver términos completos',
+      },
+      privacy: {
+        label: 'Política de privacidad (obligatorio)',
+        description: 'Ver política de privacidad completa',
       },
     },
     submit: 'Registrarme y empezar',
     submitting: 'Registrando…',
     bottomNote:
-      'La verificación de identidad y el inicio de sesión con contraseña llegarán más adelante. Esto es una beta privada.',
+      'Las contraseñas se almacenan con hash unidireccional PBKDF2-SHA256. La verificación de identidad/OAuth llegará más adelante.',
     social: {
       kakao: 'Continuar con Kakao',
       google: 'Continuar con Google',
@@ -857,13 +901,30 @@ export const es: Dictionary = {
       validation: 'Revisa los datos',
       AGE_RESTRICTED: 'Debes tener 19+ para registrarte.',
       CONSENT_REQUIRED:
-        'Se requieren los consentimientos de datos de salud y términos.',
+        'Debes aceptar el procesamiento de datos de salud, los términos y la política de privacidad.',
       IDENTITY_EXISTS:
-        'Esta cuenta ya existe. El inicio de sesión en varios dispositivos llegará con la verificación de identidad.',
+        'Esta cuenta ya existe. Inicia sesión con tu contraseña.',
       RATE_LIMITED: 'Límite diario de registros (10) superado.',
       INVALID_INPUT: 'Revisa los datos ingresados.',
       INVALID_JSON: 'Formato de solicitud inválido.',
+      PASSWORD_TOO_SHORT: 'La contraseña debe tener al menos 8 caracteres.',
+      PASSWORD_TOO_LONG: 'La contraseña debe tener como máximo 128 caracteres.',
+      PASSWORD_KOREAN_NOT_ALLOWED: 'No se permiten caracteres coreanos.',
+      PASSWORD_NOT_COMPLEX:
+        'Incluye al menos 3 de: mayúscula, minúscula, número, símbolo.',
+      PASSWORD_MISMATCH: 'Las contraseñas no coinciden.',
       generic: 'Error del servidor',
     },
+  },
+  contentPages: {
+    termsTitle: 'Términos del servicio',
+    privacyTitle: 'Política de privacidad',
+    versionLabel: 'Versión',
+    updatedLabel: 'Actualizado',
+    notReady: 'Este documento es un borrador pendiente de revisión legal.',
+    backToSignup: 'Volver al registro',
+    loadingError: 'No se pudo cargar el documento.',
+    notFound: 'Este documento aún no está publicado. Contacta al operador.',
+    close: 'Cerrar',
   },
 };

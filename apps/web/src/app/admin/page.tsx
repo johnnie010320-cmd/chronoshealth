@@ -54,10 +54,10 @@ export default function AdminDashboardPage() {
       active: false,
     },
     {
-      href: '/admin',
+      href: '/admin/content',
       title: D.actionContent,
       desc: D.actionContentDesc,
-      active: false,
+      active: true,
     },
     {
       href: '/admin',

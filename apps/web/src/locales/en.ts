@@ -2,12 +2,11 @@ import type { Dictionary } from './ko';
 
 export const en: Dictionary = {
   meta: {
-    title: 'Chronos Health — Beta',
+    title: 'Chronos Health',
     description:
       'Preventive medicine starting from your health data. Get an instant biological age and 5-year risk estimate report.',
   },
   brand: 'Chronos Health',
-  beta: 'BETA',
   language: {
     label: 'Language',
     ko: '한국어',
@@ -554,16 +553,17 @@ export const en: Dictionary = {
   login: {
     pageTitle: 'Log in',
     heroTitle: 'Welcome back',
-    heroBody: 'Sign in with email, phone, Kakao, or Google.',
+    heroBody: 'Sign in with email and password.',
     notice:
-      'This screen is a UI preview. Login functionality arrives in a later stage — for now please use the Sign up menu.',
+      'Passwords are PBKDF2-SHA256 hashed before comparison. Failures always respond with a single generic error code.',
     email: {
       sectionTitle: 'Email',
       emailLabel: 'Email',
       emailPlaceholder: 'you@example.com',
       passwordLabel: 'Password',
       passwordPlaceholder: '••••••••',
-      submit: 'Continue with email',
+      submit: 'Log in',
+      submitting: 'Checking…',
     },
     phone: {
       sectionTitle: 'Phone',
@@ -577,7 +577,29 @@ export const en: Dictionary = {
     noAccount: "Don't have an account?",
     signupCta: 'Sign up',
     unavailable:
-      'This feature is coming soon. Please use the Sign up menu for now.',
+      'This feature is in preparation. Please use email login or sign up.',
+    setPasswordTitle: 'Password setup required',
+    setPasswordBody:
+      'You signed up earlier. Verify your phone and set a new password.',
+    setPasswordPhoneLabel: 'Phone used at signup',
+    setPasswordPhonePlaceholder: '010-1234-5678',
+    setPasswordNewLabel: 'New password',
+    setPasswordSubmit: 'Set password and log in',
+    setPasswordSubmitting: 'Setting…',
+    error: {
+      INVALID_CREDENTIALS: 'Incorrect email or password.',
+      PASSWORD_REQUIRED: 'Password setup required.',
+      NOT_FOUND: 'Phone number does not match.',
+      ALREADY_SET: 'Password is already set. Please log in.',
+      PASSWORD_TOO_SHORT: 'Password must be at least 8 characters.',
+      PASSWORD_KOREAN_NOT_ALLOWED: 'Korean passwords are not allowed.',
+      PASSWORD_NOT_COMPLEX:
+        'Include at least 3 of: uppercase, lowercase, number, symbol.',
+      INVALID_INPUT: 'Please review your inputs.',
+      INVALID_JSON: 'Malformed request.',
+      INTERNAL_ERROR: 'Server error — please try again later.',
+      generic: 'Login failed.',
+    },
   },
   comingSoon: {
     title: 'Coming soon',
@@ -814,9 +836,10 @@ export const en: Dictionary = {
     pageTitle: 'Sign up',
     heroTitle: 'Sign up before you start',
     heroBody:
-      'Your name, phone, and email are kept in an isolated identity store and are never shared outside this service.',
+      'Name, phone, email, and password are kept in an isolated identity store and are never shared outside this service.',
     section: {
       identity: 'About you',
+      credentials: 'Account security',
       consent: 'Consent',
     },
     fields: {
@@ -828,6 +851,24 @@ export const en: Dictionary = {
         label: 'Sex',
         options: { male: 'Male', female: 'Female', other: 'Other' },
       },
+      nationality: {
+        label: 'Nationality',
+        options: {
+          KR: 'Republic of Korea',
+          US: 'United States',
+          JP: 'Japan',
+          ES: 'Spain',
+          OTHER: 'Other',
+        },
+      },
+      password: {
+        label: 'Password',
+        placeholder: '8+ chars, 3 of: upper/lower/number/symbol',
+      },
+      passwordConfirm: {
+        label: 'Confirm password',
+        placeholder: 'Re-enter the same password',
+      },
     },
     consent: {
       medical: {
@@ -836,15 +877,18 @@ export const en: Dictionary = {
           'I consent to using my survey, measurements, and family history for risk estimation.',
       },
       terms: {
-        label: 'Terms of service and privacy policy (required)',
-        description:
-          'I agree to the terms of service and privacy policy.',
+        label: 'Terms of service (required)',
+        description: 'View full terms of service',
+      },
+      privacy: {
+        label: 'Privacy policy (required)',
+        description: 'View full privacy policy',
       },
     },
     submit: 'Sign up and start',
     submitting: 'Signing up…',
     bottomNote:
-      'Identity verification and password sign-in arrive later. This is a private beta.',
+      'Passwords are stored one-way hashed with PBKDF2-SHA256. Identity verification / OAuth arrive in a later stage.',
     social: {
       kakao: 'Sign up with Kakao',
       google: 'Sign up with Google',
@@ -854,13 +898,31 @@ export const en: Dictionary = {
     error: {
       validation: 'Input check needed',
       AGE_RESTRICTED: 'You must be 19+ to sign up.',
-      CONSENT_REQUIRED: 'Health data and terms consent are required.',
+      CONSENT_REQUIRED:
+        'You must agree to health data processing, terms of service, and privacy policy.',
       IDENTITY_EXISTS:
-        'This account already exists. Multi-device login will arrive with identity verification later.',
+        'This account already exists. Please log in with your password.',
       RATE_LIMITED: 'Daily signup limit (10) exceeded.',
       INVALID_INPUT: 'Please re-check your inputs.',
       INVALID_JSON: 'Invalid request format.',
+      PASSWORD_TOO_SHORT: 'Password must be at least 8 characters.',
+      PASSWORD_TOO_LONG: 'Password must be at most 128 characters.',
+      PASSWORD_KOREAN_NOT_ALLOWED: 'Korean characters are not allowed in passwords.',
+      PASSWORD_NOT_COMPLEX:
+        'Include at least 3 of: uppercase, lowercase, number, symbol.',
+      PASSWORD_MISMATCH: 'Passwords do not match.',
       generic: 'Server error',
     },
+  },
+  contentPages: {
+    termsTitle: 'Terms of service',
+    privacyTitle: 'Privacy policy',
+    versionLabel: 'Version',
+    updatedLabel: 'Updated',
+    notReady: 'This document is a draft pending legal review.',
+    backToSignup: 'Back to sign up',
+    loadingError: 'Failed to load the document.',
+    notFound: 'This document is not yet published. Please contact the operator.',
+    close: 'Close',
   },
 };

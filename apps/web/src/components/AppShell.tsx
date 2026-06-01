@@ -61,13 +61,9 @@ export function AppShell({
         )}
 
         <div className="flex items-center gap-1">
-          {title ? (
+          {title && (
             <span className="mr-1 text-sm font-medium text-stone-700 dark:text-stone-300">
               {title}
-            </span>
-          ) : (
-            <span className="mr-1 text-[10px] font-medium uppercase tracking-widest text-brand-700 dark:text-brand-400">
-              {t.beta}
             </span>
           )}
           <LanguageSwitcher />

@@ -1,8 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { SignupRequest } from '@/lib/signup-schema';
+import {
+  SignupRequest,
+  validatePasswordPolicy,
+} from '@/lib/signup-schema';
 import { submitSignup } from '@/lib/api-client';
 import { writeSession } from '@/lib/session';
 import { useI18n } from '@/lib/i18n';
@@ -13,6 +17,9 @@ import {
 } from '@/components/HealthIcons';
 import { KakaoLogo, GoogleLogo } from '@/components/SocialIcons';
 
+const TERMS_VERSION = 'v1.0';
+const PRIVACY_VERSION = 'v1.0';
+
 export function SignupForm() {
   const { t } = useI18n();
   const S = t.signup;
@@ -21,6 +28,12 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const notifySocialUnavailable = () => {
+    if (typeof window !== 'undefined') {
+      window.alert(S.social.unavailable);
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -28,14 +41,37 @@ export function SignupForm() {
 
     try {
       const fd = new FormData(e.currentTarget);
+      const password = String(fd.get('password') ?? '');
+      const passwordConfirm = String(fd.get('passwordConfirm') ?? '');
+
+      if (password !== passwordConfirm) {
+        setError(S.error.PASSWORD_MISMATCH);
+        setSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      const policy = validatePasswordPolicy(password);
+      if (policy) {
+        setError(S.error[policy]);
+        setSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
       const raw = {
         name: String(fd.get('name') ?? '').trim(),
         email: String(fd.get('email') ?? '').trim(),
         phone: String(fd.get('phone') ?? '').trim(),
         birthYear: numOrNaN(fd.get('birthYear')),
         sex: fd.get('sex') as string,
+        password,
+        nationality: fd.get('nationality') as string,
         consentMedical: fd.has('consentMedical'),
         consentTerms: fd.has('consentTerms'),
+        consentPrivacy: fd.has('consentPrivacy'),
+        consentTermsVersion: TERMS_VERSION,
+        consentPrivacyVersion: PRIVACY_VERSION,
       };
 
       const parsed = SignupRequest.safeParse(raw);
@@ -54,7 +90,11 @@ export function SignupForm() {
         return;
       }
 
-      if (!parsed.data.consentMedical || !parsed.data.consentTerms) {
+      if (
+        !parsed.data.consentMedical ||
+        !parsed.data.consentTerms ||
+        !parsed.data.consentPrivacy
+      ) {
         setError(S.error.CONSENT_REQUIRED);
         setSubmitting(false);
         return;
@@ -74,12 +114,6 @@ export function SignupForm() {
       setSubmitting(false);
     }
   }
-
-  const notifySocialUnavailable = () => {
-    if (typeof window !== 'undefined') {
-      window.alert(S.social.unavailable);
-    }
-  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-32">
@@ -178,22 +212,66 @@ export function SignupForm() {
             { value: 'other', label: F.sex.options.other },
           ]}
         />
+        <SelectField
+          label={F.nationality.label}
+          name="nationality"
+          required
+          options={[
+            { value: 'KR', label: F.nationality.options.KR },
+            { value: 'US', label: F.nationality.options.US },
+            { value: 'JP', label: F.nationality.options.JP },
+            { value: 'ES', label: F.nationality.options.ES },
+            { value: 'OTHER', label: F.nationality.options.OTHER },
+          ]}
+        />
+      </Section>
+
+      <Section
+        icon={<ShieldIcon className="h-5 w-5" />}
+        title={S.section.credentials}
+        n="2"
+      >
+        <Field
+          label={F.password.label}
+          name="password"
+          type="password"
+          required
+          maxLength={128}
+          placeholder={F.password.placeholder}
+          autoComplete="new-password"
+        />
+        <Field
+          label={F.passwordConfirm.label}
+          name="passwordConfirm"
+          type="password"
+          required
+          maxLength={128}
+          placeholder={F.passwordConfirm.placeholder}
+          autoComplete="new-password"
+        />
       </Section>
 
       <Section
         icon={<ShieldIcon className="h-5 w-5" />}
         title={S.section.consent}
-        n="2"
+        n="3"
       >
         <ConsentCheckbox
           name="consentMedical"
           label={S.consent.medical.label}
           description={S.consent.medical.description}
         />
-        <ConsentCheckbox
+        <ConsentCheckboxWithLink
           name="consentTerms"
           label={S.consent.terms.label}
           description={S.consent.terms.description}
+          href="/terms"
+        />
+        <ConsentCheckboxWithLink
+          name="consentPrivacy"
+          label={S.consent.privacy.label}
+          description={S.consent.privacy.description}
+          href="/privacy"
         />
       </Section>
 
@@ -371,5 +449,45 @@ function ConsentCheckbox({
         </span>
       </span>
     </label>
+  );
+}
+
+function ConsentCheckboxWithLink({
+  name,
+  label,
+  description,
+  href,
+}: {
+  name: string;
+  label: string;
+  description: string;
+  href: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-stone-200 bg-stone-50/60 p-3 transition hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-950/60 dark:hover:bg-stone-900">
+      <input
+        type="checkbox"
+        name={name}
+        required
+        id={`consent-${name}`}
+        className="mt-0.5 h-5 w-5 shrink-0 accent-brand-700 dark:accent-brand-400"
+      />
+      <div className="flex-1 space-y-0.5">
+        <label
+          htmlFor={`consent-${name}`}
+          className="block cursor-pointer text-sm font-medium leading-snug text-stone-900 dark:text-stone-100"
+        >
+          {label}
+        </label>
+        <Link
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block text-[12px] font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300"
+        >
+          {description} →
+        </Link>
+      </div>
+    </div>
   );
 }

@@ -2,12 +2,11 @@ import type { Dictionary } from './ko';
 
 export const ja: Dictionary = {
   meta: {
-    title: 'Chronos Health — ベータ',
+    title: 'Chronos Health',
     description:
       '健康データから始める予防医学。生体年齢と5年以内のリスク推定レポートを即時に発行。',
   },
   brand: 'Chronos Health',
-  beta: 'BETA',
   language: {
     label: '言語',
     ko: '한국어',
@@ -551,16 +550,17 @@ export const ja: Dictionary = {
   login: {
     pageTitle: 'ログイン',
     heroTitle: 'おかえりなさい',
-    heroBody: 'メール・電話番号・カカオ・Google でログインできます。',
+    heroBody: 'メールとパスワードでログインします。',
     notice:
-      'この画面は UI プレビューです。ログイン機能は後続段階で追加されます。現在は会員登録からのみご利用いただけます。',
+      'パスワードはPBKDF2-SHA256で比較されます。失敗時は常に同一エラーで応答します。',
     email: {
       sectionTitle: 'メール',
       emailLabel: 'メール',
       emailPlaceholder: 'you@example.com',
       passwordLabel: 'パスワード',
       passwordPlaceholder: '••••••••',
-      submit: 'メールでログイン',
+      submit: 'ログイン',
+      submitting: '確認中…',
     },
     phone: {
       sectionTitle: '電話番号',
@@ -573,8 +573,29 @@ export const ja: Dictionary = {
     google: 'Google で続ける',
     noAccount: 'アカウントをお持ちでない方は',
     signupCta: '会員登録',
-    unavailable:
-      'この機能は準備中です。現在は会員登録メニューからご登録ください。',
+    unavailable: 'この機能は準備中です。メールログインまたは会員登録をご利用ください。',
+    setPasswordTitle: 'パスワード設定が必要',
+    setPasswordBody:
+      '以前に登録したアカウントです。電話番号を確認し、新しいパスワードを設定してください。',
+    setPasswordPhoneLabel: '登録時の電話番号',
+    setPasswordPhonePlaceholder: '010-1234-5678',
+    setPasswordNewLabel: '新しいパスワード',
+    setPasswordSubmit: 'パスワード設定してログイン',
+    setPasswordSubmitting: '設定中…',
+    error: {
+      INVALID_CREDENTIALS: 'メールまたはパスワードが正しくありません。',
+      PASSWORD_REQUIRED: 'パスワード設定が必要です。',
+      NOT_FOUND: '電話番号が一致しません。',
+      ALREADY_SET: 'パスワードはすでに設定されています。ログインしてください。',
+      PASSWORD_TOO_SHORT: 'パスワードは8文字以上必要です。',
+      PASSWORD_KOREAN_NOT_ALLOWED: '韓国語パスワードは使用できません。',
+      PASSWORD_NOT_COMPLEX:
+        '英大文字・小文字・数字・記号のうち3種類以上を含めてください。',
+      INVALID_INPUT: '入力値を再確認してください。',
+      INVALID_JSON: 'リクエスト形式が正しくありません。',
+      INTERNAL_ERROR: 'サーバーエラー。しばらく後で再試行してください。',
+      generic: 'ログインに失敗しました。',
+    },
   },
   comingSoon: {
     title: '準備中',
@@ -811,9 +832,10 @@ export const ja: Dictionary = {
     pageTitle: '会員登録',
     heroTitle: 'はじめる前にご登録ください',
     heroBody:
-      '氏名・電話番号・メールは本サービスの隔離保管庫に保存され、外部に共有されることはありません。',
+      '氏名・電話番号・メール・パスワードは本サービスの隔離保管庫に保存され、外部に共有されません。',
     section: {
       identity: 'ご本人の情報',
+      credentials: 'アカウントセキュリティ',
       consent: '同意',
     },
     fields: {
@@ -825,6 +847,24 @@ export const ja: Dictionary = {
         label: '性別',
         options: { male: '男性', female: '女性', other: 'その他' },
       },
+      nationality: {
+        label: '国籍',
+        options: {
+          KR: '大韓民国',
+          US: 'アメリカ',
+          JP: '日本',
+          ES: 'スペイン',
+          OTHER: 'その他',
+        },
+      },
+      password: {
+        label: 'パスワード',
+        placeholder: '8文字以上、英大/小・数字・記号のうち3種類以上',
+      },
+      passwordConfirm: {
+        label: 'パスワード確認',
+        placeholder: '同じパスワードを再入力',
+      },
     },
     consent: {
       medical: {
@@ -833,15 +873,18 @@ export const ja: Dictionary = {
           'アンケート・測定値・家族歴を健康リスク推定の目的で処理することに同意します。',
       },
       terms: {
-        label: '利用規約・プライバシーポリシーへの同意（必須）',
-        description:
-          '利用規約およびプライバシーポリシーに同意します。',
+        label: '利用規約への同意（必須）',
+        description: '利用規約の全文を見る',
+      },
+      privacy: {
+        label: 'プライバシーポリシーへの同意（必須）',
+        description: 'プライバシーポリシーの全文を見る',
       },
     },
     submit: '登録してアンケート開始',
     submitting: '登録中…',
     bottomNote:
-      '本人認証・パスワードログインは後続段階で追加されます。現段階は非公開ベータです。',
+      'パスワードはPBKDF2-SHA256で一方向ハッシュ化されて保存されます。本人認証・OAuthは後続段階で追加されます。',
     social: {
       kakao: 'カカオで開始',
       google: 'Googleで開始',
@@ -851,13 +894,31 @@ export const ja: Dictionary = {
     error: {
       validation: '入力値の確認が必要',
       AGE_RESTRICTED: '満19歳未満は登録できません。',
-      CONSENT_REQUIRED: '健康データ処理および利用規約への同意が必要です。',
+      CONSENT_REQUIRED:
+        '健康データ処理・利用規約・プライバシーポリシーすべてに同意してください。',
       IDENTITY_EXISTS:
-        'すでに登録されている情報です。マルチデバイスログインは本人認証導入後に提供されます。',
+        'すでに登録されている情報です。ログインページからパスワードでアクセスしてください。',
       RATE_LIMITED: '1日の登録試行上限（10回）を超過しました。',
       INVALID_INPUT: '入力値を再確認してください。',
       INVALID_JSON: 'リクエスト形式が正しくありません。',
+      PASSWORD_TOO_SHORT: 'パスワードは8文字以上必要です。',
+      PASSWORD_TOO_LONG: 'パスワードは128文字以下にしてください。',
+      PASSWORD_KOREAN_NOT_ALLOWED: '韓国語パスワードは使用できません。',
+      PASSWORD_NOT_COMPLEX:
+        '英大文字・小文字・数字・記号のうち3種類以上を含めてください。',
+      PASSWORD_MISMATCH: 'パスワードが一致しません。',
       generic: 'サーバーエラー',
     },
+  },
+  contentPages: {
+    termsTitle: '利用規約',
+    privacyTitle: 'プライバシーポリシー',
+    versionLabel: 'バージョン',
+    updatedLabel: '更新日',
+    notReady: '本文書は法務レビュー前の暫定版です。',
+    backToSignup: '会員登録へ',
+    loadingError: '文書を読み込めませんでした。',
+    notFound: '文書はまだ公開されていません。運営者にお問い合わせください。',
+    close: '閉じる',
   },
 };

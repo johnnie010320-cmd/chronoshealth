@@ -1,7 +1,13 @@
 'use client';
 
 import type { RiskSurveyRequest, RiskSurveyResponse } from './schemas';
-import type { SignupRequest, SignupResponse } from './signup-schema';
+import type {
+  SignupRequest,
+  SignupResponse,
+  LoginRequest,
+  LoginResponse,
+  SetPasswordRequest,
+} from './signup-schema';
 import { readSession } from './session';
 
 const GATEWAY_URL =
@@ -50,6 +56,87 @@ export async function submitSignup(
 
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as SignupResponse;
+}
+
+// ADR 0012 — 로그인 / 비밀번호 설정.
+export async function submitLogin(body: LoginRequest): Promise<LoginResponse> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as LoginResponse;
+}
+
+export async function submitSetPassword(
+  body: SetPasswordRequest,
+): Promise<LoginResponse> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/auth/set-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as LoginResponse;
+}
+
+// 콘텐츠 페이지 (약관 / 개인정보 처리방침)
+export type ContentSlug = 'terms' | 'privacy' | 'medical_disclaimer' | 'operator_info';
+
+export type ContentPage = {
+  slug: ContentSlug;
+  locale: 'ko' | 'en' | 'ja' | 'es';
+  title: string;
+  bodyMd: string;
+  version: string;
+  updatedAt: string;
+};
+
+export async function fetchContentPage(
+  slug: ContentSlug,
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<ContentPage> {
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/content/${slug}?locale=${locale}`,
+    { method: 'GET' },
+  );
+  if (!res.ok) await throwOnError(res);
+  const data = (await res.json()) as { page: ContentPage };
+  return data.page;
+}
+
+export type AdminContentPage = ContentPage & { updatedByPseudonymId: string };
+
+export async function fetchAdminContentList(): Promise<{ pages: AdminContentPage[] }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/content`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { pages: AdminContentPage[] };
+}
+
+export async function submitAdminContentUpsert(body: {
+  slug: ContentSlug;
+  locale: 'ko' | 'en' | 'ja' | 'es';
+  title: string;
+  bodyMd: string;
+  version: string;
+}): Promise<{ page: AdminContentPage }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/content`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { page: AdminContentPage };
 }
 
 // ADR 0011 / roadmap-ui.md Slice R3

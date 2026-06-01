@@ -9,6 +9,23 @@ type UserRow = {
   birth_year: number;
   sex: 'male' | 'female' | 'other';
   created_at?: string;
+  nationality?: string | null;
+  password_hash?: string | null;
+  password_salt?: string | null;
+  password_algo?: string | null;
+  consent_terms_version?: string | null;
+  consent_privacy_version?: string | null;
+  consent_recorded_at?: string | null;
+};
+
+type ContentPageRow = {
+  slug: string;
+  locale: string;
+  title: string;
+  body_md: string;
+  version: string;
+  updated_by_pseudonym_id: string;
+  updated_at: string;
 };
 
 type SessionRow = {
@@ -60,18 +77,40 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     const trimmed = sql.trim();
 
     if (trimmed.startsWith('INSERT INTO users')) {
-      const [user_pseudonym_id, name, email, phone, birth_year, sex] = args as [
-        string,
-        string,
-        string,
-        string,
-        number,
-        UserRow['sex'],
+      // ADR 0012 — 신규 가입은 13 컬럼 (legacy fixture는 6 컬럼 직접 push 사용).
+      const [
+        user_pseudonym_id, name, email, phone, birth_year, sex,
+        nationality,
+        password_hash, password_salt, password_algo,
+        consent_terms_version, consent_privacy_version, consent_recorded_at,
+      ] = args as [
+        string, string, string, string, number, UserRow['sex'],
+        string | null,
+        string | null, string | null, string | null,
+        string | null, string | null, string | null,
       ];
       if (state.users.some((u) => u.email === email || u.phone === phone)) {
         throw new Error('UNIQUE constraint failed: users.email or users.phone');
       }
-      state.users.push({ user_pseudonym_id, name, email, phone, birth_year, sex });
+      state.users.push({
+        user_pseudonym_id, name, email, phone, birth_year, sex,
+        created_at: new Date().toISOString(),
+        nationality, password_hash, password_salt, password_algo,
+        consent_terms_version, consent_privacy_version, consent_recorded_at,
+      });
+      return { success: true };
+    }
+
+    if (trimmed.startsWith('UPDATE users SET password_hash')) {
+      const [password_hash, password_salt, password_algo, user_pseudonym_id] = args as [
+        string, string, string, string,
+      ];
+      const user = state.users.find((u) => u.user_pseudonym_id === user_pseudonym_id);
+      if (user) {
+        user.password_hash = password_hash;
+        user.password_salt = password_salt;
+        user.password_algo = password_algo;
+      }
       return { success: true };
     }
 
@@ -158,6 +197,28 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       const [pseudo] = args as [string];
       const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
       return u ? { email: u.email } : null;
+    }
+
+    if (
+      trimmed.includes('FROM users WHERE email = ?') &&
+      trimmed.includes('password_hash')
+    ) {
+      const [email] = args as [string];
+      const u = state.users.find((x) => x.email === email);
+      if (!u) return null;
+      if (trimmed.includes('phone, password_hash')) {
+        return {
+          user_pseudonym_id: u.user_pseudonym_id,
+          phone: u.phone,
+          password_hash: u.password_hash ?? null,
+        };
+      }
+      return {
+        user_pseudonym_id: u.user_pseudonym_id,
+        password_hash: u.password_hash ?? null,
+        password_salt: u.password_salt ?? null,
+        password_algo: u.password_algo ?? null,
+      };
     }
 
     if (trimmed.includes('FROM users WHERE user_pseudonym_id = ?') && trimmed.includes('name, email, phone')) {
@@ -388,6 +449,7 @@ export type MockAnalysisState = {
   comments: CommunityCommentRow[];
   likes: CommunityLikeRow[];
   ledger: LedgerRow[];
+  contentPages: ContentPageRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -404,6 +466,7 @@ export function makeMockAnalysisDb(): {
     comments: [],
     likes: [],
     ledger: [],
+    contentPages: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -516,6 +579,27 @@ export function makeMockAnalysisDb(): {
         locale,
         created_at: new Date().toISOString(),
       });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO content_pages')) {
+      const [slug, locale, title, body_md, version, updated_by_pseudonym_id] = args as [
+        string, string, string, string, string, string,
+      ];
+      const existing = state.contentPages.find((c) => c.slug === slug);
+      if (existing) {
+        existing.locale = locale;
+        existing.title = title;
+        existing.body_md = body_md;
+        existing.version = version;
+        existing.updated_by_pseudonym_id = updated_by_pseudonym_id;
+        existing.updated_at = new Date().toISOString();
+      } else {
+        state.contentPages.push({
+          slug, locale, title, body_md, version, updated_by_pseudonym_id,
+          updated_at: new Date().toISOString(),
+        });
+      }
       return { success: true, meta: {} };
     }
 
@@ -774,6 +858,15 @@ export function makeMockAnalysisDb(): {
       return { balance: sum };
     }
 
+    if (
+      trimmed.includes('FROM content_pages') &&
+      trimmed.includes('WHERE slug = ? AND locale = ?')
+    ) {
+      const [slug, locale] = args as [string, string];
+      const c = state.contentPages.find((p) => p.slug === slug && p.locale === locale);
+      return c ?? null;
+    }
+
     if (trimmed.startsWith('SELECT 1 FROM chr_ledger')) {
       const [pseudonym, kind, sourceRef] = args as [string, string, string];
       const hit = state.ledger.find(
@@ -900,6 +993,11 @@ export function makeMockAnalysisDb(): {
       const rows = pool
         .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
         .slice(0, limit);
+      return { results: rows };
+    }
+
+    if (trimmed.includes('FROM content_pages') && trimmed.includes('ORDER BY slug')) {
+      const rows = [...state.contentPages].sort((a, b) => (a.slug > b.slug ? 1 : -1));
       return { results: rows };
     }
 

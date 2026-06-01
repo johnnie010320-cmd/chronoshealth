@@ -4,7 +4,7 @@ import { signupUser, SignupError } from '../../auth/signup.js';
 import { ipRateLimit } from '../../middleware/ip-rate-limit.js';
 import type { Bindings } from '../../bindings.js';
 
-// spec docs/spec/identity/01-signup.md / ADR 0010 정합.
+// spec docs/spec/identity/01-signup.md / ADR 0010 + 0012 정합.
 const SIGNUP_IP_LIMIT_PER_DAY = 10;
 
 export const signupRoute = new Hono<{ Bindings: Bindings }>();
@@ -40,6 +40,11 @@ signupRoute.post('/', ipRateLimit(SIGNUP_IP_LIMIT_PER_DAY), async (c) => {
           return c.json({ error: { code: 'CONSENT_REQUIRED' } }, 403);
         case 'IDENTITY_EXISTS':
           return c.json({ error: { code: 'IDENTITY_EXISTS' } }, 409);
+        case 'PASSWORD_TOO_SHORT':
+        case 'PASSWORD_TOO_LONG':
+        case 'PASSWORD_KOREAN_NOT_ALLOWED':
+        case 'PASSWORD_NOT_COMPLEX':
+          return c.json({ error: { code: err.code } }, 400);
         case 'DB_ERROR':
           return c.json({ error: { code: 'INTERNAL_ERROR' } }, 500);
       }

@@ -1,11 +1,10 @@
 export const ko = {
   meta: {
-    title: 'Chronos Health — 베타',
+    title: 'Chronos Health',
     description:
       '내 건강 데이터로 시작하는 예방의학. 생체 나이와 5년 위험 추정 리포트를 즉시 받아보세요.',
   },
   brand: 'Chronos Health',
-  beta: 'BETA',
   language: {
     label: '언어',
     ko: '한국어',
@@ -545,34 +544,6 @@ export const ko = {
     profile: '내 정보',
     logout: '로그아웃',
   },
-  login: {
-    pageTitle: '로그인',
-    heroTitle: '다시 오신 것을 환영합니다',
-    heroBody: '이메일 · 전화번호 · 카카오 · 구글 계정으로 로그인합니다.',
-    notice:
-      '본 화면은 UI 미리보기이며, 로그인 기능은 추후 단계에서 추가됩니다. 현재는 회원가입을 통해서만 진입 가능합니다.',
-    email: {
-      sectionTitle: '이메일',
-      emailLabel: '이메일',
-      emailPlaceholder: 'you@example.com',
-      passwordLabel: '비밀번호',
-      passwordPlaceholder: '••••••••',
-      submit: '이메일로 로그인',
-    },
-    phone: {
-      sectionTitle: '전화번호',
-      phoneLabel: '전화번호',
-      phonePlaceholder: '010-1234-5678',
-      submit: '인증 코드 받기',
-    },
-    divider: '또는',
-    kakao: '카카오로 계속하기',
-    google: 'Google로 계속하기',
-    noAccount: '아직 계정이 없으신가요?',
-    signupCta: '회원가입',
-    unavailable:
-      '본 기능은 준비 중입니다. 현재는 회원가입 메뉴를 통해 가입해주세요.',
-  },
   comingSoon: {
     title: '준비 중',
     body: '이 화면은 향후 단계에서 추가됩니다. 베타에서는 홈과 설문만 동작합니다.',
@@ -807,9 +778,10 @@ export const ko = {
     pageTitle: '회원가입',
     heroTitle: '시작하기 전에 가입해주세요',
     heroBody:
-      '이름·전화·이메일은 본 서비스 외부로 공유되지 않으며 별도 격리 저장소에 보관됩니다.',
+      '이름·전화·이메일·비밀번호는 본 서비스 외부로 공유되지 않으며 별도 격리 저장소에 보관됩니다.',
     section: {
       identity: '본인 정보',
+      credentials: '계정 보안',
       consent: '동의',
     },
     fields: {
@@ -821,6 +793,24 @@ export const ko = {
         label: '성별',
         options: { male: '남성', female: '여성', other: '기타' },
       },
+      nationality: {
+        label: '국적',
+        options: {
+          KR: '대한민국',
+          US: '미국',
+          JP: '일본',
+          ES: '스페인',
+          OTHER: '기타',
+        },
+      },
+      password: {
+        label: '비밀번호',
+        placeholder: '8자 이상, 영문 대/소문자·숫자·특수문자 중 3종 이상',
+      },
+      passwordConfirm: {
+        label: '비밀번호 확인',
+        placeholder: '동일한 비밀번호를 다시 입력',
+      },
     },
     consent: {
       medical: {
@@ -829,15 +819,18 @@ export const ko = {
           '입력하신 설문·측정값·가족력을 위험 추정 목적으로 처리하는 데 동의합니다.',
       },
       terms: {
-        label: '이용약관 및 개인정보 처리방침 동의 (필수)',
-        description:
-          '서비스 이용약관 및 개인정보 처리방침에 동의합니다.',
+        label: '이용약관 동의 (필수)',
+        description: '서비스 이용약관 전문 보기',
+      },
+      privacy: {
+        label: '개인정보 처리방침 동의 (필수)',
+        description: '개인정보 처리방침 전문 보기',
       },
     },
     submit: '가입하고 설문 시작',
     submitting: '가입 중…',
     bottomNote:
-      '본인 인증 / 비밀번호는 향후 단계에서 추가됩니다. 현 단계는 비공개 베타 입니다.',
+      '비밀번호는 PBKDF2-SHA256로 일방향 해싱되어 저장됩니다. 본인 인증·OAuth는 추후 단계에서 추가됩니다.',
     social: {
       kakao: '카카오로 시작하기',
       google: 'Google로 시작하기',
@@ -847,13 +840,82 @@ export const ko = {
     error: {
       validation: '입력값 확인 필요',
       AGE_RESTRICTED: '만 19세 미만은 가입할 수 없습니다.',
-      CONSENT_REQUIRED: '건강 데이터 처리 및 이용약관 동의가 필요합니다.',
+      CONSENT_REQUIRED:
+        '건강 데이터 처리·이용약관·개인정보 처리방침에 모두 동의해 주세요.',
       IDENTITY_EXISTS:
-        '이미 가입된 정보입니다. 멀티 디바이스 로그인은 향후 본인 인증 도입 후 제공됩니다.',
+        '이미 가입된 정보입니다. 로그인 페이지에서 비밀번호로 진입해 주세요.',
       RATE_LIMITED: '일일 가입 시도 한도(10회)를 초과했습니다.',
       INVALID_INPUT: '입력값을 다시 확인해주세요.',
       INVALID_JSON: '요청 형식이 올바르지 않습니다.',
+      PASSWORD_TOO_SHORT: '비밀번호는 8자 이상이어야 합니다.',
+      PASSWORD_TOO_LONG: '비밀번호는 128자 이하여야 합니다.',
+      PASSWORD_KOREAN_NOT_ALLOWED:
+        '한국어 비밀번호는 사용할 수 없습니다 (조합 깨짐 방지).',
+      PASSWORD_NOT_COMPLEX:
+        '영문 대/소문자·숫자·특수문자 중 3종 이상을 포함해 주세요.',
+      PASSWORD_MISMATCH: '비밀번호가 일치하지 않습니다.',
       generic: '서버 오류',
+    },
+  },
+  contentPages: {
+    termsTitle: '이용약관',
+    privacyTitle: '개인정보 처리방침',
+    versionLabel: '버전',
+    updatedLabel: '갱신일',
+    notReady: '본 약관은 정식 운영 전 검토용 임시본입니다.',
+    backToSignup: '회원가입으로',
+    loadingError: '약관 데이터를 불러오지 못했습니다.',
+    notFound: '약관이 아직 등록되지 않았습니다. 관리자에게 문의해 주세요.',
+    close: '닫기',
+  },
+  login: {
+    pageTitle: '로그인',
+    heroTitle: '다시 오신 것을 환영합니다',
+    heroBody: '이메일 + 비밀번호로 로그인합니다.',
+    notice:
+      '비밀번호는 PBKDF2-SHA256으로 해싱 비교되며, 실패는 항상 동일한 에러로 응답합니다.',
+    email: {
+      sectionTitle: '이메일',
+      emailLabel: '이메일',
+      emailPlaceholder: 'you@example.com',
+      passwordLabel: '비밀번호',
+      passwordPlaceholder: '••••••••',
+      submit: '로그인',
+      submitting: '확인 중…',
+    },
+    phone: {
+      sectionTitle: '전화번호',
+      phoneLabel: '전화번호',
+      phonePlaceholder: '010-1234-5678',
+      submit: '인증 코드 받기',
+    },
+    divider: '또는',
+    kakao: '카카오로 계속하기',
+    google: 'Google로 계속하기',
+    noAccount: '아직 계정이 없으신가요?',
+    signupCta: '회원가입',
+    unavailable: '본 기능은 준비 중입니다. 이메일 로그인 또는 회원가입을 이용해 주세요.',
+    setPasswordTitle: '비밀번호 설정 필요',
+    setPasswordBody:
+      '이전 단계에 가입한 계정입니다. 전화번호 확인 후 새 비밀번호를 설정해 주세요.',
+    setPasswordPhoneLabel: '가입 시 등록한 전화번호',
+    setPasswordPhonePlaceholder: '010-1234-5678',
+    setPasswordNewLabel: '새 비밀번호',
+    setPasswordSubmit: '비밀번호 설정 후 로그인',
+    setPasswordSubmitting: '설정 중…',
+    error: {
+      INVALID_CREDENTIALS: '이메일 또는 비밀번호가 올바르지 않습니다.',
+      PASSWORD_REQUIRED: '비밀번호 설정이 필요합니다.',
+      NOT_FOUND: '전화번호가 일치하지 않습니다.',
+      ALREADY_SET: '이미 비밀번호가 설정되어 있습니다. 로그인 페이지에서 시도해 주세요.',
+      PASSWORD_TOO_SHORT: '비밀번호는 8자 이상이어야 합니다.',
+      PASSWORD_KOREAN_NOT_ALLOWED: '한국어 비밀번호는 사용할 수 없습니다.',
+      PASSWORD_NOT_COMPLEX:
+        '영문 대/소문자·숫자·특수문자 중 3종 이상을 포함해 주세요.',
+      INVALID_INPUT: '입력값을 다시 확인해 주세요.',
+      INVALID_JSON: '요청 형식이 올바르지 않습니다.',
+      INTERNAL_ERROR: '서버 오류 — 잠시 후 다시 시도해 주세요.',
+      generic: '로그인에 실패했습니다.',
     },
   },
 };

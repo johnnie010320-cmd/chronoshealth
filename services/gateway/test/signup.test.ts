@@ -9,8 +9,13 @@ type SignupBody = {
   phone: string;
   birthYear: number;
   sex: 'male' | 'female' | 'other';
+  password: string;
+  nationality: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER';
   consentMedical: boolean;
   consentTerms: boolean;
+  consentPrivacy: boolean;
+  consentTermsVersion: string;
+  consentPrivacyVersion: string;
 };
 
 const validBody = (): SignupBody => ({
@@ -19,8 +24,13 @@ const validBody = (): SignupBody => ({
   phone: '010-1234-5678',
   birthYear: 1990,
   sex: 'male',
+  password: 'StrongPass123!',
+  nationality: 'KR',
   consentMedical: true,
   consentTerms: true,
+  consentPrivacy: true,
+  consentTermsVersion: 'v1.0',
+  consentPrivacyVersion: 'v1.0',
 });
 
 type SignupOk = {
@@ -60,14 +70,14 @@ describe('POST /api/v1/auth/signup', () => {
       expect(new Date(data.expiresAt).getTime()).toBeGreaterThan(Date.now());
     });
 
-    it('DB에 users + session_tokens + consent_log(medical+terms) 기록', async () => {
+    it('DB에 users + session_tokens + consent_log(medical+terms+research) 기록', async () => {
       const res = await post(validBody());
       expect(res.status).toBe(201);
       expect(mock.state.users).toHaveLength(1);
       expect(mock.state.tokens).toHaveLength(1);
-      expect(mock.state.consents).toHaveLength(2);
+      expect(mock.state.consents).toHaveLength(3);
       const kinds = mock.state.consents.map((c) => c.consent_kind).sort();
-      expect(kinds).toEqual(['medical', 'terms']);
+      expect(kinds).toEqual(['medical', 'research', 'terms']);
     });
 
     it('응답에 PII(name/email/phone/birthYear) 노출 없음', async () => {
