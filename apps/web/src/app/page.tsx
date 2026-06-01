@@ -144,8 +144,11 @@ export default function HomePage() {
         </Link>
       </section>
 
-      <section className="mt-3 overflow-hidden rounded-2xl border border-stone-200/70 bg-white/80 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/70">
-        <div className="flex items-center gap-2">
+      <Link
+        href="/community"
+        className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900/70"
+      >
+        <div className="flex min-w-0 items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
             <HeartPulseIcon className="h-4 w-4" />
           </span>
@@ -153,7 +156,8 @@ export default function HomePage() {
             {H.affiliateRolling}
           </p>
         </div>
-      </section>
+        <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
+      </Link>
 
       <section className="mt-4 flex items-center justify-between gap-2 px-1">
         <Link

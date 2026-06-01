@@ -186,6 +186,118 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
+// R7a Community
+export type CommunityPost = {
+  id: string;
+  userPseudonymId: string;
+  title: string;
+  body: string;
+  videoUrl: string | null;
+  createdAt: string;
+  likeCount: number;
+  commentCount: number;
+};
+
+export type CommunityComment = {
+  id: string;
+  postId: string;
+  userPseudonymId: string;
+  body: string;
+  createdAt: string;
+};
+
+export type ListPostsResponse = {
+  posts: CommunityPost[];
+  modelVersion: string;
+};
+
+export type PostDetailResponse = {
+  post: CommunityPost;
+  comments: CommunityComment[];
+  modelVersion: string;
+};
+
+export type CreatePostBody = {
+  title: string;
+  body: string;
+  videoUrl: string | null;
+};
+
+export async function fetchCommunityPosts(
+  cursor?: string | null,
+  limit = 20,
+): Promise<ListPostsResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const qs = new URLSearchParams({ limit: String(limit) });
+  if (cursor) qs.set('cursor', cursor);
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts?${qs.toString()}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as ListPostsResponse;
+}
+
+export async function fetchCommunityTrending(): Promise<ListPostsResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/trending`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as ListPostsResponse;
+}
+
+export async function fetchCommunityPost(id: string): Promise<PostDetailResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${id}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as PostDetailResponse;
+}
+
+export async function createCommunityPost(body: CreatePostBody): Promise<{ post: CommunityPost }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { post: CommunityPost };
+}
+
+export async function addCommunityComment(
+  postId: string,
+  body: string,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function toggleCommunityLike(postId: string): Promise<{ liked: boolean }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}/like`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { liked: boolean };
+}
+
 // R6 Routine
 export type RoutineEntry = {
   entryDate: string;

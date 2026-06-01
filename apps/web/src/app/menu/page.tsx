@@ -68,9 +68,9 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     groupKey: 'groupCommunity',
     items: [
-      { itemKey: 'itemCommunityVideo', href: '/menu', disabled: true, phaseHint: 'phaseHintR7' },
-      { itemKey: 'itemCommunityComment', href: '/menu', disabled: true, phaseHint: 'phaseHintR7' },
-      { itemKey: 'itemCommunityHot', href: '/menu', disabled: true, phaseHint: 'phaseHintR7' },
+      { itemKey: 'itemCommunityVideo', href: '/community/new' },
+      { itemKey: 'itemCommunityComment', href: '/community' },
+      { itemKey: 'itemCommunityHot', href: '/community' },
       { itemKey: 'itemCommunityRanking', href: '/leaderboard' },
     ],
   },
@@ -92,8 +92,8 @@ const MENU_GROUPS: MenuGroup[] = [
     groupKey: 'groupProfile',
     items: [
       { itemKey: 'itemProfileEdit', href: '/profile' },
-      { itemKey: 'itemProfileMyPosts', href: '/menu', disabled: true, phaseHint: 'phaseHintR7' },
-      { itemKey: 'itemProfileMyComments', href: '/menu', disabled: true, phaseHint: 'phaseHintR7' },
+      { itemKey: 'itemProfileMyPosts', href: '/community' },
+      { itemKey: 'itemProfileMyComments', href: '/community' },
       { itemKey: 'itemProfileLogout', href: '/profile' },
     ],
   },

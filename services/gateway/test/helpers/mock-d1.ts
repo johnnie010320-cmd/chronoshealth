@@ -286,12 +286,40 @@ type RoutineRow = {
   updated_at: string;
 };
 
+type CommunityPostRow = {
+  id: string;
+  user_pseudonym_id: string;
+  title: string;
+  body: string;
+  video_url: string | null;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+type CommunityCommentRow = {
+  id: string;
+  post_id: string;
+  user_pseudonym_id: string;
+  body: string;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+type CommunityLikeRow = {
+  user_pseudonym_id: string;
+  post_id: string;
+  created_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
   consents: AnalysisConsentRow[];
   betaSignups: BetaSignupRow[];
   routine: RoutineRow[];
+  posts: CommunityPostRow[];
+  comments: CommunityCommentRow[];
+  likes: CommunityLikeRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -304,6 +332,9 @@ export function makeMockAnalysisDb(): {
     consents: [],
     betaSignups: [],
     routine: [],
+    posts: [],
+    comments: [],
+    likes: [],
   };
   let nextResponseId = 1;
 
@@ -418,6 +449,68 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: {} };
     }
 
+    if (trimmed.startsWith('INSERT INTO community_posts')) {
+      const [id, user_pseudonym_id, title, body, video_url] = args as [
+        string, string, string, string, string | null,
+      ];
+      state.posts.push({
+        id,
+        user_pseudonym_id,
+        title,
+        body,
+        video_url,
+        created_at: new Date().toISOString(),
+        deleted_at: null,
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO community_comments')) {
+      const [id, post_id, user_pseudonym_id, body] = args as [
+        string, string, string, string,
+      ];
+      state.comments.push({
+        id,
+        post_id,
+        user_pseudonym_id,
+        body,
+        created_at: new Date().toISOString(),
+        deleted_at: null,
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO community_likes')) {
+      const [user_pseudonym_id, post_id] = args as [string, string];
+      if (!state.likes.some((l) => l.user_pseudonym_id === user_pseudonym_id && l.post_id === post_id)) {
+        state.likes.push({
+          user_pseudonym_id,
+          post_id,
+          created_at: new Date().toISOString(),
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('DELETE FROM community_likes')) {
+      const [user_pseudonym_id, post_id] = args as [string, string];
+      const idx = state.likes.findIndex(
+        (l) => l.user_pseudonym_id === user_pseudonym_id && l.post_id === post_id,
+      );
+      if (idx >= 0) state.likes.splice(idx, 1);
+      return { success: true, meta: { changes: idx >= 0 ? 1 : 0 } };
+    }
+
+    if (trimmed.startsWith('UPDATE community_posts SET deleted_at')) {
+      const [postId, userPseudonymId] = args as [string, string];
+      const post = state.posts.find(
+        (p) => p.id === postId && p.user_pseudonym_id === userPseudonymId && p.deleted_at === null,
+      );
+      if (!post) return { success: true, meta: { changes: 0 } };
+      post.deleted_at = new Date().toISOString();
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (trimmed.startsWith('INSERT INTO routine_entries')) {
       const [
         user_pseudonym_id,
@@ -521,6 +614,34 @@ export function makeMockAnalysisDb(): {
         self_rated_health: raw.self_rated_health,
       };
     }
+    if (trimmed.startsWith('SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,') && trimmed.includes('WHERE p.id = ?')) {
+      const [postId] = args as [string];
+      const post = state.posts.find((p) => p.id === postId && p.deleted_at === null);
+      if (!post) return null;
+      const likeCount = state.likes.filter((l) => l.post_id === postId).length;
+      const commentCount = state.comments.filter(
+        (c) => c.post_id === postId && c.deleted_at === null,
+      ).length;
+      return {
+        id: post.id,
+        user_pseudonym_id: post.user_pseudonym_id,
+        title: post.title,
+        body: post.body,
+        video_url: post.video_url,
+        created_at: post.created_at,
+        like_count: likeCount,
+        comment_count: commentCount,
+      };
+    }
+
+    if (trimmed.startsWith('SELECT 1 FROM community_likes')) {
+      const [userPseudonymId, postId] = args as [string, string];
+      const exists = state.likes.some(
+        (l) => l.user_pseudonym_id === userPseudonymId && l.post_id === postId,
+      );
+      return exists ? { '1': 1 } : null;
+    }
+
     if (trimmed.includes('FROM routine_entries') && trimmed.includes('AND entry_date = ?')) {
       const [pseudonym, entryDate] = args as [string, string];
       const r = state.routine.find(
@@ -540,6 +661,80 @@ export function makeMockAnalysisDb(): {
 
   function allStmtAnalysis(sql: string, args: unknown[]): { results: unknown[] } {
     const trimmed = sql.trim();
+
+    const postRowToWire = (post: CommunityPostRow, recentOnly: boolean) => {
+      const likeFilter = (l: CommunityLikeRow) => {
+        if (l.post_id !== post.id) return false;
+        if (!recentOnly) return true;
+        const ageMs = Date.now() - new Date(l.created_at).getTime();
+        return ageMs <= 86400000;
+      };
+      return {
+        id: post.id,
+        user_pseudonym_id: post.user_pseudonym_id,
+        title: post.title,
+        body: post.body,
+        video_url: post.video_url,
+        created_at: post.created_at,
+        like_count: state.likes.filter(likeFilter).length,
+        comment_count: state.comments.filter(
+          (c) => c.post_id === post.id && c.deleted_at === null,
+        ).length,
+      };
+    };
+
+    if (
+      trimmed.startsWith('SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,') &&
+      trimmed.includes('FROM community_posts p') &&
+      trimmed.includes("ORDER BY p.created_at DESC") &&
+      !trimmed.includes('like_count DESC')
+    ) {
+      const limit = args[args.length - 1] as number;
+      const cursor = args.length > 1 ? (args[0] as string) : null;
+      const rows = state.posts
+        .filter((p) => p.deleted_at === null && (!cursor || p.created_at < cursor))
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .slice(0, limit)
+        .map((p) => postRowToWire(p, false));
+      return { results: rows };
+    }
+
+    if (
+      trimmed.includes('FROM community_posts p') &&
+      trimmed.includes('like_count DESC')
+    ) {
+      const [limit] = args as [number];
+      const sevenDaysAgo = Date.now() - 7 * 86400000;
+      const rows = state.posts
+        .filter(
+          (p) =>
+            p.deleted_at === null &&
+            new Date(p.created_at).getTime() > sevenDaysAgo,
+        )
+        .map((p) => postRowToWire(p, true))
+        .sort((a, b) => {
+          if (a.like_count !== b.like_count) return b.like_count - a.like_count;
+          return a.created_at > b.created_at ? -1 : 1;
+        })
+        .slice(0, limit);
+      return { results: rows };
+    }
+
+    if (trimmed.includes('FROM community_comments') && trimmed.includes('WHERE post_id = ?')) {
+      const [postId] = args as [string];
+      const rows = state.comments
+        .filter((c) => c.post_id === postId && c.deleted_at === null)
+        .sort((a, b) => (a.created_at > b.created_at ? 1 : -1))
+        .map((c) => ({
+          id: c.id,
+          post_id: c.post_id,
+          user_pseudonym_id: c.user_pseudonym_id,
+          body: c.body,
+          created_at: c.created_at,
+        }));
+      return { results: rows };
+    }
+
     if (
       trimmed.includes('FROM routine_entries') &&
       trimmed.includes('entry_date >= ?') &&
