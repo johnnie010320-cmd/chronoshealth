@@ -618,7 +618,7 @@ export const en: Dictionary = {
     consentResearch: 'Anonymous research use consent (optional)',
     consentGrantedAt: 'Granted at',
     logout: 'Log out',
-    logoutConfirm: 'Logging out removes the session on this device. Re-login arrives with identity verification.',
+    logoutConfirm: 'Logging out clears your session on this device. To return, sign in with email and password.',
   },
   roadmap: {
     pageTitle: 'Roadmap',

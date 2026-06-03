@@ -561,7 +561,7 @@ export const ko = {
     consentResearch: '익명 연구 활용 동의 (선택)',
     consentGrantedAt: '동의일',
     logout: '로그아웃',
-    logoutConfirm: '로그아웃 시 이 디바이스에서 세션이 삭제됩니다. 재로그인은 본인 인증 도입 후 제공됩니다.',
+    logoutConfirm: '로그아웃 시 이 디바이스의 세션이 삭제됩니다. 다시 이용하시려면 이메일·비밀번호로 로그인해 주세요.',
   },
   roadmap: {
     pageTitle: '로드맵',

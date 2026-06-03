@@ -615,7 +615,7 @@ export const ja: Dictionary = {
     consentGrantedAt: '同意日',
     logout: 'ログアウト',
     logoutConfirm:
-      'ログアウトするとこの端末のセッションが削除されます。再ログインは本人認証導入後に提供されます。',
+      'ログアウトするとこの端末のセッションが削除されます。再度ご利用にはメールとパスワードでログインしてください。',
   },
   roadmap: {
     pageTitle: 'ロードマップ',

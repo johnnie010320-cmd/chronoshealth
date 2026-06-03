@@ -620,7 +620,7 @@ export const es: Dictionary = {
     consentGrantedAt: 'Otorgado el',
     logout: 'Cerrar sesión',
     logoutConfirm:
-      'Cerrar sesión elimina la sesión en este dispositivo. El reinicio de sesión llegará con la verificación de identidad.',
+      'Al cerrar sesión se eliminará la sesión en este dispositivo. Para volver, inicia sesión con email y contraseña.',
   },
   roadmap: {
     pageTitle: 'Hoja de ruta',
