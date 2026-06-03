@@ -378,6 +378,15 @@ export const ko = {
   admin: {
     nav: '관리자',
     pageTitle: '관리자',
+    modeBadge: 'ADMIN',
+    accessTitle: '관리자 모드',
+    accessBody: '본 계정은 관리자 권한을 가지고 있습니다.',
+    accessCta: '관리자 페이지로 이동',
+    menuGroupTitle: '관리자',
+    menuItemDashboard: '대시보드',
+    menuItemUsers: '사용자 관리',
+    menuItemBetaSignups: '베타 등록자',
+    menuItemContent: '약관 / 콘텐츠 편집',
     sidebarTitle: '관리자 메뉴',
     notAuthorizedTitle: '관리자 권한이 없습니다',
     notAuthorizedBody:

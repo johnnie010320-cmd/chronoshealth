@@ -384,6 +384,15 @@ export const en: Dictionary = {
   admin: {
     nav: 'Admin',
     pageTitle: 'Admin',
+    modeBadge: 'ADMIN',
+    accessTitle: 'Admin mode',
+    accessBody: 'This account has admin privileges.',
+    accessCta: 'Go to admin',
+    menuGroupTitle: 'Admin',
+    menuItemDashboard: 'Dashboard',
+    menuItemUsers: 'User management',
+    menuItemBetaSignups: 'Beta signups',
+    menuItemContent: 'Terms / Content editor',
     sidebarTitle: 'Admin menu',
     notAuthorizedTitle: 'Not authorized',
     notAuthorizedBody:

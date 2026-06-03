@@ -381,6 +381,15 @@ export const ja: Dictionary = {
   admin: {
     nav: '管理者',
     pageTitle: '管理者',
+    modeBadge: 'ADMIN',
+    accessTitle: '管理者モード',
+    accessBody: 'このアカウントには管理者権限があります。',
+    accessCta: '管理者ページへ',
+    menuGroupTitle: '管理者',
+    menuItemDashboard: 'ダッシュボード',
+    menuItemUsers: 'ユーザー管理',
+    menuItemBetaSignups: 'ベータ登録',
+    menuItemContent: '利用規約 / コンテンツ編集',
     sidebarTitle: '管理メニュー',
     notAuthorizedTitle: '権限がありません',
     notAuthorizedBody:

@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { useI18n } from '@/lib/i18n';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
+import { useIsAdmin } from '@/lib/admin-state';
 import {
   UserCircleIcon,
   ShieldIcon,
   LogoutIcon,
   ClockIcon,
+  ChevronRightIcon,
 } from '@/components/HealthIcons';
 
 export default function ProfilePage() {
@@ -17,6 +20,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [session, setSession] = useState<StoredSession | null>(null);
   const [ready, setReady] = useState(false);
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     const s = readSession();
@@ -42,6 +46,31 @@ export default function ProfilePage() {
 
   return (
     <AppShell title={t.profile.pageTitle} decoration="dots">
+      {isAdmin === true && (
+        <Link
+          href="/admin"
+          className="card-shadow mt-4 flex items-center justify-between gap-3 rounded-3xl bg-gradient-to-r from-rose-500 via-rose-600 to-amber-500 px-5 py-4 text-white transition active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+              <ShieldIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-bold tracking-tight">
+                {t.admin.accessTitle}
+                <span className="inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold tracking-[0.15em]">
+                  {t.admin.modeBadge}
+                </span>
+              </p>
+              <p className="mt-0.5 truncate text-[12px] leading-relaxed text-white/85">
+                {t.admin.accessBody}
+              </p>
+            </div>
+          </div>
+          <ChevronRightIcon className="h-5 w-5 shrink-0 text-white/90" />
+        </Link>
+      )}
+
       <section className="card-shadow mt-4 rounded-3xl bg-white p-5 dark:bg-stone-900">
         <div className="mb-4 flex items-center gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">

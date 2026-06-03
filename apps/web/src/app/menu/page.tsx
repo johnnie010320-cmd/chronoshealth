@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { ChevronRightIcon } from '@/components/HealthIcons';
+import { ChevronRightIcon, ShieldIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
+import { useIsAdmin } from '@/lib/admin-state';
 import type { Dictionary } from '@/locales/ko';
 
 type ItemKey = keyof Dictionary['menu'];
@@ -99,13 +100,46 @@ const MENU_GROUPS: MenuGroup[] = [
   },
 ];
 
+type AdminMenuItem = { label: string; href: string };
+
 export default function MenuPage() {
   const { t } = useI18n();
   const M = t.menu;
+  const A = t.admin;
+  const isAdmin = useIsAdmin();
+
+  const adminItems: AdminMenuItem[] = [
+    { label: A.menuItemDashboard, href: '/admin' },
+    { label: A.menuItemUsers, href: '/admin/users' },
+    { label: A.menuItemBetaSignups, href: '/admin/beta-signups' },
+    { label: A.menuItemContent, href: '/admin/content' },
+  ];
 
   return (
     <AppShell title={M.pageTitle} decoration="dots">
       <div className="space-y-5 pb-10 pt-4">
+        {isAdmin === true && (
+          <section>
+            <h2 className="mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-rose-600 dark:text-rose-300">
+              <ShieldIcon className="h-3 w-3" />
+              {A.menuGroupTitle}
+            </h2>
+            <ul className="card-shadow divide-y divide-rose-100 overflow-hidden rounded-2xl bg-rose-50/50 dark:divide-rose-900/40 dark:bg-rose-950/20">
+              {adminItems.map((item) => (
+                <li key={item.href + item.label}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center justify-between gap-3 px-4 py-3 text-stone-800 transition active:bg-rose-100/60 dark:text-stone-100 dark:active:bg-rose-950/40"
+                  >
+                    <span className="truncate text-[13px] font-medium">{item.label}</span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-rose-400" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {MENU_GROUPS.map((group) => (
           <section key={group.groupKey}>
             <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
