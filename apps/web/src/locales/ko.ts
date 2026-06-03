@@ -539,7 +539,7 @@ export const ko = {
   userMenu: {
     open: '메뉴 열기',
     login: '로그인',
-    loginUnavailable: '로그인은 본인 인증 도입 후 제공됩니다',
+    loginUnavailable: '로그인이 필요한 화면입니다. 이메일·비밀번호로 로그인해 주세요.',
     signup: '회원가입',
     profile: '내 정보',
     logout: '로그아웃',

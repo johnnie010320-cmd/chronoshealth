@@ -542,7 +542,7 @@ export const ja: Dictionary = {
   userMenu: {
     open: 'メニューを開く',
     login: 'ログイン',
-    loginUnavailable: 'ログインは本人認証導入後に提供されます',
+    loginUnavailable: 'ログインが必要な画面です。メールとパスワードでログインしてください。',
     signup: '会員登録',
     profile: 'マイページ',
     logout: 'ログアウト',

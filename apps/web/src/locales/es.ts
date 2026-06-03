@@ -546,7 +546,7 @@ export const es: Dictionary = {
     open: 'Abrir menú',
     login: 'Iniciar sesión',
     loginUnavailable:
-      'El inicio de sesión llegará con la verificación de identidad',
+      'Esta pantalla requiere inicio de sesión. Por favor inicia sesión con email y contraseña.',
     signup: 'Registro',
     profile: 'Mi perfil',
     logout: 'Cerrar sesión',

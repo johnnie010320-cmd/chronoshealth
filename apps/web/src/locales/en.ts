@@ -545,7 +545,7 @@ export const en: Dictionary = {
   userMenu: {
     open: 'Open menu',
     login: 'Log in',
-    loginUnavailable: 'Login will be available after identity verification is added',
+    loginUnavailable: 'This screen requires login. Please sign in with email and password.',
     signup: 'Sign up',
     profile: 'My profile',
     logout: 'Log out',
