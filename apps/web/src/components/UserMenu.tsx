@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
-import { UserCircleIcon, LogoutIcon, MenuIcon } from './HealthIcons';
+import { UserCircleIcon, LogoutIcon, MenuIcon, FileTextIcon } from './HealthIcons';
 
 // 헤더 우측 드롭다운 메뉴.
 // 비로그인 → 로그인(준비중, disabled) + 회원가입
@@ -81,6 +81,15 @@ export function UserMenu() {
           {isLoggedIn ? (
             <>
               <Link
+                href="/menu"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-stone-800 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
+              >
+                <FileTextIcon className="h-4 w-4 text-stone-500" />
+                <span>{t.userMenu.fullMenu}</span>
+              </Link>
+              <Link
                 href="/profile"
                 role="menuitem"
                 onClick={() => setOpen(false)}
@@ -101,6 +110,15 @@ export function UserMenu() {
             </>
           ) : (
             <>
+              <Link
+                href="/menu"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-stone-800 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
+              >
+                <FileTextIcon className="h-4 w-4 text-stone-500" />
+                <span>{t.userMenu.fullMenu}</span>
+              </Link>
               <Link
                 href="/login"
                 role="menuitem"

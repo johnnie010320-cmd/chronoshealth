@@ -7,9 +7,7 @@ import { AppShell } from '@/components/AppShell';
 import { PulseBackground } from '@/components/PulseBackground';
 import {
   HeartPulseIcon,
-  ChartIcon,
   ChevronRightIcon,
-  MenuIcon,
   ActivityIcon,
 } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
@@ -209,33 +207,7 @@ export default function HomePage() {
         <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
       </Link>
 
-      <section className="mt-4 flex items-center justify-between gap-2 px-1">
-        <Link
-          href="/menu"
-          className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-white/60 px-3 py-2 text-[12px] font-semibold text-stone-700 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-200"
-        >
-          <MenuIcon className="h-4 w-4" />
-          <span>{H.menuShortcut}</span>
-        </Link>
-        {signedIn ? (
-          <Link
-            href="/reports"
-            className="inline-flex items-center gap-1 rounded-xl bg-stone-900 px-3 py-2 text-[12px] font-semibold text-white dark:bg-white dark:text-stone-900"
-          >
-            <ChartIcon className="h-4 w-4" />
-            <span>{t.nav.reports}</span>
-          </Link>
-        ) : (
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1 rounded-xl bg-stone-900 px-3 py-2 text-[12px] font-semibold text-white dark:bg-white dark:text-stone-900"
-          >
-            <span>{H.loginShortcut}</span>
-          </Link>
-        )}
-      </section>
-
-      <div className="mt-4 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
+      <div className="mt-3 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-2.5 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
         {H.disclaimer}
         {avatarErr && avatarErr !== 'NO_REPORT' && (
           <span className="ml-1 text-rose-600 dark:text-rose-300">

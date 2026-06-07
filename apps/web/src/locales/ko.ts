@@ -566,6 +566,7 @@ export const ko = {
     signup: '회원가입',
     profile: '내 정보',
     logout: '로그아웃',
+    fullMenu: '전체 메뉴',
   },
   comingSoon: {
     title: '준비 중',

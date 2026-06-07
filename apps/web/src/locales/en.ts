@@ -572,6 +572,7 @@ export const en: Dictionary = {
     signup: 'Sign up',
     profile: 'My profile',
     logout: 'Log out',
+    fullMenu: 'Full menu',
   },
   login: {
     pageTitle: 'Log in',

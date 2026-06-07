@@ -573,6 +573,7 @@ export const es: Dictionary = {
     signup: 'Registro',
     profile: 'Mi perfil',
     logout: 'Cerrar sesión',
+    fullMenu: 'Menú completo',
   },
   login: {
     pageTitle: 'Iniciar sesión',
