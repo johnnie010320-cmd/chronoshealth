@@ -154,7 +154,7 @@ export default function ReportsPage() {
           <div className="rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
             {R.disclaimer}
             <span className="mt-1 block text-[10px] text-stone-400 dark:text-stone-500">
-              {R.modelLabel}: {state.data.modelVersion} · {R.lastReportLabel}{' '}
+              {R.lastReportLabel}{' '}
               {new Date(state.data.lastReportAt).toLocaleString()}
             </span>
           </div>

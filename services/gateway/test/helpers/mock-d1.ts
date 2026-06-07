@@ -221,6 +221,30 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       };
     }
 
+    if (
+      trimmed.includes('FROM users WHERE user_pseudonym_id = ?') &&
+      trimmed.includes('nationality') &&
+      trimmed.includes('consent_terms_version')
+    ) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u
+        ? {
+            user_pseudonym_id: u.user_pseudonym_id,
+            name: u.name,
+            email: u.email,
+            phone: u.phone,
+            birth_year: u.birth_year,
+            sex: u.sex,
+            nationality: u.nationality ?? null,
+            created_at: u.created_at ?? new Date().toISOString(),
+            consent_terms_version: u.consent_terms_version ?? null,
+            consent_privacy_version: u.consent_privacy_version ?? null,
+            consent_recorded_at: u.consent_recorded_at ?? null,
+          }
+        : null;
+    }
+
     if (trimmed.includes('FROM users WHERE user_pseudonym_id = ?') && trimmed.includes('name, email, phone')) {
       const [pseudo] = args as [string];
       const u = state.users.find((x) => x.user_pseudonym_id === pseudo);

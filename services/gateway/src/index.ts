@@ -13,6 +13,7 @@ import { rewardsRoute } from './routes/rewards/index.js';
 import { adminRoute } from './routes/admin/index.js';
 import { loginRoute, setPasswordRoute } from './routes/auth/login.js';
 import { contentPublicRoute, contentAdminRoute } from './routes/content/index.js';
+import { meRoute } from './routes/me/index.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -50,6 +51,7 @@ app.route('/api/v1/auth/login', loginRoute);
 app.route('/api/v1/auth/set-password', setPasswordRoute);
 app.route('/api/v1/content', contentPublicRoute);
 app.route('/api/v1/admin/content', contentAdminRoute);
+app.route('/api/v1/me', meRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));
 

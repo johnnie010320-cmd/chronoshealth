@@ -273,6 +273,33 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
+// 본인 PII 조회 (마스킹 / reveal)
+export type MeProfile = {
+  userPseudonymId: string;
+  name: string;
+  email: string;
+  phone: string;
+  birthYear: number;
+  sex: 'male' | 'female' | 'other';
+  nationality: string | null;
+  createdAt: string;
+  consentTermsVersion: string | null;
+  consentPrivacyVersion: string | null;
+  consentRecordedAt: string | null;
+  revealed: boolean;
+};
+
+export async function fetchMeProfile(reveal: boolean): Promise<{ profile: MeProfile }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const url = `${GATEWAY_URL}/api/v1/me${reveal ? '?reveal=1' : ''}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { profile: MeProfile };
+}
+
 // R-Admin-1
 export type AdminWhoami = {
   userPseudonymId: string;
