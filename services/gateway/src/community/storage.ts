@@ -1,5 +1,6 @@
 export type PostRow = {
   id: string;
+  communityId: string;
   userPseudonymId: string;
   title: string;
   body: string;
@@ -7,6 +8,8 @@ export type PostRow = {
   createdAt: string;
   likeCount: number;
   commentCount: number;
+  allowLikes: boolean;
+  allowComments: boolean;
 };
 
 export type CommentRow = {
@@ -19,14 +22,33 @@ export type CommentRow = {
 
 export async function insertPost(
   db: D1Database,
-  row: { id: string; userPseudonymId: string; title: string; body: string; videoUrl: string | null },
+  row: {
+    id: string;
+    communityId: string;
+    userPseudonymId: string;
+    title: string;
+    body: string;
+    videoUrl: string | null;
+    allowLikes: boolean;
+    allowComments: boolean;
+  },
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO community_posts (id, user_pseudonym_id, title, body, video_url)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO community_posts
+         (id, community_id, user_pseudonym_id, title, body, video_url, allow_likes, allow_comments)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(row.id, row.userPseudonymId, row.title, row.body, row.videoUrl)
+    .bind(
+      row.id,
+      row.communityId,
+      row.userPseudonymId,
+      row.title,
+      row.body,
+      row.videoUrl,
+      row.allowLikes ? 1 : 0,
+      row.allowComments ? 1 : 0,
+    )
     .run();
 }
 
@@ -45,29 +67,24 @@ export async function softDeletePost(
   return (res.meta?.changes ?? 0) > 0;
 }
 
-export async function readPost(db: D1Database, postId: string): Promise<PostRow | null> {
-  const row = await db
-    .prepare(
-      `SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,
-              (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
-              (SELECT COUNT(*) FROM community_comments c WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
-         FROM community_posts p
-        WHERE p.id = ? AND p.deleted_at IS NULL`,
-    )
-    .bind(postId)
-    .first<{
-      id: string;
-      user_pseudonym_id: string;
-      title: string;
-      body: string;
-      video_url: string | null;
-      created_at: string;
-      like_count: number;
-      comment_count: number;
-    }>();
-  if (!row) return null;
+type PostRawRow = {
+  id: string;
+  community_id: string;
+  user_pseudonym_id: string;
+  title: string;
+  body: string;
+  video_url: string | null;
+  created_at: string;
+  like_count: number;
+  comment_count: number;
+  allow_likes: number;
+  allow_comments: number;
+};
+
+function mapPost(row: PostRawRow): PostRow {
   return {
     id: row.id,
+    communityId: row.community_id,
     userPseudonymId: row.user_pseudonym_id,
     title: row.title,
     body: row.body,
@@ -75,44 +92,50 @@ export async function readPost(db: D1Database, postId: string): Promise<PostRow 
     createdAt: row.created_at,
     likeCount: row.like_count,
     commentCount: row.comment_count,
+    allowLikes: row.allow_likes === 1,
+    allowComments: row.allow_comments === 1,
   };
+}
+
+const POST_SELECT = `
+  SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
+         p.created_at, p.allow_likes, p.allow_comments,
+         (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
+         (SELECT COUNT(*) FROM community_comments c
+            WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
+    FROM community_posts p
+`;
+
+export async function readPost(db: D1Database, postId: string): Promise<PostRow | null> {
+  const row = await db
+    .prepare(`${POST_SELECT} WHERE p.id = ? AND p.deleted_at IS NULL`)
+    .bind(postId)
+    .first<PostRawRow>();
+  return row ? mapPost(row) : null;
 }
 
 export async function listPosts(
   db: D1Database,
-  opts: { limit: number; cursor: string | null },
+  opts: { limit: number; cursor: string | null; communityId?: string | null },
 ): Promise<PostRow[]> {
-  const cursorSql = opts.cursor ? 'AND p.created_at < ?' : '';
+  const filters: string[] = ['p.deleted_at IS NULL'];
+  const args: unknown[] = [];
+  if (opts.communityId) {
+    filters.push('p.community_id = ?');
+    args.push(opts.communityId);
+  }
+  if (opts.cursor) {
+    filters.push('p.created_at < ?');
+    args.push(opts.cursor);
+  }
+  args.push(opts.limit);
   const stmt = db.prepare(
-    `SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,
-            (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
-            (SELECT COUNT(*) FROM community_comments c WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
-       FROM community_posts p
-      WHERE p.deleted_at IS NULL ${cursorSql}
+    `${POST_SELECT} WHERE ${filters.join(' AND ')}
       ORDER BY p.created_at DESC
       LIMIT ?`,
   );
-  const bound = opts.cursor ? stmt.bind(opts.cursor, opts.limit) : stmt.bind(opts.limit);
-  const result = await bound.all<{
-    id: string;
-    user_pseudonym_id: string;
-    title: string;
-    body: string;
-    video_url: string | null;
-    created_at: string;
-    like_count: number;
-    comment_count: number;
-  }>();
-  return (result.results ?? []).map((row) => ({
-    id: row.id,
-    userPseudonymId: row.user_pseudonym_id,
-    title: row.title,
-    body: row.body,
-    videoUrl: row.video_url,
-    createdAt: row.created_at,
-    likeCount: row.like_count,
-    commentCount: row.comment_count,
-  }));
+  const result = await stmt.bind(...args).all<PostRawRow>();
+  return (result.results ?? []).map(mapPost);
 }
 
 export async function listTrending(
@@ -121,10 +144,12 @@ export async function listTrending(
 ): Promise<PostRow[]> {
   const result = await db
     .prepare(
-      `SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,
+      `SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
+              p.created_at, p.allow_likes, p.allow_comments,
               (SELECT COUNT(*) FROM community_likes l
                 WHERE l.post_id = p.id AND l.created_at > datetime('now','-1 day')) AS like_count,
-              (SELECT COUNT(*) FROM community_comments c WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
+              (SELECT COUNT(*) FROM community_comments c
+                WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
          FROM community_posts p
         WHERE p.deleted_at IS NULL
           AND p.created_at > datetime('now','-7 day')
@@ -132,26 +157,8 @@ export async function listTrending(
         LIMIT ?`,
     )
     .bind(limit)
-    .all<{
-      id: string;
-      user_pseudonym_id: string;
-      title: string;
-      body: string;
-      video_url: string | null;
-      created_at: string;
-      like_count: number;
-      comment_count: number;
-    }>();
-  return (result.results ?? []).map((row) => ({
-    id: row.id,
-    userPseudonymId: row.user_pseudonym_id,
-    title: row.title,
-    body: row.body,
-    videoUrl: row.video_url,
-    createdAt: row.created_at,
-    likeCount: row.like_count,
-    commentCount: row.comment_count,
-  }));
+    .all<PostRawRow>();
+  return (result.results ?? []).map(mapPost);
 }
 
 export async function insertComment(

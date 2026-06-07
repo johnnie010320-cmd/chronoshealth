@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { createCommunityPost } from '@/lib/api-client';
 
-export default function NewCommunityPostPage() {
+function NewCommunityPostInner() {
   const { t } = useI18n();
   const Co = t.community;
+  const PO = Co.postOptions;
   const router = useRouter();
+  const params = useSearchParams();
+  const communityId = params?.get('cid') ?? '_lounge';
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [allowLikes, setAllowLikes] = useState(true);
+  const [allowComments, setAllowComments] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errCode, setErrCode] = useState<string | null>(null);
 
@@ -30,9 +35,12 @@ export default function NewCommunityPostPage() {
     setErrCode(null);
     try {
       const res = await createCommunityPost({
+        communityId,
         title: title.trim(),
         body: body.trim(),
         videoUrl: videoUrl.trim() === '' ? null : videoUrl.trim(),
+        allowLikes,
+        allowComments,
       });
       router.replace(`/community/post?id=${res.post.id}`);
     } catch (err) {
@@ -42,8 +50,11 @@ export default function NewCommunityPostPage() {
     }
   }
 
+  const backHref =
+    communityId === '_lounge' ? '/community' : `/community/view?id=${communityId}`;
+
   return (
-    <AppShell title={Co.new.pageTitle} showBack backHref="/community" decoration="dots">
+    <AppShell title={Co.new.pageTitle} showBack backHref={backHref} decoration="dots">
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <Field
           label={Co.new.titleField.label}
@@ -70,6 +81,22 @@ export default function NewCommunityPostPage() {
         <p className="px-1 text-[11px] text-stone-500 dark:text-stone-400">
           {Co.new.videoHint}
         </p>
+
+        <fieldset className="space-y-2 rounded-2xl border border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
+          <legend className="px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+            {PO.sectionTitle}
+          </legend>
+          <Toggle
+            label={PO.allowLikes}
+            checked={allowLikes}
+            onChange={setAllowLikes}
+          />
+          <Toggle
+            label={PO.allowComments}
+            checked={allowComments}
+            onChange={setAllowComments}
+          />
+        </fieldset>
 
         {errCode && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">
@@ -149,5 +176,35 @@ function TextArea({
         className="mt-1 block w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
       />
     </label>
+  );
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
+      <span className="text-sm text-stone-800 dark:text-stone-200">{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 accent-brand-600"
+      />
+    </label>
+  );
+}
+
+export default function NewCommunityPostPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewCommunityPostInner />
+    </Suspense>
   );
 }

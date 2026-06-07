@@ -478,12 +478,34 @@ type RoutineRow = {
 
 type CommunityPostRow = {
   id: string;
+  community_id: string;
   user_pseudonym_id: string;
   title: string;
   body: string;
   video_url: string | null;
   created_at: string;
   deleted_at: string | null;
+  allow_likes: number;
+  allow_comments: number;
+};
+
+type CommunityRow = {
+  id: string;
+  owner_pseudonym_id: string;
+  name: string;
+  description: string;
+  visibility: string;
+  allow_likes_default: number;
+  allow_comments_default: number;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+type CommunityFollowerRow = {
+  community_id: string;
+  follower_pseudonym_id: string;
+  status: string;
+  created_at: string;
 };
 
 type CommunityCommentRow = {
@@ -522,6 +544,8 @@ export type MockAnalysisState = {
   likes: CommunityLikeRow[];
   ledger: LedgerRow[];
   contentPages: ContentPageRow[];
+  communities: CommunityRow[];
+  followers: CommunityFollowerRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -539,6 +563,20 @@ export function makeMockAnalysisDb(): {
     likes: [],
     ledger: [],
     contentPages: [],
+    communities: [
+      {
+        id: '_lounge',
+        owner_pseudonym_id: 'system-seed',
+        name: 'Public Lounge',
+        description: 'Default community for legacy posts.',
+        visibility: 'public',
+        allow_likes_default: 1,
+        allow_comments_default: 1,
+        created_at: new Date().toISOString(),
+        deleted_at: null,
+      },
+    ],
+    followers: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -696,19 +734,88 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('INSERT INTO community_posts')) {
-      const [id, user_pseudonym_id, title, body, video_url] = args as [
-        string, string, string, string, string | null,
+      const [id, community_id, user_pseudonym_id, title, body, video_url, allow_likes, allow_comments] = args as [
+        string, string, string, string, string, string | null, number, number,
       ];
       state.posts.push({
         id,
+        community_id,
         user_pseudonym_id,
         title,
         body,
         video_url,
         created_at: new Date().toISOString(),
         deleted_at: null,
+        allow_likes,
+        allow_comments,
       });
       return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO communities')) {
+      const [id, owner_pseudonym_id, name, description, visibility, allow_likes_default, allow_comments_default] = args as [
+        string, string, string, string, string, number, number,
+      ];
+      state.communities.push({
+        id,
+        owner_pseudonym_id,
+        name,
+        description,
+        visibility,
+        allow_likes_default,
+        allow_comments_default,
+        created_at: new Date().toISOString(),
+        deleted_at: null,
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith("UPDATE communities SET deleted_at")) {
+      const [id] = args as [string];
+      const c = state.communities.find((x) => x.id === id && x.deleted_at === null);
+      if (!c) return { success: true, meta: { changes: 0 } };
+      c.deleted_at = new Date().toISOString();
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('INSERT INTO community_followers')) {
+      const [community_id, follower_pseudonym_id, status] = args as [
+        string, string, string,
+      ];
+      const exists = state.followers.find(
+        (f) => f.community_id === community_id && f.follower_pseudonym_id === follower_pseudonym_id,
+      );
+      if (exists) {
+        exists.status = status;
+      } else {
+        state.followers.push({
+          community_id,
+          follower_pseudonym_id,
+          status,
+          created_at: new Date().toISOString(),
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('DELETE FROM community_followers')) {
+      const [community_id, follower_pseudonym_id] = args as [string, string];
+      const idx = state.followers.findIndex(
+        (f) => f.community_id === community_id && f.follower_pseudonym_id === follower_pseudonym_id,
+      );
+      if (idx < 0) return { success: true, meta: { changes: 0 } };
+      state.followers.splice(idx, 1);
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('UPDATE community_followers SET status')) {
+      const [community_id, follower_pseudonym_id] = args as [string, string];
+      const f = state.followers.find(
+        (x) => x.community_id === community_id && x.follower_pseudonym_id === follower_pseudonym_id && x.status === 'pending',
+      );
+      if (!f) return { success: true, meta: { changes: 0 } };
+      f.status = 'active';
+      return { success: true, meta: { changes: 1 } };
     }
 
     if (trimmed.startsWith('INSERT INTO community_comments')) {
@@ -860,7 +967,7 @@ export function makeMockAnalysisDb(): {
         self_rated_health: raw.self_rated_health,
       };
     }
-    if (trimmed.startsWith('SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,') && trimmed.includes('WHERE p.id = ?')) {
+    if (trimmed.includes('FROM community_posts p') && trimmed.includes('WHERE p.id = ?')) {
       const [postId] = args as [string];
       const post = state.posts.find((p) => p.id === postId && p.deleted_at === null);
       if (!post) return null;
@@ -870,6 +977,7 @@ export function makeMockAnalysisDb(): {
       ).length;
       return {
         id: post.id,
+        community_id: post.community_id,
         user_pseudonym_id: post.user_pseudonym_id,
         title: post.title,
         body: post.body,
@@ -877,7 +985,42 @@ export function makeMockAnalysisDb(): {
         created_at: post.created_at,
         like_count: likeCount,
         comment_count: commentCount,
+        allow_likes: post.allow_likes,
+        allow_comments: post.allow_comments,
       };
+    }
+
+    if (trimmed.startsWith('SELECT') && trimmed.includes('FROM communities c') && trimmed.includes('WHERE c.id = ?')) {
+      const [id] = args as [string];
+      const c = state.communities.find((x) => x.id === id && x.deleted_at === null);
+      if (!c) return null;
+      return {
+        id: c.id,
+        owner_pseudonym_id: c.owner_pseudonym_id,
+        name: c.name,
+        description: c.description,
+        visibility: c.visibility,
+        allow_likes_default: c.allow_likes_default,
+        allow_comments_default: c.allow_comments_default,
+        created_at: c.created_at,
+        deleted_at: c.deleted_at,
+        follower_count: state.followers.filter(
+          (f) => f.community_id === c.id && f.status === 'active',
+        ).length,
+        post_count: state.posts.filter(
+          (p) => p.community_id === c.id && p.deleted_at === null,
+        ).length,
+      };
+    }
+
+    if (trimmed.startsWith('SELECT community_id, follower_pseudonym_id, status, created_at')
+        && trimmed.includes('FROM community_followers')
+        && trimmed.includes('WHERE community_id = ? AND follower_pseudonym_id = ?')) {
+      const [communityId, followerPseudonymId] = args as [string, string];
+      const f = state.followers.find(
+        (x) => x.community_id === communityId && x.follower_pseudonym_id === followerPseudonymId,
+      );
+      return f ?? null;
     }
 
     if (trimmed.startsWith('SELECT COUNT(*) AS c FROM beta_signups')) {
@@ -988,11 +1131,14 @@ export function makeMockAnalysisDb(): {
       };
       return {
         id: post.id,
+        community_id: post.community_id,
         user_pseudonym_id: post.user_pseudonym_id,
         title: post.title,
         body: post.body,
         video_url: post.video_url,
         created_at: post.created_at,
+        allow_likes: post.allow_likes,
+        allow_comments: post.allow_comments,
         like_count: state.likes.filter(likeFilter).length,
         comment_count: state.comments.filter(
           (c) => c.post_id === post.id && c.deleted_at === null,
@@ -1001,18 +1147,75 @@ export function makeMockAnalysisDb(): {
     };
 
     if (
-      trimmed.startsWith('SELECT p.id, p.user_pseudonym_id, p.title, p.body, p.video_url, p.created_at,') &&
       trimmed.includes('FROM community_posts p') &&
       trimmed.includes("ORDER BY p.created_at DESC") &&
       !trimmed.includes('like_count DESC')
     ) {
       const limit = args[args.length - 1] as number;
-      const cursor = args.length > 1 ? (args[0] as string) : null;
+      // 마지막 LIMIT 인자 전 모든 인자는 필터 — community_id 와 cursor 가 순서대로 들어옴.
+      const filterArgs = args.slice(0, -1);
+      let communityId: string | null = null;
+      let cursor: string | null = null;
+      if (trimmed.includes('p.community_id = ?')) {
+        communityId = filterArgs.shift() as string;
+      }
+      if (trimmed.includes('p.created_at < ?')) {
+        cursor = filterArgs.shift() as string;
+      }
       const rows = state.posts
-        .filter((p) => p.deleted_at === null && (!cursor || p.created_at < cursor))
+        .filter((p) =>
+          p.deleted_at === null
+          && (!communityId || p.community_id === communityId)
+          && (!cursor || p.created_at < cursor)
+        )
         .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
         .slice(0, limit)
         .map((p) => postRowToWire(p, false));
+      return { results: rows };
+    }
+
+    if (
+      trimmed.startsWith('SELECT')
+      && trimmed.includes('FROM communities c')
+      && trimmed.includes('ORDER BY')
+    ) {
+      const rows = state.communities
+        .filter((c) => {
+          if (trimmed.includes('AND c.id != ') && c.id === '_lounge') return false;
+          if (trimmed.includes("WHERE c.deleted_at IS NULL") && c.deleted_at !== null) return false;
+          if (trimmed.includes("c.visibility = 'public'") && c.visibility !== 'public') return false;
+          return true;
+        })
+        .map((c) => ({
+          id: c.id,
+          owner_pseudonym_id: c.owner_pseudonym_id,
+          name: c.name,
+          description: c.description,
+          visibility: c.visibility,
+          allow_likes_default: c.allow_likes_default,
+          allow_comments_default: c.allow_comments_default,
+          created_at: c.created_at,
+          deleted_at: c.deleted_at,
+          follower_count: state.followers.filter(
+            (f) => f.community_id === c.id && f.status === 'active',
+          ).length,
+          post_count: state.posts.filter(
+            (p) => p.community_id === c.id && p.deleted_at === null,
+          ).length,
+        }));
+      return { results: rows };
+    }
+
+    if (trimmed.includes('FROM community_followers') && trimmed.includes('WHERE community_id = ?')) {
+      const [communityId] = args as [string];
+      const rows = state.followers
+        .filter((f) => f.community_id === communityId)
+        .map((f) => ({
+          community_id: f.community_id,
+          follower_pseudonym_id: f.follower_pseudonym_id,
+          status: f.status,
+          created_at: f.created_at,
+        }));
       return { results: rows };
     }
 

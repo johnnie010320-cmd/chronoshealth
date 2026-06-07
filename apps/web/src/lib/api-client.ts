@@ -514,6 +514,7 @@ export async function submitRewardsSpend(slug: string): Promise<SpendResponse> {
 // R7a Community
 export type CommunityPost = {
   id: string;
+  communityId: string;
   userPseudonymId: string;
   title: string;
   body: string;
@@ -521,6 +522,8 @@ export type CommunityPost = {
   createdAt: string;
   likeCount: number;
   commentCount: number;
+  allowLikes: boolean;
+  allowComments: boolean;
 };
 
 export type CommunityComment = {
@@ -543,19 +546,66 @@ export type PostDetailResponse = {
 };
 
 export type CreatePostBody = {
+  communityId?: string;
   title: string;
   body: string;
   videoUrl: string | null;
+  allowLikes?: boolean;
+  allowComments?: boolean;
+};
+
+export type CommunityVisibility = 'public' | 'private';
+export type FollowerStatus = 'active' | 'pending';
+
+export type CommunitySummary = {
+  id: string;
+  ownerPseudonymId: string;
+  name: string;
+  description: string;
+  visibility: CommunityVisibility;
+  allowLikesDefault: boolean;
+  allowCommentsDefault: boolean;
+  followerCount: number;
+  postCount: number;
+  createdAt: string;
+};
+
+export type CommunityListResponse = {
+  mine: CommunitySummary[];
+  discover: CommunitySummary[];
+  modelVersion: string;
+};
+
+export type CommunityDetailResponse = {
+  community: CommunitySummary;
+  isOwner: boolean;
+  myStatus: FollowerStatus | null;
+  modelVersion: string;
+};
+
+export type CreateCommunityBody = {
+  name: string;
+  description: string;
+  visibility: CommunityVisibility;
+  allowLikesDefault: boolean;
+  allowCommentsDefault: boolean;
+};
+
+export type AdminCommunityListResponse = {
+  communities: CommunitySummary[];
+  modelVersion: string;
 };
 
 export async function fetchCommunityPosts(
   cursor?: string | null,
   limit = 20,
+  communityId?: string,
 ): Promise<ListPostsResponse> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const qs = new URLSearchParams({ limit: String(limit) });
   if (cursor) qs.set('cursor', cursor);
+  if (communityId) qs.set('communityId', communityId);
   const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts?${qs.toString()}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${session.sessionToken}` },
@@ -768,4 +818,79 @@ export async function fetchLeaderboardMe(
   );
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as LeaderboardResponse;
+}
+
+// R7c — Community groups (Instagram-style follow + public/private)
+
+export async function fetchCommunities(): Promise<CommunityListResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as CommunityListResponse;
+}
+
+export async function fetchCommunity(id: string): Promise<CommunityDetailResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities/${id}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as CommunityDetailResponse;
+}
+
+export async function createCommunity(
+  body: CreateCommunityBody,
+): Promise<{ community: CommunitySummary }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { community: CommunitySummary };
+}
+
+export async function toggleCommunityFollow(
+  id: string,
+): Promise<{ following: boolean; status: FollowerStatus | null }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities/${id}/follow`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { following: boolean; status: FollowerStatus | null };
+}
+
+export async function fetchAdminCommunities(): Promise<AdminCommunityListResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/communities`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as AdminCommunityListResponse;
+}
+
+export async function deleteAdminCommunity(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/communities/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
 }

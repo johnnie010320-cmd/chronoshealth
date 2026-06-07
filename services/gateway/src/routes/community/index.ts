@@ -3,6 +3,7 @@ import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import {
   CreateCommentRequest,
+  CreateCommunityRequest,
   CreatePostRequest,
   ListPostsQuery,
 } from '../../schemas/community.js';
@@ -17,13 +18,21 @@ import {
   toggleLike,
 } from '../../community/storage.js';
 import {
+  insertCommunity,
+  listMyCommunities,
+  listPublicCommunities,
+  readCommunity,
+  readFollower,
+  toggleFollow,
+} from '../../community/communities.js';
+import {
   moderateText,
   moderateVideoUrl,
 } from '../../community/moderation.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
 import type { Bindings } from '../../bindings.js';
 
-const MODEL_VERSION = 'community-v0.1.0';
+const MODEL_VERSION = 'community-v0.2.0';
 
 export const communityRoute = new Hono<{
   Bindings: Bindings;
@@ -52,13 +61,28 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
     return c.json({ error: { code: urlCheck.reason } }, 400);
   }
 
+  const community = await readCommunity(c.env.DB, parsed.data.communityId);
+  if (!community) {
+    return c.json({ error: { code: 'COMMUNITY_NOT_FOUND' } }, 404);
+  }
+  // 라운지는 자유, 그 외 커뮤니티는 owner 또는 active follower 만 게시.
+  if (community.id !== '_lounge' && community.ownerPseudonymId !== pseudonymId) {
+    const follower = await readFollower(c.env.DB, community.id, pseudonymId);
+    if (!follower || follower.status !== 'active') {
+      return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
+    }
+  }
+
   const id = crypto.randomUUID();
   await insertPost(c.env.DB, {
     id,
+    communityId: community.id,
     userPseudonymId: pseudonymId,
     title: parsed.data.title,
     body: parsed.data.body,
     videoUrl: parsed.data.videoUrl,
+    allowLikes: parsed.data.allowLikes,
+    allowComments: parsed.data.allowComments,
   });
   try {
     await appendLedger(c.env.DB, pseudonymId, {
@@ -77,11 +101,16 @@ communityRoute.get('/posts', authMiddleware, rateLimit(200), async (c) => {
   const parsed = ListPostsQuery.safeParse({
     limit: c.req.query('limit'),
     cursor: c.req.query('cursor') ?? null,
+    communityId: c.req.query('communityId') ?? undefined,
   });
   if (!parsed.success) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   }
-  const posts = await listPosts(c.env.DB, parsed.data);
+  const posts = await listPosts(c.env.DB, {
+    limit: parsed.data.limit,
+    cursor: parsed.data.cursor,
+    communityId: parsed.data.communityId ?? null,
+  });
   return c.json({ posts, modelVersion: MODEL_VERSION });
 });
 
@@ -183,3 +212,78 @@ communityRoute.delete('/posts/:id', authMiddleware, rateLimit(50), async (c) => 
   }
   return c.json({ deleted: true });
 });
+
+// ---- communities ----------------------------------------------------------
+
+communityRoute.post('/communities', authMiddleware, rateLimit(20), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+  }
+  const parsed = CreateCommunityRequest.safeParse(raw);
+  if (!parsed.success) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const textCheck = moderateText(`${parsed.data.name}\n${parsed.data.description}`);
+  if (!textCheck.allowed) {
+    return c.json({ error: { code: textCheck.reason } }, 400);
+  }
+  const id = crypto.randomUUID();
+  await insertCommunity(c.env.DB, {
+    id,
+    ownerPseudonymId: pseudonymId,
+    name: parsed.data.name,
+    description: parsed.data.description,
+    visibility: parsed.data.visibility,
+    allowLikesDefault: parsed.data.allowLikesDefault,
+    allowCommentsDefault: parsed.data.allowCommentsDefault,
+  });
+  const community = await readCommunity(c.env.DB, id);
+  return c.json({ community, modelVersion: MODEL_VERSION });
+});
+
+communityRoute.get('/communities', authMiddleware, rateLimit(200), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const [mine, discover] = await Promise.all([
+    listMyCommunities(c.env.DB, pseudonymId),
+    listPublicCommunities(c.env.DB, 30),
+  ]);
+  const joinedIds = new Set(mine.map((m) => m.id));
+  const discoverFiltered = discover.filter((d) => !joinedIds.has(d.id));
+  return c.json({ mine, discover: discoverFiltered, modelVersion: MODEL_VERSION });
+});
+
+communityRoute.get('/communities/:id', authMiddleware, rateLimit(200), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  const follower = await readFollower(c.env.DB, id, pseudonymId);
+  return c.json({
+    community,
+    isOwner: community.ownerPseudonymId === pseudonymId,
+    myStatus: follower?.status ?? null,
+    modelVersion: MODEL_VERSION,
+  });
+});
+
+communityRoute.post(
+  '/communities/:id/follow',
+  authMiddleware,
+  rateLimit(50),
+  async (c) => {
+    const pseudonymId = c.get('userPseudonymId');
+    const id = c.req.param('id');
+    const community = await readCommunity(c.env.DB, id);
+    if (!community) {
+      return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    }
+    const result = await toggleFollow(c.env.DB, community, pseudonymId);
+    return c.json({ ...result, modelVersion: MODEL_VERSION });
+  },
+);

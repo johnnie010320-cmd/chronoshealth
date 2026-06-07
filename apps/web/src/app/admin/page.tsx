@@ -54,6 +54,12 @@ export default function AdminDashboardPage() {
       active: true,
     },
     {
+      href: '/admin/communities',
+      title: D.actionCommunities,
+      desc: D.actionCommunitiesDesc,
+      active: true,
+    },
+    {
       href: '/admin',
       title: D.actionModeration,
       desc: D.actionModerationDesc,

@@ -1,10 +1,19 @@
 import { z } from 'zod';
 
+export const CommunityIdSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-zA-Z0-9_-]+$/);
+
 export const CreatePostRequest = z
   .object({
+    communityId: CommunityIdSchema.default('_lounge'),
     title: z.string().min(2).max(120),
     body: z.string().min(2).max(2000),
     videoUrl: z.string().url().max(500).nullable(),
+    allowLikes: z.boolean().default(true),
+    allowComments: z.boolean().default(true),
   })
   .strict();
 export type CreatePostRequest = z.infer<typeof CreatePostRequest>;
@@ -20,6 +29,18 @@ export const ListPostsQuery = z
   .object({
     limit: z.coerce.number().int().min(1).max(50).default(20),
     cursor: z.string().nullable().default(null),
+    communityId: CommunityIdSchema.optional(),
   })
   .strict();
 export type ListPostsQuery = z.infer<typeof ListPostsQuery>;
+
+export const CreateCommunityRequest = z
+  .object({
+    name: z.string().min(2).max(60),
+    description: z.string().max(500).default(''),
+    visibility: z.enum(['public', 'private']),
+    allowLikesDefault: z.boolean().default(true),
+    allowCommentsDefault: z.boolean().default(true),
+  })
+  .strict();
+export type CreateCommunityRequest = z.infer<typeof CreateCommunityRequest>;

@@ -8,6 +8,10 @@ import {
   readAdminStats,
   readAdminUserDetail,
 } from '../../admin/storage.js';
+import {
+  listAllCommunitiesAdmin,
+  softDeleteCommunity,
+} from '../../community/communities.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'admin-v0.1.0';
@@ -84,6 +88,36 @@ adminRoute.get(
     const cursor = c.req.query('cursor') ?? null;
     const signups = await listAdminBetaSignups(c.env.DB, { limit, cursor });
     return c.json({ signups, modelVersion: MODEL_VERSION });
+  },
+);
+
+adminRoute.get(
+  '/communities',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(60),
+  async (c) => {
+    const includeDeleted = c.req.query('includeDeleted') === '1';
+    const communities = await listAllCommunitiesAdmin(c.env.DB, includeDeleted);
+    return c.json({ communities, modelVersion: MODEL_VERSION });
+  },
+);
+
+adminRoute.delete(
+  '/communities/:id',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(30),
+  async (c) => {
+    const id = c.req.param('id');
+    if (id === '_lounge') {
+      return c.json({ error: { code: 'LOUNGE_PROTECTED' } }, 400);
+    }
+    const ok = await softDeleteCommunity(c.env.DB, id);
+    if (!ok) {
+      return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    }
+    return c.json({ deleted: true, modelVersion: MODEL_VERSION });
   },
 );
 
