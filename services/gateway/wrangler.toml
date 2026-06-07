@@ -22,6 +22,10 @@ database_name = "chronoshealth-analysis"
 database_id = "0ca4eed5-3786-40da-bd24-d78bea7cfb44"
 migrations_dir = "migrations/analysis"
 
+# Workers AI 바인딩 — Cloudflare 호스팅 LLM. 일별 무료 quota 내에서 calorie 추정 등에 사용.
+[ai]
+binding = "AI"
+
 # 비밀 변수 — wrangler 으로 따로 주입 (절대 본 파일에 평문 금지). ADR 0011.
 # BETA_SIGNUP_HMAC_SALT: 베타 등록 이메일 가명화용 HMAC-SHA256 키
 #   $ wrangler secret put BETA_SIGNUP_HMAC_SALT

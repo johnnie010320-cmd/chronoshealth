@@ -894,3 +894,34 @@ export async function deleteAdminCommunity(id: string): Promise<void> {
   });
   if (!res.ok) await throwOnError(res);
 }
+
+// AI 칼로리 추정 — Cloudflare Workers AI (llama-3.1-8b-instruct)
+export type CalorieEstimateItem = { name: string; amount: string };
+export type CalorieEstimateLine = {
+  name: string;
+  amount: string;
+  calories: number;
+};
+export type CalorieEstimateResponse = {
+  breakdown: CalorieEstimateLine[];
+  totalCalories: number;
+  modelVersion: string;
+};
+
+export async function estimateCalories(
+  items: CalorieEstimateItem[],
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<CalorieEstimateResponse> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/ai/estimate-calories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify({ items, locale }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as CalorieEstimateResponse;
+}

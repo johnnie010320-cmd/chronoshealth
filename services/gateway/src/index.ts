@@ -15,6 +15,7 @@ import { loginRoute, setPasswordRoute } from './routes/auth/login.js';
 import { contentPublicRoute, contentAdminRoute } from './routes/content/index.js';
 import { meRoute } from './routes/me/index.js';
 import { checkEmailRoute } from './routes/auth/check-email.js';
+import { aiCalorieRoute } from './routes/ai/calorie.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -54,6 +55,7 @@ app.route('/api/v1/content', contentPublicRoute);
 app.route('/api/v1/admin/content', contentAdminRoute);
 app.route('/api/v1/me', meRoute);
 app.route('/api/v1/auth/check-email', checkEmailRoute);
+app.route('/api/v1/ai', aiCalorieRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));
 

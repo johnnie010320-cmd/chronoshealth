@@ -8,9 +8,11 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
+  estimateCalories,
   fetchRoutineToday,
   fetchRoutineRange,
   submitRoutineDaily,
+  type CalorieEstimateLine,
   type RoutineEntry,
   type RoutineSummary,
 } from '@/lib/api-client';
@@ -46,15 +48,22 @@ function parseNumberOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+type FoodRow = { name: string; amount: string };
+
 export default function RoutinePage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const R = t.routine;
+  const F = R.food;
   const [signedIn, setSignedIn] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [entries, setEntries] = useState<RoutineEntry[]>([]);
   const [summary, setSummary] = useState<RoutineSummary | null>(null);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'err'>('idle');
   const [errCode, setErrCode] = useState<string | null>(null);
+  const [foodRows, setFoodRows] = useState<FoodRow[]>([{ name: '', amount: '' }]);
+  const [estimating, setEstimating] = useState(false);
+  const [estimateLines, setEstimateLines] = useState<CalorieEstimateLine[] | null>(null);
+  const [estimateErr, setEstimateErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!readSession()) {
@@ -103,6 +112,24 @@ export default function RoutinePage() {
     );
   }
 
+  async function handleEstimate() {
+    const cleaned = foodRows
+      .map((r) => ({ name: r.name.trim(), amount: r.amount.trim() }))
+      .filter((r) => r.name !== '' && r.amount !== '');
+    if (cleaned.length === 0) return;
+    setEstimating(true);
+    setEstimateErr(null);
+    try {
+      const res = await estimateCalories(cleaned, locale);
+      setEstimateLines(res.breakdown);
+      setForm((f) => ({ ...f, caloriesKcal: String(res.totalCalories) }));
+    } catch (err) {
+      setEstimateErr(err instanceof Error ? err.message : 'generic');
+    } finally {
+      setEstimating(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus('saving');
@@ -140,6 +167,104 @@ export default function RoutinePage() {
       </section>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+        <section className="card-shadow space-y-2 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
+              {F.sectionTitle}
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
+              {F.aiBadge}
+            </span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+            {F.sectionHint}
+          </p>
+          <ul className="space-y-2">
+            {foodRows.map((row, idx) => (
+              <li key={idx} className="grid grid-cols-[1fr_auto_28px] items-center gap-2">
+                <input
+                  type="text"
+                  value={row.name}
+                  placeholder={F.namePlaceholder}
+                  maxLength={80}
+                  onChange={(e) =>
+                    setFoodRows((prev) => prev.map((r, i) => (i === idx ? { ...r, name: e.target.value } : r)))
+                  }
+                  className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                />
+                <input
+                  type="text"
+                  value={row.amount}
+                  placeholder={F.amountPlaceholder}
+                  maxLength={60}
+                  onChange={(e) =>
+                    setFoodRows((prev) => prev.map((r, i) => (i === idx ? { ...r, amount: e.target.value } : r)))
+                  }
+                  className="w-24 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                />
+                <button
+                  type="button"
+                  aria-label={F.removeRow}
+                  onClick={() => setFoodRows((prev) => prev.filter((_, i) => i !== idx))}
+                  disabled={foodRows.length === 1}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 disabled:opacity-30 dark:hover:bg-stone-800"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setFoodRows((prev) => (prev.length >= 10 ? prev : [...prev, { name: '', amount: '' }]))
+              }
+              disabled={foodRows.length >= 10}
+              className="rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-stone-700 transition active:scale-[0.97] disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+            >
+              {F.addRow}
+            </button>
+            <button
+              type="button"
+              onClick={handleEstimate}
+              disabled={
+                estimating || foodRows.every((r) => r.name.trim() === '' || r.amount.trim() === '')
+              }
+              className="rounded-xl bg-brand-700 px-3 py-1.5 text-[12px] font-semibold text-white transition active:scale-[0.97] disabled:opacity-60"
+            >
+              {estimating ? F.estimating : F.estimateCta}
+            </button>
+          </div>
+
+          {estimateErr && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">
+              {R.error[estimateErr as keyof typeof R.error] ?? F.errEstimate}
+            </div>
+          )}
+
+          {estimateLines && estimateLines.length > 0 && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12px] text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
+              <p className="font-semibold">
+                {F.estimateResultPrefix} {estimateLines.reduce((s, l) => s + l.calories, 0)} {R.unitCal}
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {estimateLines.map((line, i) => (
+                  <li key={i} className="flex items-center justify-between text-[11px]">
+                    <span className="truncate">
+                      {line.name} · {line.amount}
+                    </span>
+                    <span className="tabular-nums font-semibold">
+                      {line.calories} {R.unitCal}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-[10px] opacity-70">{F.estimateNote}</p>
+            </div>
+          )}
+        </section>
+
         <NumberField
           label={R.fieldCalories.label}
           placeholder={R.fieldCalories.placeholder}

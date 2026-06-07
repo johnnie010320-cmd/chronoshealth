@@ -1,10 +1,19 @@
 // CF Workers 바인딩 + 환경 변수 타입 (wrangler.toml과 동기화).
 // ADR 0003 / 0010 / spec docs/spec/identity.md 5.1 정합.
 
+// Workers AI 응답 형태 (필요 최소 필드만). model 별로 response 형태가 달라
+// 본 타입은 chat-style llama 계열 (response: string) 기준.
+type WorkersAiRunResult = { response?: string } & Record<string, unknown>;
+type WorkersAiBinding = {
+  run: (model: string, input: Record<string, unknown>) => Promise<WorkersAiRunResult>;
+};
+
 export type Bindings = {
   ENVIRONMENT: 'dev' | 'staging' | 'prod';
   IDENTITY_DB: D1Database;
   DB: D1Database;
+  // Cloudflare Workers AI — wrangler.toml `[ai]` 바인딩.
+  AI: WorkersAiBinding;
   // ADR 0011 — HMAC-SHA256 키 (베타 등록 이메일 가명화). wrangler secret 으로 주입.
   BETA_SIGNUP_HMAC_SALT: string;
   // R-Admin-1 — 관리자 화이트리스트.
