@@ -181,6 +181,7 @@ export const ja: Dictionary = {
     rewards: '特典',
     stats: '統計',
     profile: 'マイページ',
+    menu: 'メニュー',
   },
   home: {
     pageTitle: 'Chronos Health',
@@ -569,7 +570,6 @@ export const ja: Dictionary = {
     signup: '会員登録',
     profile: 'マイページ',
     logout: 'ログアウト',
-    fullMenu: '全メニュー',
   },
   login: {
     pageTitle: 'ログイン',

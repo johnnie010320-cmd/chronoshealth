@@ -177,13 +177,14 @@ export const es: Dictionary = {
     },
   },
   nav: {
-    home: 'Estilo',
+    home: 'Vida',
     survey: 'Encuesta',
     reports: 'Informe AI',
     care: 'Cuidado AI',
     rewards: 'Beneficios',
     stats: 'Estadísticas',
     profile: 'Mi página',
+    menu: 'Menú',
   },
   home: {
     pageTitle: 'Chronos Health',
@@ -573,7 +574,6 @@ export const es: Dictionary = {
     signup: 'Registro',
     profile: 'Mi perfil',
     logout: 'Cerrar sesión',
-    fullMenu: 'Menú completo',
   },
   login: {
     pageTitle: 'Iniciar sesión',

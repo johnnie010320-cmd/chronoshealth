@@ -171,13 +171,14 @@ export const ko = {
     },
   },
   nav: {
-    home: '맞춤라잎',
+    home: '라이프',
     survey: '설문',
     reports: 'AI 리포트',
     care: 'AI 케어',
     rewards: '혜택',
     stats: '통계',
     profile: '마이페이지',
+    menu: '전체 메뉴',
   },
   home: {
     pageTitle: 'Chronos Health',
@@ -566,7 +567,6 @@ export const ko = {
     signup: '회원가입',
     profile: '내 정보',
     logout: '로그아웃',
-    fullMenu: '전체 메뉴',
   },
   comingSoon: {
     title: '준비 중',

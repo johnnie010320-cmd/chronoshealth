@@ -10,13 +10,14 @@ import {
   HeartPulseIcon,
   ShieldIcon,
   UserCircleIcon,
+  MenuIcon,
 } from './HealthIcons';
 
 type IconCmp = (p: { className?: string; strokeWidth?: number }) => ReactElement;
 
 type Item = {
   href: string;
-  labelKey: 'home' | 'reports' | 'care' | 'rewards' | 'profile';
+  labelKey: 'home' | 'reports' | 'care' | 'rewards' | 'profile' | 'menu';
   Icon: IconCmp;
 };
 
@@ -26,6 +27,7 @@ const ITEMS: Item[] = [
   { href: '/care', labelKey: 'care', Icon: HeartPulseIcon },
   { href: '/rewards', labelKey: 'rewards', Icon: ShieldIcon },
   { href: '/profile', labelKey: 'profile', Icon: UserCircleIcon },
+  { href: '/menu', labelKey: 'menu', Icon: MenuIcon },
 ];
 
 function isActive(pathname: string, href: string): boolean {

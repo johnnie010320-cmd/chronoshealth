@@ -177,13 +177,14 @@ export const en: Dictionary = {
     },
   },
   nav: {
-    home: 'Lifestyle',
+    home: 'Life',
     survey: 'Survey',
     reports: 'AI Report',
     care: 'AI Care',
     rewards: 'Rewards',
     stats: 'Stats',
     profile: 'My Page',
+    menu: 'Menu',
   },
   home: {
     pageTitle: 'Chronos Health',
@@ -572,7 +573,6 @@ export const en: Dictionary = {
     signup: 'Sign up',
     profile: 'My profile',
     logout: 'Log out',
-    fullMenu: 'Full menu',
   },
   login: {
     pageTitle: 'Log in',

@@ -207,14 +207,16 @@ export default function HomePage() {
         <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
       </Link>
 
-      <div className="mt-3 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-2.5 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
-        {H.disclaimer}
-        {avatarErr && avatarErr !== 'NO_REPORT' && (
-          <span className="ml-1 text-rose-600 dark:text-rose-300">
-            · {avatarErr}
-          </span>
-        )}
-      </div>
+      {!signedIn && (
+        <div className="mt-3 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-2.5 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
+          {H.disclaimer}
+        </div>
+      )}
+      {signedIn && avatarErr && avatarErr !== 'NO_REPORT' && (
+        <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50/60 px-4 py-2.5 text-[11px] leading-relaxed text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+          {avatarErr}
+        </div>
+      )}
     </AppShell>
   );
 }
