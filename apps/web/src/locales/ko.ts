@@ -462,6 +462,18 @@ export const ko = {
     },
     disclaimer:
       '관리자 페이지의 모든 동작은 감사 로그에 기록될 예정입니다. 개인정보 열람은 감사 대상 행위입니다.',
+    content: {
+      pageTitle: '콘텐츠 편집',
+      titleLabel: '제목',
+      versionLabel: '버전',
+      bodyLabel: '본문 (Markdown)',
+      saveCta: '저장',
+      savingCta: '저장 중…',
+      savedMsg: '저장됨',
+      saveErrPrefix: '저장 실패',
+      lastUpdated: '최근 갱신',
+      lastUpdatedBy: '작성자',
+    },
   },
   routine: {
     pageTitle: 'Routine',

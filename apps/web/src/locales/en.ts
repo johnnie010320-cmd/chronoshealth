@@ -468,6 +468,18 @@ export const en: Dictionary = {
     },
     disclaimer:
       'All admin actions will be recorded in the audit log. Revealing personal information is an audited action.',
+    content: {
+      pageTitle: 'Content editor',
+      titleLabel: 'Title',
+      versionLabel: 'Version',
+      bodyLabel: 'Body (Markdown)',
+      saveCta: 'Save',
+      savingCta: 'Saving…',
+      savedMsg: 'Saved',
+      saveErrPrefix: 'Save failed',
+      lastUpdated: 'Last updated',
+      lastUpdatedBy: 'By',
+    },
   },
   routine: {
     pageTitle: 'Routine',

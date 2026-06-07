@@ -468,6 +468,18 @@ export const es: Dictionary = {
     },
     disclaimer:
       'Todas las acciones del admin se registrarán en el log de auditoría. Revelar información personal es una acción auditada.',
+    content: {
+      pageTitle: 'Editor de contenido',
+      titleLabel: 'Título',
+      versionLabel: 'Versión',
+      bodyLabel: 'Cuerpo (Markdown)',
+      saveCta: 'Guardar',
+      savingCta: 'Guardando…',
+      savedMsg: 'Guardado',
+      saveErrPrefix: 'Error al guardar',
+      lastUpdated: 'Actualizado',
+      lastUpdatedBy: 'Por',
+    },
   },
   routine: {
     pageTitle: 'Routine',

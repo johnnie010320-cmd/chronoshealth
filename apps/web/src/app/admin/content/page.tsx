@@ -21,6 +21,7 @@ type LoadState =
 export default function AdminContentPage() {
   const { t } = useI18n();
   const A = t.admin;
+  const C = A.content;
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedSlug, setSelectedSlug] = useState<ContentSlug>('terms');
   const [form, setForm] = useState({ title: '', bodyMd: '', version: 'v1.0' });
@@ -71,18 +72,18 @@ export default function AdminContentPage() {
         bodyMd: form.bodyMd,
         version: form.version.trim() || 'v1.0',
       });
-      setSavedMsg('저장됨');
+      setSavedMsg(C.savedMsg);
       await refresh();
     } catch (e) {
       const code = e instanceof Error ? e.message : 'generic';
-      setSavedMsg(`저장 실패: ${code}`);
+      setSavedMsg(`${C.saveErrPrefix}: ${code}`);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <AdminShell title="콘텐츠 편집">
+    <AdminShell title={C.pageTitle}>
       {state.status === 'loading' && (
         <div className="mt-6 flex justify-center">
           <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700 dark:border-stone-700 dark:border-t-brand-400" />
@@ -124,7 +125,7 @@ export default function AdminContentPage() {
           <form onSubmit={handleSave} className="space-y-3">
             <label className="block">
               <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
-                제목
+                {C.titleLabel}
               </span>
               <input
                 type="text"
@@ -137,7 +138,7 @@ export default function AdminContentPage() {
 
             <label className="block">
               <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
-                버전
+                {C.versionLabel}
               </span>
               <input
                 type="text"
@@ -150,7 +151,7 @@ export default function AdminContentPage() {
 
             <label className="block">
               <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
-                본문 (Markdown)
+                {C.bodyLabel}
               </span>
               <textarea
                 value={form.bodyMd}
@@ -172,14 +173,14 @@ export default function AdminContentPage() {
               disabled={saving || form.title.trim() === '' || form.bodyMd.trim() === ''}
               className="inline-flex w-full items-center justify-between rounded-2xl bg-stone-900 px-6 py-4 text-base font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
             >
-              <span>{saving ? '저장 중…' : '저장'}</span>
+              <span>{saving ? C.savingCta : C.saveCta}</span>
               <ChevronRightIcon className="h-5 w-5" />
             </button>
 
             {currentPage && (
               <p className="text-center text-[10px] text-stone-500 dark:text-stone-400">
-                최근 갱신: {new Date(currentPage.updatedAt).toLocaleString()} ·
-                작성자: {currentPage.updatedByPseudonymId.slice(0, 8)}…
+                {C.lastUpdated}: {new Date(currentPage.updatedAt).toLocaleString()} ·
+                {' '}{C.lastUpdatedBy}: {currentPage.updatedByPseudonymId.slice(0, 8)}…
               </p>
             )}
           </form>

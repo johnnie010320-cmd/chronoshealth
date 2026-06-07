@@ -465,6 +465,18 @@ export const ja: Dictionary = {
     },
     disclaimer:
       '管理者ページの全操作は監査ログに記録されます。個人情報の表示は監査対象の行為です。',
+    content: {
+      pageTitle: 'コンテンツ編集',
+      titleLabel: 'タイトル',
+      versionLabel: 'バージョン',
+      bodyLabel: '本文 (Markdown)',
+      saveCta: '保存',
+      savingCta: '保存中…',
+      savedMsg: '保存しました',
+      saveErrPrefix: '保存失敗',
+      lastUpdated: '最終更新',
+      lastUpdatedBy: '更新者',
+    },
   },
   routine: {
     pageTitle: 'Routine',
