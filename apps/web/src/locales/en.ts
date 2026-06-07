@@ -210,6 +210,8 @@ export const en: Dictionary = {
     affiliateRolling: 'Partner products · service links',
     menuShortcut: 'Full menu',
     loginShortcut: 'Log in / Sign up',
+    signupCta: 'Sign up',
+    loginCta: 'Log in',
     disclaimer: 'This screen is not medical care; it is for wellness reference only.',
   },
   reports: {
@@ -624,8 +626,14 @@ export const en: Dictionary = {
   },
   comingSoon: {
     title: 'Coming soon',
-    body: 'This screen will arrive in a later stage. Only Home and Survey work in this beta.',
+    body: 'This screen will be available shortly.',
     backHome: 'Back to home',
+  },
+  loginRequired: {
+    title: 'Login required',
+    body: 'Please log in or sign up to continue.',
+    loginCta: 'Log in',
+    signupCta: 'Sign up',
   },
   profile: {
     pageTitle: 'My profile',

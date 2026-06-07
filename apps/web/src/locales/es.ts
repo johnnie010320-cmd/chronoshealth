@@ -210,6 +210,8 @@ export const es: Dictionary = {
     affiliateRolling: 'Productos · enlaces de servicios asociados',
     menuShortcut: 'Menú completo',
     loginShortcut: 'Iniciar sesión / Registro',
+    signupCta: 'Registrarse',
+    loginCta: 'Iniciar sesión',
     disclaimer: 'Esta pantalla no es atención médica, es referencia de bienestar.',
   },
   reports: {
@@ -626,8 +628,14 @@ export const es: Dictionary = {
   },
   comingSoon: {
     title: 'Próximamente',
-    body: 'Esta pantalla llegará en una etapa posterior. En esta beta solo funcionan Inicio y Encuesta.',
+    body: 'Esta pantalla estará disponible próximamente.',
     backHome: 'Volver al inicio',
+  },
+  loginRequired: {
+    title: 'Inicio de sesión requerido',
+    body: 'Inicia sesión o regístrate para continuar.',
+    loginCta: 'Iniciar sesión',
+    signupCta: 'Registrarse',
   },
   profile: {
     pageTitle: 'Mi perfil',

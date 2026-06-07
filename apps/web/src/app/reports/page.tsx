@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { ComingSoon } from '@/components/ComingSoon';
+import { LoginRequired } from '@/components/LoginRequired';
 import {
   ChevronRightIcon,
   HeartPulseIcon,
@@ -52,7 +52,7 @@ export default function ReportsPage() {
       )}
 
       {state.status === 'unauth' && (
-        <ComingSoon customBody={t.userMenu.loginUnavailable} />
+        <LoginRequired />
       )}
 
       {state.status === 'noReport' && (

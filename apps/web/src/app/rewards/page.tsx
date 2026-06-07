@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
-import { ComingSoon } from '@/components/ComingSoon';
+import { LoginRequired } from '@/components/LoginRequired';
 import { ShieldIcon, ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
@@ -65,7 +65,7 @@ export default function RewardsPage() {
   if (!signedIn && !loading) {
     return (
       <AppShell title={R.pageTitle} decoration="dots">
-        <ComingSoon customBody={t.userMenu.loginUnavailable} />
+        <LoginRequired />
       </AppShell>
     );
   }

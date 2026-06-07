@@ -204,6 +204,8 @@ export const ko = {
     affiliateRolling: '제휴 상품 · 서비스 링크',
     menuShortcut: '전체 메뉴 보기',
     loginShortcut: '로그인 / 회원가입',
+    signupCta: '회원가입',
+    loginCta: '로그인',
     disclaimer: '본 화면은 의료 행위가 아니며 건강 증진 참고용입니다.',
   },
   reports: {
@@ -567,8 +569,14 @@ export const ko = {
   },
   comingSoon: {
     title: '준비 중',
-    body: '이 화면은 향후 단계에서 추가됩니다. 베타에서는 홈과 설문만 동작합니다.',
+    body: '이 화면은 곧 추가됩니다.',
     backHome: '홈으로 돌아가기',
+  },
+  loginRequired: {
+    title: '로그인이 필요합니다',
+    body: '로그인하거나 회원가입 후 이용하실 수 있습니다.',
+    loginCta: '로그인',
+    signupCta: '회원가입',
   },
   profile: {
     pageTitle: '내 정보',

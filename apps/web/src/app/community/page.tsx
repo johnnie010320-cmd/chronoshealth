@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { ComingSoon } from '@/components/ComingSoon';
+import { LoginRequired } from '@/components/LoginRequired';
 import { ChevronRightIcon, UsersIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
@@ -39,7 +39,7 @@ export default function CommunityPage() {
   if (!signedIn && !loading) {
     return (
       <AppShell title={Co.pageTitle} decoration="dots">
-        <ComingSoon customBody={t.userMenu.loginUnavailable} />
+        <LoginRequired />
       </AppShell>
     );
   }

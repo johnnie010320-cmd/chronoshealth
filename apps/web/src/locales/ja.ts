@@ -207,6 +207,8 @@ export const ja: Dictionary = {
     affiliateRolling: 'パートナー商品 · サービスリンク',
     menuShortcut: '全メニュー',
     loginShortcut: 'ログイン / 会員登録',
+    signupCta: '会員登録',
+    loginCta: 'ログイン',
     disclaimer: '本画面は医療行為ではなく、健康増進の参考用です。',
   },
   reports: {
@@ -620,8 +622,14 @@ export const ja: Dictionary = {
   },
   comingSoon: {
     title: '準備中',
-    body: 'この画面は後続段階で追加されます。ベータではホームとアンケートのみ動作します。',
+    body: 'この画面は近日公開予定です。',
     backHome: 'ホームに戻る',
+  },
+  loginRequired: {
+    title: 'ログインが必要です',
+    body: 'ログインまたは会員登録後にご利用いただけます。',
+    loginCta: 'ログイン',
+    signupCta: '会員登録',
   },
   profile: {
     pageTitle: 'マイページ',

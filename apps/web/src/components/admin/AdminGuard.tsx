@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon, ShieldIcon } from '@/components/HealthIcons';
+import { LoginRequired } from '@/components/LoginRequired';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fetchAdminWhoami } from '@/lib/api-client';
@@ -43,8 +44,15 @@ export function AdminGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  if (state.status === 'unauth' || state.status === 'forbidden') {
-    const subtitle = state.status === 'unauth' ? A.loginPrompt : A.notAuthorizedBody;
+  if (state.status === 'unauth') {
+    return (
+      <AppShell title={A.pageTitle} decoration="dots" hideBottomNav>
+        <LoginRequired />
+      </AppShell>
+    );
+  }
+
+  if (state.status === 'forbidden') {
     return (
       <AppShell title={A.pageTitle} decoration="dots" hideBottomNav>
         <section className="card-shadow mt-8 rounded-3xl bg-white p-8 text-center dark:bg-stone-900">
@@ -55,13 +63,13 @@ export function AdminGuard({ children }: { children: ReactNode }) {
             {A.notAuthorizedTitle}
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
-            {subtitle}
+            {A.notAuthorizedBody}
           </p>
           <Link
-            href={state.status === 'unauth' ? '/login' : '/'}
+            href="/"
             className="mt-6 inline-flex items-center gap-1 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
           >
-            <span>{state.status === 'unauth' ? A.loginPrompt : A.backToHome}</span>
+            <span>{A.backToHome}</span>
             <ChevronRightIcon className="h-4 w-4" />
           </Link>
         </section>

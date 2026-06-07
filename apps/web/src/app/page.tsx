@@ -90,18 +90,42 @@ export default function HomePage() {
         </span>
       </section>
 
-      <Link
-        href={ctaHref}
-        className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white px-5 py-4 transition active:scale-[0.99] dark:bg-stone-900"
-      >
-        <span className="min-w-0 flex-1 text-[13px] font-medium text-stone-800 dark:text-stone-100">
-          {promptText}
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-brand-700 dark:text-brand-300">
-          {ctaLabel}
-          <ChevronRightIcon className="h-3.5 w-3.5" />
-        </span>
-      </Link>
+      {signedIn ? (
+        <Link
+          href={ctaHref}
+          className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white px-5 py-4 transition active:scale-[0.99] dark:bg-stone-900"
+        >
+          <span className="min-w-0 flex-1 text-[13px] font-medium text-stone-800 dark:text-stone-100">
+            {promptText}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-brand-700 dark:text-brand-300">
+            {ctaLabel}
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </span>
+        </Link>
+      ) : (
+        <section className="card-shadow mt-3 rounded-2xl bg-white px-5 py-4 dark:bg-stone-900">
+          <p className="text-[13px] font-medium text-stone-800 dark:text-stone-100">
+            {promptText}
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl bg-stone-900 px-3 py-2.5 text-[12px] font-semibold text-white transition active:scale-[0.97] dark:bg-white dark:text-stone-900"
+            >
+              {H.signupCta}
+              <ChevronRightIcon className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[12px] font-semibold text-stone-800 transition active:scale-[0.97] hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
+            >
+              {H.loginCta}
+              <ChevronRightIcon className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="mt-3 grid grid-cols-2 gap-3">
         <AgeCard

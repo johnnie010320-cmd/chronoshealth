@@ -9,7 +9,7 @@ import {
   LeafIcon,
   ShieldIcon,
 } from '@/components/HealthIcons';
-import { ComingSoon } from '@/components/ComingSoon';
+import { LoginRequired } from '@/components/LoginRequired';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fetchCareMe, type CareResponse, type CareRule, type CareAffiliate } from '@/lib/api-client';
@@ -49,7 +49,7 @@ export default function CarePage() {
         </div>
       )}
 
-      {state.status === 'unauth' && <ComingSoon customBody={t.userMenu.loginUnavailable} />}
+      {state.status === 'unauth' && <LoginRequired />}
 
       {state.status === 'noReport' && (
         <section className="card-shadow mt-6 rounded-3xl bg-white p-8 text-center dark:bg-stone-900">
