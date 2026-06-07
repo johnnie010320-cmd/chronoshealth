@@ -1,25 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   SignupRequest,
   validatePasswordPolicy,
 } from '@/lib/signup-schema';
-import { submitSignup } from '@/lib/api-client';
+import { submitSignup, checkEmailAvailable } from '@/lib/api-client';
 import { writeSession } from '@/lib/session';
 import { useI18n } from '@/lib/i18n';
 import {
-  UsersIcon,
   ShieldIcon,
   AlertIcon,
 } from '@/components/HealthIcons';
+import { PasswordField } from '@/components/PasswordField';
 import { KakaoLogo, GoogleLogo, AppleLogo } from '@/components/SocialIcons';
 
 const TERMS_VERSION = 'v1.0';
 const PRIVACY_VERSION = 'v1.0';
 
+// ADR 0013 — Step 1 회원가입. 이메일+비밀번호+동의 3종.
+// 가입 완료 후 자동으로 /onboarding 으로 이동하여 Step 2 진행.
 export function SignupForm() {
   const { t } = useI18n();
   const S = t.signup;
@@ -27,6 +29,16 @@ export function SignupForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailCheck, setEmailCheck] = useState<
+    | { status: 'idle' }
+    | { status: 'checking' }
+    | { status: 'available' }
+    | { status: 'taken' }
+  >({ status: 'idle' });
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
 
   const notifySocialUnavailable = () => {
     if (typeof window !== 'undefined') {
@@ -34,20 +46,36 @@ export function SignupForm() {
     }
   };
 
+  useEffect(() => {
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailCheck({ status: 'idle' });
+      return;
+    }
+    setEmailCheck({ status: 'checking' });
+    checkTimerRef.current = setTimeout(async () => {
+      try {
+        const ok = await checkEmailAvailable(trimmed);
+        setEmailCheck({ status: ok ? 'available' : 'taken' });
+      } catch {
+        setEmailCheck({ status: 'idle' });
+      }
+    }, 400);
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    };
+  }, [email]);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
 
     try {
-      const fd = new FormData(e.currentTarget);
-      const password = String(fd.get('password') ?? '');
-      const passwordConfirm = String(fd.get('passwordConfirm') ?? '');
-
       if (password !== passwordConfirm) {
         setError(S.error.PASSWORD_MISMATCH);
         setSubmitting(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
 
@@ -55,18 +83,19 @@ export function SignupForm() {
       if (policy) {
         setError(S.error[policy]);
         setSubmitting(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
 
+      if (emailCheck.status === 'taken') {
+        setError(S.error.IDENTITY_EXISTS);
+        setSubmitting(false);
+        return;
+      }
+
+      const fd = new FormData(e.currentTarget);
       const raw = {
-        name: String(fd.get('name') ?? '').trim(),
-        email: String(fd.get('email') ?? '').trim(),
-        phone: String(fd.get('phone') ?? '').trim(),
-        birthYear: numOrNaN(fd.get('birthYear')),
-        sex: fd.get('sex') as string,
+        email: email.trim(),
         password,
-        nationality: fd.get('nationality') as string,
         consentMedical: fd.has('consentMedical'),
         consentTerms: fd.has('consentTerms'),
         consentPrivacy: fd.has('consentPrivacy'),
@@ -77,16 +106,11 @@ export function SignupForm() {
       const parsed = SignupRequest.safeParse(raw);
       if (!parsed.success) {
         const first = parsed.error.issues[0];
-        if (first?.message === 'AGE_RESTRICTED') {
-          setError(S.error.AGE_RESTRICTED);
-        } else {
-          const fieldPath = first?.path.join('.') ?? '';
-          setError(
-            `${S.error.validation} — ${fieldPath || 'unknown'}: ${first?.message ?? ''}`,
-          );
-        }
+        const fieldPath = first?.path.join('.') ?? '';
+        setError(
+          `${S.error.validation} — ${fieldPath || 'unknown'}: ${first?.message ?? ''}`,
+        );
         setSubmitting(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
 
@@ -102,7 +126,7 @@ export function SignupForm() {
 
       const res = await submitSignup(parsed.data);
       writeSession(res);
-      router.push('/survey');
+      router.push('/onboarding');
     } catch (err) {
       const code = err instanceof Error ? err.message : String(err);
       const friendly =
@@ -116,7 +140,7 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-32">
+    <form onSubmit={handleSubmit} className="space-y-5 pb-32">
       <header className="space-y-2 px-1">
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
           {S.heroTitle}
@@ -130,7 +154,7 @@ export function SignupForm() {
         <button
           type="button"
           onClick={notifySocialUnavailable}
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#FEE500] px-6 py-3.5 text-sm font-semibold text-[#191919] transition active:scale-[0.98] hover:brightness-95"
+          className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl bg-[#FEE500] px-6 py-3.5 text-[13px] font-semibold text-[#191919] transition active:scale-[0.98] hover:brightness-95"
         >
           <KakaoLogo className="h-5 w-5" />
           {S.social.kakao}
@@ -138,7 +162,7 @@ export function SignupForm() {
         <button
           type="button"
           onClick={notifySocialUnavailable}
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-stone-300 bg-white px-6 py-3.5 text-sm font-semibold text-stone-800 transition active:scale-[0.98] hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
+          className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl border border-stone-300 bg-white px-6 py-3.5 text-[13px] font-semibold text-stone-800 transition active:scale-[0.98] hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
         >
           <GoogleLogo className="h-5 w-5" />
           {S.social.google}
@@ -146,7 +170,7 @@ export function SignupForm() {
         <button
           type="button"
           onClick={notifySocialUnavailable}
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black px-6 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-stone-800"
+          className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl bg-black px-6 py-3.5 text-[13px] font-semibold text-white transition active:scale-[0.98] hover:bg-stone-800"
         >
           <AppleLogo className="h-5 w-5" />
           {S.social.apple}
@@ -172,97 +196,69 @@ export function SignupForm() {
       )}
 
       <Section
-        icon={<UsersIcon className="h-5 w-5" />}
-        title={S.section.identity}
-        n="1"
-      >
-        <Field
-          label={F.name.label}
-          name="name"
-          type="text"
-          required
-          maxLength={40}
-          placeholder={F.name.placeholder}
-          autoComplete="name"
-        />
-        <Field
-          label={F.email.label}
-          name="email"
-          type="email"
-          required
-          maxLength={254}
-          placeholder={F.email.placeholder}
-          autoComplete="email"
-        />
-        <Field
-          label={F.phone.label}
-          name="phone"
-          type="tel"
-          required
-          placeholder={F.phone.placeholder}
-          autoComplete="tel"
-        />
-        <Field
-          label={F.birthYear.label}
-          name="birthYear"
-          type="number"
-          required
-          min={1900}
-          placeholder={F.birthYear.placeholder}
-        />
-        <SelectField
-          label={F.sex.label}
-          name="sex"
-          required
-          options={[
-            { value: 'male', label: F.sex.options.male },
-            { value: 'female', label: F.sex.options.female },
-            { value: 'other', label: F.sex.options.other },
-          ]}
-        />
-        <SelectField
-          label={F.nationality.label}
-          name="nationality"
-          required
-          options={[
-            { value: 'KR', label: F.nationality.options.KR },
-            { value: 'US', label: F.nationality.options.US },
-            { value: 'JP', label: F.nationality.options.JP },
-            { value: 'ES', label: F.nationality.options.ES },
-            { value: 'OTHER', label: F.nationality.options.OTHER },
-          ]}
-        />
-      </Section>
-
-      <Section
         icon={<ShieldIcon className="h-5 w-5" />}
         title={S.section.credentials}
-        n="2"
+        n="1"
       >
-        <Field
-          label={F.password.label}
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
+            {F.email.label}
+            <span className="ml-1 text-rose-500" aria-hidden>*</span>
+          </span>
+          <input
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            maxLength={254}
+            placeholder={F.email.placeholder}
+            autoComplete="email"
+            inputMode="email"
+            className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
+          />
+          {emailCheck.status === 'taken' && (
+            <span className="mt-1 block text-[11px] font-medium text-rose-600 dark:text-rose-300">
+              {S.emailTaken}
+            </span>
+          )}
+          {emailCheck.status === 'available' && (
+            <span className="mt-1 block text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
+              {S.emailAvailable}
+            </span>
+          )}
+        </label>
+
+        <PasswordField
           name="password"
-          type="password"
-          required
-          maxLength={128}
+          label={F.password.label}
           placeholder={F.password.placeholder}
           autoComplete="new-password"
-        />
-        <Field
-          label={F.passwordConfirm.label}
-          name="passwordConfirm"
-          type="password"
+          value={password}
+          onChange={setPassword}
+          showLabel={S.showPassword}
+          hideLabel={S.hidePassword}
           required
           maxLength={128}
+        />
+        <PasswordField
+          name="passwordConfirm"
+          label={F.passwordConfirm.label}
           placeholder={F.passwordConfirm.placeholder}
           autoComplete="new-password"
+          value={passwordConfirm}
+          onChange={setPasswordConfirm}
+          showLabel={S.showPassword}
+          hideLabel={S.hidePassword}
+          required
+          maxLength={128}
         />
       </Section>
 
       <Section
         icon={<ShieldIcon className="h-5 w-5" />}
         title={S.section.consent}
-        n="3"
+        n="2"
       >
         <ConsentCheckbox
           name="consentMedical"
@@ -287,7 +283,7 @@ export function SignupForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-6 py-4 text-base font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-stone-900"
+          className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-stone-900 px-6 py-4 text-base font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-stone-900"
         >
           {submitting && (
             <span
@@ -301,13 +297,18 @@ export function SignupForm() {
           {S.bottomNote}
         </p>
       </div>
+
+      <p className="text-center text-[12px] text-stone-600 dark:text-stone-400">
+        {S.alreadyHaveAccount}{' '}
+        <Link
+          href="/login"
+          className="font-semibold text-brand-700 hover:underline dark:text-brand-300"
+        >
+          {S.loginCta}
+        </Link>
+      </p>
     </form>
   );
-}
-
-function numOrNaN(v: FormDataEntryValue | null): number {
-  const s = String(v ?? '').trim();
-  return s === '' ? NaN : Number(s);
 }
 
 function Section({
@@ -339,95 +340,6 @@ function Section({
       </div>
       <div className="space-y-3">{children}</div>
     </section>
-  );
-}
-
-function Field({
-  label,
-  name,
-  type = 'text',
-  required,
-  min,
-  max,
-  maxLength,
-  placeholder,
-  autoComplete,
-}: {
-  label: string;
-  name: string;
-  type?: string;
-  required?: boolean;
-  min?: number;
-  max?: number;
-  maxLength?: number;
-  placeholder?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
-        {label}
-        {required && (
-          <span className="ml-1 text-rose-500" aria-hidden>
-            *
-          </span>
-        )}
-      </span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        min={min}
-        max={max}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        inputMode={
-          type === 'number' ? 'decimal' : type === 'tel' ? 'tel' : type === 'email' ? 'email' : undefined
-        }
-        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
-      />
-    </label>
-  );
-}
-
-function SelectField({
-  label,
-  name,
-  required,
-  options,
-}: {
-  label: string;
-  name: string;
-  required?: boolean;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
-        {label}
-        {required && (
-          <span className="ml-1 text-rose-500" aria-hidden>
-            *
-          </span>
-        )}
-      </span>
-      <select
-        name={name}
-        required={required}
-        defaultValue=""
-        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:focus:bg-stone-900"
-      >
-        <option value="" disabled>
-          —
-        </option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

@@ -867,9 +867,15 @@ export const en: Dictionary = {
   },
   signup: {
     pageTitle: 'Sign up',
-    heroTitle: 'Sign up before you start',
+    heroTitle: 'Create your account',
     heroBody:
-      'Name, phone, email, and password are kept in an isolated identity store and are never shared outside this service.',
+      'Create an account with email and password. You will enter your personal details next.',
+    emailTaken: 'This email is already registered.',
+    emailAvailable: 'This email is available.',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    alreadyHaveAccount: 'Already have an account?',
+    loginCta: 'Log in',
     section: {
       identity: 'About you',
       credentials: 'Account security',
@@ -946,6 +952,22 @@ export const en: Dictionary = {
         'Include at least 3 of: uppercase, lowercase, number, symbol.',
       PASSWORD_MISMATCH: 'Passwords do not match.',
       generic: 'Server error',
+    },
+  },
+  onboarding: {
+    pageTitle: 'Personal details',
+    heroTitle: 'Please enter your personal details',
+    heroBody: 'A few details are required to use the service.',
+    submit: 'Complete and start',
+    submitting: 'Saving…',
+    error: {
+      AGE_RESTRICTED: 'You must be 19+ to use this service.',
+      PHONE_EXISTS: 'This phone number is already in use.',
+      INVALID_INPUT: 'Please review your inputs.',
+      INVALID_JSON: 'Malformed request.',
+      UNAUTHORIZED: 'Login required.',
+      INTERNAL_ERROR: 'Server error — please try again later.',
+      generic: 'Could not save.',
     },
   },
   contentPages: {

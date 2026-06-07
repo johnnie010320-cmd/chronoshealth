@@ -55,13 +55,8 @@ describe('POST /api/v1/auth/login + set-password', () => {
     );
 
   const baseSignup = {
-    name: '테스트',
     email: 'login-test@example.com',
-    phone: '010-9999-1111',
-    birthYear: 1990,
-    sex: 'male',
     password: 'StrongPass123!',
-    nationality: 'KR',
     consentMedical: true,
     consentTerms: true,
     consentPrivacy: true,
@@ -137,21 +132,21 @@ describe('POST /api/v1/auth/login + set-password', () => {
   });
 
   it('signup 400 PASSWORD_TOO_SHORT', async () => {
-    const res = await signup({ ...baseSignup, email: 'short@example.com', phone: '010-1111-0001', password: 'A1!' });
+    const res = await signup({ ...baseSignup, email: 'short@example.com', password: 'A1!' });
     expect(res.status).toBe(400);
     const data = (await res.json()) as { error: { code: string } };
     expect(data.error.code).toBe('PASSWORD_TOO_SHORT');
   });
 
   it('signup 400 PASSWORD_KOREAN_NOT_ALLOWED', async () => {
-    const res = await signup({ ...baseSignup, email: 'kor@example.com', phone: '010-1111-0002', password: '한글비밀번호1!' });
+    const res = await signup({ ...baseSignup, email: 'kor@example.com', password: '한글비밀번호1!' });
     expect(res.status).toBe(400);
     const data = (await res.json()) as { error: { code: string } };
     expect(data.error.code).toBe('PASSWORD_KOREAN_NOT_ALLOWED');
   });
 
   it('signup 400 PASSWORD_NOT_COMPLEX — 2종만', async () => {
-    const res = await signup({ ...baseSignup, email: 'simple@example.com', phone: '010-1111-0003', password: 'onlylowercase' });
+    const res = await signup({ ...baseSignup, email: 'simple@example.com', password: 'onlylowercase' });
     expect(res.status).toBe(400);
     const data = (await res.json()) as { error: { code: string } };
     expect(data.error.code).toBe('PASSWORD_NOT_COMPLEX');
@@ -197,7 +192,10 @@ describe('POST /api/v1/auth/login + set-password', () => {
   });
 
   it('set-password 409 ALREADY_SET — 이미 비밀번호 있는 사용자', async () => {
-    await signup({ ...baseSignup, email: 'already@example.com', phone: '010-9999-9999' });
+    await signup({ ...baseSignup, email: 'already@example.com' });
+    // ADR 0013 후 signup은 phone 없음 → 본인정보 PUT 으로 phone 채우기
+    const meRow = identityMock.state.users.find((u) => u.email === 'already@example.com');
+    if (meRow) meRow.phone = '010-9999-9999';
     const res = await setPassword('already@example.com', 'NewPass456@', '010-9999-9999');
     expect(res.status).toBe(409);
   });

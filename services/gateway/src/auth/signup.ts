@@ -21,9 +21,9 @@ export class SignupError extends Error {
   }
 }
 
-// spec docs/spec/identity.md 4 / ADR 0010 + 0012 정합.
-// 회원가입 1회 = users 1 row + session_tokens 1 row + consent_log 3 row.
-// D1은 단일 batch로 원자성 보장 (모두 성공하거나 모두 실패).
+// ADR 0013 — Step 1 회원가입.
+// 입력: email + password + 약관 3종 동의. 본인정보 (이름·전화·생년·성별·국적)는 Step 2.
+// users row 생성 시 본인정보 필드 NULL.
 export async function signupUser(
   db: D1Database,
   input: SignupRequest,
@@ -37,10 +37,10 @@ export async function signupUser(
     throw new SignupError(policy.reason ?? 'PASSWORD_NOT_COMPLEX');
   }
 
-  // 중복 확인 — email OR phone 일치 시 IDENTITY_EXISTS.
+  // 중복 확인 — email 일치 시 IDENTITY_EXISTS.
   const existing = await db
-    .prepare('SELECT 1 FROM users WHERE email = ? OR phone = ? LIMIT 1')
-    .bind(input.email, input.phone)
+    .prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1')
+    .bind(input.email)
     .first<{ '1': number } | null>();
 
   if (existing) {
@@ -57,19 +57,14 @@ export async function signupUser(
     db
       .prepare(
         `INSERT INTO users (
-          user_pseudonym_id, name, email, phone, birth_year, sex,
-          nationality, password_hash, password_salt, password_algo,
+          user_pseudonym_id, email,
+          password_hash, password_salt, password_algo,
           consent_terms_version, consent_privacy_version, consent_recorded_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         userPseudonymId,
-        input.name,
         input.email,
-        input.phone,
-        input.birthYear,
-        input.sex,
-        input.nationality,
         hashed.hash,
         hashed.salt,
         hashed.algo,
@@ -106,7 +101,6 @@ export async function signupUser(
   try {
     await db.batch(stmts);
   } catch (err) {
-    // D1 UNIQUE 위반은 batch 단계 에러로 표면화. race 조건에서만 발생.
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('UNIQUE') || msg.includes('constraint')) {
       throw new SignupError('IDENTITY_EXISTS');

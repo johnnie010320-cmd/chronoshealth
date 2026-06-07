@@ -1,32 +1,24 @@
 import { z } from 'zod';
 
-// services/gateway/src/schemas/signup.ts와 동기. P1 후반 packages/types로 이동 예정.
+// services/gateway/src/schemas/signup.ts와 동기. ADR 0013 — 2단계 가입.
 
 const PHONE_REGEX = /^(\+\d{7,17}|0\d{1,2}-\d{3,4}-\d{4})$/;
 
 export const Nationality = z.enum(['KR', 'US', 'JP', 'ES', 'OTHER']);
 export type Nationality = z.infer<typeof Nationality>;
 
+// Step 1 — 계정 생성
 export const SignupRequest = z
   .object({
-    name: z.string().trim().min(1).max(40),
     email: z.string().email().max(254),
-    phone: z.string().regex(PHONE_REGEX),
-    birthYear: z.number().int().min(1900),
-    sex: z.enum(['male', 'female', 'other']),
     password: z.string().min(1).max(128),
-    nationality: Nationality,
     consentMedical: z.boolean(),
     consentTerms: z.boolean(),
     consentPrivacy: z.boolean(),
     consentTermsVersion: z.string().min(1).max(20),
     consentPrivacyVersion: z.string().min(1).max(20),
   })
-  .refine(
-    (v) => new Date().getFullYear() - v.birthYear >= 19,
-    { path: ['birthYear'], message: 'AGE_RESTRICTED' },
-  );
-
+  .strict();
 export type SignupRequest = z.infer<typeof SignupRequest>;
 
 export type SignupResponse = {
@@ -35,7 +27,25 @@ export type SignupResponse = {
   expiresAt: string;
 };
 
-// 클라이언트 측 비밀번호 정책 검증 (BE와 동일)
+// Step 2 — 본인정보 입력
+export const ProfileUpdateRequest = z
+  .object({
+    name: z.string().trim().min(1).max(40),
+    phone: z.string().regex(PHONE_REGEX),
+    birthYear: z
+      .number()
+      .int()
+      .min(1900)
+      .refine((y) => new Date().getFullYear() - y >= 19, {
+        message: 'AGE_RESTRICTED',
+      }),
+    sex: z.enum(['male', 'female', 'other']),
+    nationality: Nationality,
+  })
+  .strict();
+export type ProfileUpdateRequest = z.infer<typeof ProfileUpdateRequest>;
+
+// 클라이언트 측 비밀번호 정책 검증
 export type PasswordPolicyError =
   | 'PASSWORD_TOO_SHORT'
   | 'PASSWORD_TOO_LONG'

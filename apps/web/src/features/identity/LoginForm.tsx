@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 import { AlertIcon } from '@/components/HealthIcons';
 import { KakaoLogo, GoogleLogo, AppleLogo } from '@/components/SocialIcons';
+import { PasswordField } from '@/components/PasswordField';
+import { fetchMeProfile } from '@/lib/api-client';
 import {
   submitLogin,
   submitSetPassword,
@@ -18,6 +20,7 @@ import { validatePasswordPolicy } from '@/lib/signup-schema';
 export function LoginForm() {
   const { t } = useI18n();
   const L = t.login;
+  const S = t.signup;
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -37,7 +40,13 @@ export function LoginForm() {
     try {
       const res = await submitLogin({ email: email.trim(), password });
       writeSession(res);
-      router.push('/');
+      // 본인정보 완료 여부 확인 — 미완료 시 /onboarding 이동
+      try {
+        const me = await fetchMeProfile(false);
+        router.push(me.profile.isProfileComplete ? '/' : '/onboarding');
+      } catch {
+        router.push('/');
+      }
     } catch (err) {
       const code = err instanceof Error ? err.message : 'generic';
       if (code === 'PASSWORD_REQUIRED') {
@@ -108,14 +117,15 @@ export function LoginForm() {
             value={email}
             onChange={setEmail}
           />
-          <FieldText
+          <PasswordField
             label={L.email.passwordLabel}
-            type="password"
             name="password"
             placeholder={L.email.passwordPlaceholder}
             autoComplete="current-password"
             value={password}
             onChange={setPassword}
+            showLabel={S.showPassword}
+            hideLabel={S.hidePassword}
           />
           <button
             type="submit"
@@ -242,14 +252,15 @@ function SetPasswordForm({
           value={phone}
           onChange={setPhone}
         />
-        <FieldText
+        <PasswordField
           label={L.setPasswordNewLabel}
-          type="password"
           name="newPassword"
           placeholder="••••••••"
           autoComplete="new-password"
           value={newPassword}
           onChange={setNewPassword}
+          showLabel={t.signup.showPassword}
+          hideLabel={t.signup.hidePassword}
         />
         <div className="flex gap-2 pt-1">
           <button

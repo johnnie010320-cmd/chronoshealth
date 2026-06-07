@@ -1,17 +1,21 @@
 // 본인이 자기 PII 조회 — ADR 0003 정합 (자신의 PII 열람은 가능, 타인 PII는 admin만).
+// ADR 0013 — 본인정보 (name/phone/birth_year/sex/nationality) NULL 허용.
+
+import type { ProfileUpdateRequest } from '../schemas/signup.js';
 
 export type MeProfile = {
   userPseudonymId: string;
-  name: string;
+  name: string | null;
   email: string;
-  phone: string;
-  birthYear: number;
-  sex: 'male' | 'female' | 'other';
+  phone: string | null;
+  birthYear: number | null;
+  sex: 'male' | 'female' | 'other' | null;
   nationality: string | null;
   createdAt: string;
   consentTermsVersion: string | null;
   consentPrivacyVersion: string | null;
   consentRecordedAt: string | null;
+  isProfileComplete: boolean;
 };
 
 export async function readMeProfile(
@@ -28,11 +32,11 @@ export async function readMeProfile(
     .bind(userPseudonymId)
     .first<{
       user_pseudonym_id: string;
-      name: string;
+      name: string | null;
       email: string;
-      phone: string;
-      birth_year: number;
-      sex: string;
+      phone: string | null;
+      birth_year: number | null;
+      sex: string | null;
       nationality: string | null;
       created_at: string;
       consent_terms_version: string | null;
@@ -43,7 +47,13 @@ export async function readMeProfile(
   if (!row) return null;
 
   const sex: MeProfile['sex'] =
-    row.sex === 'male' || row.sex === 'female' ? row.sex : 'other';
+    row.sex === 'male' || row.sex === 'female' || row.sex === 'other'
+      ? row.sex
+      : null;
+
+  const isProfileComplete = Boolean(
+    row.name && row.phone && row.birth_year && sex && row.nationality,
+  );
 
   return {
     userPseudonymId: row.user_pseudonym_id,
@@ -57,7 +67,68 @@ export async function readMeProfile(
     consentTermsVersion: row.consent_terms_version,
     consentPrivacyVersion: row.consent_privacy_version,
     consentRecordedAt: row.consent_recorded_at,
+    isProfileComplete,
   };
+}
+
+// ADR 0013 — Step 2 본인정보 입력.
+// 전화번호 UNIQUE 충돌 시 PHONE_EXISTS.
+export class ProfileUpdateError extends Error {
+  constructor(public code: 'PHONE_EXISTS' | 'DB_ERROR') {
+    super(code);
+  }
+}
+
+export async function updateMeProfile(
+  identityDb: D1Database,
+  userPseudonymId: string,
+  input: ProfileUpdateRequest,
+): Promise<void> {
+  // 전화번호 중복 확인 — 본인 row 제외.
+  const dup = await identityDb
+    .prepare(
+      'SELECT 1 FROM users WHERE phone = ? AND user_pseudonym_id != ? LIMIT 1',
+    )
+    .bind(input.phone, userPseudonymId)
+    .first<{ '1': number } | null>();
+  if (dup) {
+    throw new ProfileUpdateError('PHONE_EXISTS');
+  }
+
+  try {
+    await identityDb
+      .prepare(
+        `UPDATE users SET
+           name = ?, phone = ?, birth_year = ?, sex = ?, nationality = ?
+         WHERE user_pseudonym_id = ?`,
+      )
+      .bind(
+        input.name,
+        input.phone,
+        input.birthYear,
+        input.sex,
+        input.nationality,
+        userPseudonymId,
+      )
+      .run();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('UNIQUE') || msg.includes('constraint')) {
+      throw new ProfileUpdateError('PHONE_EXISTS');
+    }
+    throw new ProfileUpdateError('DB_ERROR');
+  }
+}
+
+export async function existsEmail(
+  identityDb: D1Database,
+  email: string,
+): Promise<boolean> {
+  const row = await identityDb
+    .prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1')
+    .bind(email.toLowerCase())
+    .first<{ '1': number }>();
+  return row !== null;
 }
 
 export function maskEmail(email: string): string {

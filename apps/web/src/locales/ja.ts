@@ -863,9 +863,15 @@ export const ja: Dictionary = {
   },
   signup: {
     pageTitle: '会員登録',
-    heroTitle: 'はじめる前にご登録ください',
+    heroTitle: 'アカウントを作成',
     heroBody:
-      '氏名・電話番号・メール・パスワードは本サービスの隔離保管庫に保存され、外部に共有されません。',
+      'メールとパスワードでアカウントを作成後、本人情報を入力します。',
+    emailTaken: 'すでに登録されているメールです。',
+    emailAvailable: '利用可能なメールです。',
+    showPassword: 'パスワードを表示',
+    hidePassword: 'パスワードを隠す',
+    alreadyHaveAccount: 'アカウントをお持ちですか?',
+    loginCta: 'ログイン',
     section: {
       identity: 'ご本人の情報',
       credentials: 'アカウントセキュリティ',
@@ -942,6 +948,22 @@ export const ja: Dictionary = {
         '英大文字・小文字・数字・記号のうち3種類以上を含めてください。',
       PASSWORD_MISMATCH: 'パスワードが一致しません。',
       generic: 'サーバーエラー',
+    },
+  },
+  onboarding: {
+    pageTitle: '本人情報入力',
+    heroTitle: '本人情報をご入力ください',
+    heroBody: 'サービス利用のために本人情報が必要です。',
+    submit: '完了して開始',
+    submitting: '保存中…',
+    error: {
+      AGE_RESTRICTED: '満19歳未満は利用できません。',
+      PHONE_EXISTS: '既に使用中の電話番号です。',
+      INVALID_INPUT: '入力値を再確認してください。',
+      INVALID_JSON: 'リクエスト形式が正しくありません。',
+      UNAUTHORIZED: 'ログインが必要です。',
+      INTERNAL_ERROR: 'サーバーエラー。しばらく後で再試行してください。',
+      generic: '保存できませんでした。',
     },
   },
   contentPages: {

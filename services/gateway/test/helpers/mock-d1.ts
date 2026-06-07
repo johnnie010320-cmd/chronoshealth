@@ -3,11 +3,11 @@
 
 type UserRow = {
   user_pseudonym_id: string;
-  name: string;
+  name: string | null;
   email: string;
-  phone: string;
-  birth_year: number;
-  sex: 'male' | 'female' | 'other';
+  phone: string | null;
+  birth_year: number | null;
+  sex: 'male' | 'female' | 'other' | null;
   created_at?: string;
   nationality?: string | null;
   password_hash?: string | null;
@@ -77,26 +77,34 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     const trimmed = sql.trim();
 
     if (trimmed.startsWith('INSERT INTO users')) {
-      // ADR 0012 — 신규 가입은 13 컬럼 (legacy fixture는 6 컬럼 직접 push 사용).
+      // ADR 0013 — Step 1 가입은 8 컬럼 (email + password 3 + consent 3 + pseudonym).
       const [
-        user_pseudonym_id, name, email, phone, birth_year, sex,
-        nationality,
+        user_pseudonym_id, email,
         password_hash, password_salt, password_algo,
         consent_terms_version, consent_privacy_version, consent_recorded_at,
       ] = args as [
-        string, string, string, string, number, UserRow['sex'],
-        string | null,
+        string, string,
         string | null, string | null, string | null,
         string | null, string | null, string | null,
       ];
-      if (state.users.some((u) => u.email === email || u.phone === phone)) {
-        throw new Error('UNIQUE constraint failed: users.email or users.phone');
+      if (state.users.some((u) => u.email === email)) {
+        throw new Error('UNIQUE constraint failed: users.email');
       }
       state.users.push({
-        user_pseudonym_id, name, email, phone, birth_year, sex,
+        user_pseudonym_id,
+        name: null,
+        email,
+        phone: null,
+        birth_year: null,
+        sex: null,
         created_at: new Date().toISOString(),
-        nationality, password_hash, password_salt, password_algo,
-        consent_terms_version, consent_privacy_version, consent_recorded_at,
+        nationality: null,
+        password_hash,
+        password_salt,
+        password_algo,
+        consent_terms_version,
+        consent_privacy_version,
+        consent_recorded_at,
       });
       return { success: true };
     }
@@ -110,6 +118,25 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         user.password_hash = password_hash;
         user.password_salt = password_salt;
         user.password_algo = password_algo;
+      }
+      return { success: true };
+    }
+
+    if (trimmed.startsWith('UPDATE users SET') && trimmed.includes('name = ?, phone = ?')) {
+      const [name, phone, birth_year, sex, nationality, user_pseudonym_id] = args as [
+        string, string, number, UserRow['sex'], string, string,
+      ];
+      // 전화 UNIQUE 확인
+      if (state.users.some((u) => u.user_pseudonym_id !== user_pseudonym_id && u.phone === phone)) {
+        throw new Error('UNIQUE constraint failed: users.phone');
+      }
+      const user = state.users.find((u) => u.user_pseudonym_id === user_pseudonym_id);
+      if (user) {
+        user.name = name;
+        user.phone = phone;
+        user.birth_year = birth_year;
+        user.sex = sex;
+        user.nationality = nationality;
       }
       return { success: true };
     }
@@ -179,6 +206,23 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     if (trimmed.includes('FROM users WHERE email = ? OR phone = ?')) {
       const [email, phone] = args as [string, string];
       const hit = state.users.find((u) => u.email === email || u.phone === phone);
+      return hit ? { '1': 1 } : null;
+    }
+
+    if (trimmed.includes('FROM users WHERE phone = ? AND user_pseudonym_id != ?')) {
+      const [phone, pseudo] = args as [string, string];
+      const hit = state.users.find(
+        (u) => u.phone === phone && u.user_pseudonym_id !== pseudo,
+      );
+      return hit ? { '1': 1 } : null;
+    }
+
+    if (
+      trimmed.startsWith('SELECT 1 FROM users WHERE email = ?') &&
+      !trimmed.includes('OR phone')
+    ) {
+      const [email] = args as [string];
+      const hit = state.users.find((u) => u.email === email);
       return hit ? { '1': 1 } : null;
     }
 

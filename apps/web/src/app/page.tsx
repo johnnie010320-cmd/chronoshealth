@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { PulseBackground } from '@/components/PulseBackground';
@@ -14,7 +15,7 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { useIsAdmin } from '@/lib/admin-state';
-import { fetchAvatarMe, type AvatarResponse } from '@/lib/api-client';
+import { fetchAvatarMe, fetchMeProfile, type AvatarResponse } from '@/lib/api-client';
 
 type AgePair = { years: number; months: number };
 
@@ -30,6 +31,7 @@ export default function HomePage() {
   const { t } = useI18n();
   const H = t.home;
   const A = t.admin;
+  const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
   const [avatar, setAvatar] = useState<AvatarResponse | null>(null);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
@@ -42,13 +44,23 @@ export default function HomePage() {
       return;
     }
     setSignedIn(true);
+    // ADR 0013 — 본인정보 미완료 시 /onboarding 강제 이동
+    fetchMeProfile(false)
+      .then((data) => {
+        if (!data.profile.isProfileComplete) {
+          router.replace('/onboarding');
+        }
+      })
+      .catch(() => {
+        /* me 조회 실패는 무시 (게이트 우회) */
+      });
     fetchAvatarMe()
       .then((data) => setAvatar(data))
       .catch((e) => {
         const code = e instanceof Error ? e.message : 'generic';
         setAvatarErr(code);
       });
-  }, []);
+  }, [router]);
 
   const bioAge = avatar ? splitYearMonths(avatar.fiveAges.life) : null;
   const youthAge = avatar ? splitYearMonths(avatar.fiveAges.vitality) : null;
@@ -80,14 +92,14 @@ export default function HomePage() {
 
       <Link
         href={ctaHref}
-        className="card-shadow mt-3 flex items-center justify-between rounded-2xl bg-white px-5 py-4 transition active:scale-[0.99] dark:bg-stone-900"
+        className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white px-5 py-4 transition active:scale-[0.99] dark:bg-stone-900"
       >
-        <span className="text-sm font-medium text-stone-800 dark:text-stone-100">
+        <span className="min-w-0 flex-1 text-[13px] font-medium text-stone-800 dark:text-stone-100">
           {promptText}
         </span>
-        <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-brand-700 dark:text-brand-300">
+        <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-brand-700 dark:text-brand-300">
           {ctaLabel}
-          <ChevronRightIcon className="h-4 w-4" />
+          <ChevronRightIcon className="h-3.5 w-3.5" />
         </span>
       </Link>
 

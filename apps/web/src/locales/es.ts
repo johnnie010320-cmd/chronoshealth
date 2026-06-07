@@ -870,9 +870,15 @@ export const es: Dictionary = {
   },
   signup: {
     pageTitle: 'Registro',
-    heroTitle: 'Regístrate antes de empezar',
+    heroTitle: 'Crea tu cuenta',
     heroBody:
-      'Nombre, teléfono, correo y contraseña se guardan en un almacén aislado y nunca se comparten fuera del servicio.',
+      'Crea una cuenta con email y contraseña. A continuación introducirás tus datos personales.',
+    emailTaken: 'Este email ya está registrado.',
+    emailAvailable: 'Email disponible.',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
+    alreadyHaveAccount: '¿Ya tienes cuenta?',
+    loginCta: 'Iniciar sesión',
     section: {
       identity: 'Sobre ti',
       credentials: 'Seguridad de la cuenta',
@@ -949,6 +955,22 @@ export const es: Dictionary = {
         'Incluye al menos 3 de: mayúscula, minúscula, número, símbolo.',
       PASSWORD_MISMATCH: 'Las contraseñas no coinciden.',
       generic: 'Error del servidor',
+    },
+  },
+  onboarding: {
+    pageTitle: 'Datos personales',
+    heroTitle: 'Introduce tus datos personales',
+    heroBody: 'Necesitamos algunos datos para usar el servicio.',
+    submit: 'Completar y empezar',
+    submitting: 'Guardando…',
+    error: {
+      AGE_RESTRICTED: 'Debes tener 19+ para usar este servicio.',
+      PHONE_EXISTS: 'Este teléfono ya está en uso.',
+      INVALID_INPUT: 'Revisa tus datos.',
+      INVALID_JSON: 'Solicitud mal formada.',
+      UNAUTHORIZED: 'Inicia sesión.',
+      INTERNAL_ERROR: 'Error del servidor — inténtalo más tarde.',
+      generic: 'No se pudo guardar.',
     },
   },
   contentPages: {

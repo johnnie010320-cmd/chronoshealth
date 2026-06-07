@@ -273,19 +273,20 @@ export type LeaderboardResponse = {
   disclaimer: string;
 };
 
-// 본인 PII 조회 (마스킹 / reveal)
+// 본인 PII 조회 (마스킹 / reveal) — ADR 0013: 본인정보 NULL 허용
 export type MeProfile = {
   userPseudonymId: string;
-  name: string;
+  name: string | null;
   email: string;
-  phone: string;
-  birthYear: number;
-  sex: 'male' | 'female' | 'other';
+  phone: string | null;
+  birthYear: number | null;
+  sex: 'male' | 'female' | 'other' | null;
   nationality: string | null;
   createdAt: string;
   consentTermsVersion: string | null;
   consentPrivacyVersion: string | null;
   consentRecordedAt: string | null;
+  isProfileComplete: boolean;
   revealed: boolean;
 };
 
@@ -298,6 +299,45 @@ export async function fetchMeProfile(reveal: boolean): Promise<{ profile: MeProf
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as { profile: MeProfile };
+}
+
+// ADR 0013 — Step 2 본인정보 입력/갱신
+export type ProfileUpdateBody = {
+  name: string;
+  phone: string;
+  birthYear: number;
+  sex: 'male' | 'female' | 'other';
+  nationality: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER';
+};
+
+export async function submitProfileUpdate(
+  body: ProfileUpdateBody,
+): Promise<{ profile: MeProfile }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { profile: MeProfile };
+}
+
+// 회원가입 폼 — 이메일 중복 확인
+export async function checkEmailAvailable(email: string): Promise<boolean> {
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/auth/check-email?email=${encodeURIComponent(email)}`,
+  );
+  if (!res.ok) {
+    // 400/429 모두 false 처리 — 안전하게 진행 차단 안 함
+    return true;
+  }
+  const data = (await res.json()) as { available: boolean };
+  return data.available;
 }
 
 // R-Admin-1

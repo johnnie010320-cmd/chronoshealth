@@ -4,13 +4,8 @@ import { makeMockIdentityDb, makeMockAnalysisDb } from './helpers/mock-d1.js';
 import { __clearIpRateLimit } from '../src/middleware/ip-rate-limit.js';
 
 type SignupBody = {
-  name: string;
   email: string;
-  phone: string;
-  birthYear: number;
-  sex: 'male' | 'female' | 'other';
   password: string;
-  nationality: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER';
   consentMedical: boolean;
   consentTerms: boolean;
   consentPrivacy: boolean;
@@ -18,14 +13,10 @@ type SignupBody = {
   consentPrivacyVersion: string;
 };
 
+// ADR 0013 — Step 1 가입 페이로드 (이메일 + 비밀번호 + 동의 3종만).
 const validBody = (): SignupBody => ({
-  name: '홍길동',
   email: 'gildong@example.com',
-  phone: '010-1234-5678',
-  birthYear: 1990,
-  sex: 'male',
   password: 'StrongPass123!',
-  nationality: 'KR',
   consentMedical: true,
   consentTerms: true,
   consentPrivacy: true,
@@ -80,25 +71,14 @@ describe('POST /api/v1/auth/signup', () => {
       expect(kinds).toEqual(['medical', 'research', 'terms']);
     });
 
-    it('응답에 PII(name/email/phone/birthYear) 노출 없음', async () => {
+    it('응답에 평문 비밀번호 노출 없음', async () => {
       const res = await post(validBody());
       const text = await res.text();
-      expect(text).not.toMatch(/홍길동|gildong@example\.com|010-1234-5678|1990/);
+      expect(text).not.toContain('StrongPass123!');
     });
   });
 
-  describe('연령 / 동의 검증', () => {
-    it('17세 → 403 AGE_RESTRICTED', async () => {
-      const young = {
-        ...validBody(),
-        birthYear: new Date().getFullYear() - 17,
-      };
-      const res = await post(young);
-      expect(res.status).toBe(403);
-      const data = (await res.json()) as { error: { code: string } };
-      expect(data.error.code).toBe('AGE_RESTRICTED');
-    });
-
+  describe('동의 검증', () => {
     it('consentMedical false → 403 CONSENT_REQUIRED', async () => {
       const res = await post({ ...validBody(), consentMedical: false });
       expect(res.status).toBe(403);
@@ -112,6 +92,13 @@ describe('POST /api/v1/auth/signup', () => {
       const data = (await res.json()) as { error: { code: string } };
       expect(data.error.code).toBe('CONSENT_REQUIRED');
     });
+
+    it('consentPrivacy false → 403 CONSENT_REQUIRED', async () => {
+      const res = await post({ ...validBody(), consentPrivacy: false });
+      expect(res.status).toBe(403);
+      const data = (await res.json()) as { error: { code: string } };
+      expect(data.error.code).toBe('CONSENT_REQUIRED');
+    });
   });
 
   describe('형식 검증', () => {
@@ -120,51 +107,19 @@ describe('POST /api/v1/auth/signup', () => {
       expect(res.status).toBe(400);
     });
 
-    it('잘못된 phone → 400', async () => {
-      const res = await post({ ...validBody(), phone: '0101234' });
-      expect(res.status).toBe(400);
-    });
-
-    it('이름 41자 → 400', async () => {
-      const res = await post({ ...validBody(), name: 'a'.repeat(41) });
-      expect(res.status).toBe(400);
-    });
-
-    it('이름 공백만 → 400', async () => {
-      const res = await post({ ...validBody(), name: '   ' });
-      expect(res.status).toBe(400);
-    });
-
     it('INVALID_JSON → 400', async () => {
       const res = await post('not-json');
       expect(res.status).toBe(400);
-    });
-
-    it('국제 E.164 phone(+821012345678) → 201', async () => {
-      const res = await post({ ...validBody(), phone: '+821012345678' });
-      expect(res.status).toBe(201);
     });
   });
 
   describe('중복 처리', () => {
     it('동일 email 재가입 → 409 IDENTITY_EXISTS', async () => {
       await post(validBody());
-      const res = await post({
-        ...validBody(),
-        phone: '010-9999-8888',
-      });
+      const res = await post(validBody());
       expect(res.status).toBe(409);
       const data = (await res.json()) as { error: { code: string } };
       expect(data.error.code).toBe('IDENTITY_EXISTS');
-    });
-
-    it('동일 phone 재가입 → 409 IDENTITY_EXISTS', async () => {
-      await post(validBody());
-      const res = await post({
-        ...validBody(),
-        email: 'other@example.com',
-      });
-      expect(res.status).toBe(409);
     });
 
     it('중복 거부 시 DB 부수효과 0 (롤백)', async () => {
@@ -172,10 +127,7 @@ describe('POST /api/v1/auth/signup', () => {
       const beforeUsers = mock.state.users.length;
       const beforeTokens = mock.state.tokens.length;
       const beforeConsents = mock.state.consents.length;
-      const res = await post({
-        ...validBody(),
-        phone: '010-9999-8888',
-      });
+      const res = await post(validBody());
       expect(res.status).toBe(409);
       expect(mock.state.users).toHaveLength(beforeUsers);
       expect(mock.state.tokens).toHaveLength(beforeTokens);
@@ -188,7 +140,7 @@ describe('POST /api/v1/auth/signup', () => {
       const headers = { 'CF-Connecting-IP': '203.0.113.7' };
       for (let i = 0; i < 10; i++) {
         const r = await post(
-          { ...validBody(), email: `user${i}@example.com`, phone: `010-1000-${1000 + i}` },
+          { ...validBody(), email: `user${i}@example.com` },
           headers,
         );
         expect([201, 409]).toContain(r.status);

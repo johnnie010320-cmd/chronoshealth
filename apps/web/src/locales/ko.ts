@@ -811,7 +811,13 @@ export const ko = {
     pageTitle: '회원가입',
     heroTitle: '시작하기 전에 가입해주세요',
     heroBody:
-      '이름·전화·이메일·비밀번호는 본 서비스 외부로 공유되지 않으며 별도 격리 저장소에 보관됩니다.',
+      '이메일과 비밀번호로 계정을 만든 후, 본인 정보를 입력합니다.',
+    emailTaken: '이미 가입된 이메일입니다.',
+    emailAvailable: '사용 가능한 이메일입니다.',
+    showPassword: '비밀번호 보이기',
+    hidePassword: '비밀번호 숨기기',
+    alreadyHaveAccount: '이미 계정이 있으신가요?',
+    loginCta: '로그인',
     section: {
       identity: '본인 정보',
       credentials: '계정 보안',
@@ -889,6 +895,22 @@ export const ko = {
         '영문 대/소문자·숫자·특수문자 중 3종 이상을 포함해 주세요.',
       PASSWORD_MISMATCH: '비밀번호가 일치하지 않습니다.',
       generic: '서버 오류',
+    },
+  },
+  onboarding: {
+    pageTitle: '본인 정보 입력',
+    heroTitle: '본인 정보를 입력해 주세요',
+    heroBody: '서비스 이용을 위해 본인 정보가 필요합니다.',
+    submit: '완료하고 시작',
+    submitting: '저장 중…',
+    error: {
+      AGE_RESTRICTED: '만 19세 미만은 이용할 수 없습니다.',
+      PHONE_EXISTS: '이미 사용 중인 전화번호입니다.',
+      INVALID_INPUT: '입력값을 다시 확인해 주세요.',
+      INVALID_JSON: '요청 형식이 올바르지 않습니다.',
+      UNAUTHORIZED: '로그인이 필요합니다.',
+      INTERNAL_ERROR: '서버 오류 — 잠시 후 다시 시도해 주세요.',
+      generic: '저장에 실패했습니다.',
     },
   },
   contentPages: {

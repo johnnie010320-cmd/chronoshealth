@@ -108,4 +108,147 @@ describe('GET /api/v1/me', () => {
     expect(text).not.toContain('gildong@example.com');
     expect(text).not.toContain('010-1234-5678');
   });
+
+  it('isProfileComplete=true — 모든 필드 채워짐', async () => {
+    const tok = seedUser();
+    const res = await getMe(tok.token);
+    const data = (await res.json()) as { profile: { isProfileComplete: boolean } };
+    expect(data.profile.isProfileComplete).toBe(true);
+  });
+
+  it('isProfileComplete=false — 본인정보 NULL', async () => {
+    const tok = issueTestToken(identityMock.state);
+    identityMock.state.users.push({
+      user_pseudonym_id: tok.pseudonym,
+      name: null,
+      email: 'partial@example.com',
+      phone: null,
+      birth_year: null,
+      sex: null,
+      created_at: new Date().toISOString(),
+      nationality: null,
+    });
+    const res = await getMe(tok.token);
+    const data = (await res.json()) as { profile: { isProfileComplete: boolean } };
+    expect(data.profile.isProfileComplete).toBe(false);
+  });
+});
+
+describe('PUT /api/v1/me/profile', () => {
+  let identityMock: ReturnType<typeof makeMockIdentityDb>;
+
+  beforeEach(() => {
+    identityMock = makeMockIdentityDb();
+    __clearRateLimit();
+  });
+
+  const env = () => ({
+    IDENTITY_DB: identityMock.db,
+    DB: makeMockAnalysisDb().db,
+    BETA_SIGNUP_HMAC_SALT: 'test',
+    ENVIRONMENT: 'dev' as const,
+  });
+
+  const putProfile = (token: string, body: unknown) =>
+    app.request(
+      '/api/v1/me/profile',
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      env(),
+    );
+
+  function seedEmptyUser() {
+    const tok = issueTestToken(identityMock.state);
+    identityMock.state.users.push({
+      user_pseudonym_id: tok.pseudonym,
+      name: null,
+      email: 'empty@example.com',
+      phone: null,
+      birth_year: null,
+      sex: null,
+      created_at: new Date().toISOString(),
+      nationality: null,
+    });
+    return tok;
+  }
+
+  it('200 — 본인정보 입력 후 isProfileComplete=true', async () => {
+    const tok = seedEmptyUser();
+    const res = await putProfile(tok.token, {
+      name: '신규유저',
+      phone: '010-2222-3333',
+      birthYear: 1985,
+      sex: 'female',
+      nationality: 'KR',
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      profile: { isProfileComplete: boolean; nationality: string | null };
+    };
+    expect(data.profile.isProfileComplete).toBe(true);
+    expect(data.profile.nationality).toBe('KR');
+  });
+
+  it('403 AGE_RESTRICTED — 만 19세 미만', async () => {
+    const tok = seedEmptyUser();
+    const res = await putProfile(tok.token, {
+      name: '청소년',
+      phone: '010-2222-3334',
+      birthYear: new Date().getFullYear() - 17,
+      sex: 'male',
+      nationality: 'KR',
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('409 PHONE_EXISTS — 다른 사용자가 같은 전화', async () => {
+    const tok1 = seedEmptyUser();
+    await putProfile(tok1.token, {
+      name: '첫사용자',
+      phone: '010-2222-3333',
+      birthYear: 1985,
+      sex: 'female',
+      nationality: 'KR',
+    });
+    // 두 번째 사용자
+    const tok2 = issueTestToken(identityMock.state);
+    identityMock.state.users.push({
+      user_pseudonym_id: tok2.pseudonym,
+      name: null,
+      email: 'second@example.com',
+      phone: null,
+      birth_year: null,
+      sex: null,
+      created_at: new Date().toISOString(),
+      nationality: null,
+    });
+    const res = await putProfile(tok2.token, {
+      name: '둘째사용자',
+      phone: '010-2222-3333',
+      birthYear: 1990,
+      sex: 'male',
+      nationality: 'JP',
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('401 UNAUTHORIZED', async () => {
+    const res = await app.request('/api/v1/me/profile', { method: 'PUT' }, env());
+    expect(res.status).toBe(401);
+  });
+
+  it('400 INVALID_INPUT — 잘못된 phone', async () => {
+    const tok = seedEmptyUser();
+    const res = await putProfile(tok.token, {
+      name: '테스트',
+      phone: 'invalid-phone',
+      birthYear: 1985,
+      sex: 'male',
+      nationality: 'KR',
+    });
+    expect(res.status).toBe(400);
+  });
 });

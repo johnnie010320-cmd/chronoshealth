@@ -186,3 +186,23 @@ export function ClockIcon({ className, strokeWidth }: IconProps) {
     </svg>
   );
 }
+
+export function EyeIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-10-7-10-7a17.7 17.7 0 0 1 3.06-4.48m3.34-2.34A10.07 10.07 0 0 1 12 5c7 0 10 7 10 7a17.6 17.6 0 0 1-2.18 3.18" />
+      <path d="M9.9 4.24A9 9 0 0 1 12 4c7 0 10 8 10 8a18 18 0 0 1-2.16 3.19" />
+      <path d="M9.9 9.9a3 3 0 1 0 4.2 4.2" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}

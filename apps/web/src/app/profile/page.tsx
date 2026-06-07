@@ -145,13 +145,20 @@ export default function ProfilePage() {
         {state.status === 'ok' && (
           <>
             <dl className="space-y-3 text-sm">
-              <Row label={P.nameLabel} value={state.me.name} />
+              <Row label={P.nameLabel} value={state.me.name ?? '—'} />
               <Row label={P.emailLabel} value={state.me.email} mono />
-              <Row label={P.phoneLabel} value={state.me.phone} mono />
-              <Row label={P.birthYearLabel} value={`${state.me.birthYear}`} />
+              <Row label={P.phoneLabel} value={state.me.phone ?? '—'} mono />
+              <Row
+                label={P.birthYearLabel}
+                value={state.me.birthYear == null ? '—' : `${state.me.birthYear}`}
+              />
               <Row
                 label={P.sexLabel}
-                value={P.sexValues[state.me.sex] ?? state.me.sex}
+                value={
+                  state.me.sex == null
+                    ? '—'
+                    : (P.sexValues[state.me.sex] ?? state.me.sex)
+                }
               />
               {state.me.nationality && (
                 <Row
