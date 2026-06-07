@@ -742,6 +742,23 @@ export const es: Dictionary = {
     errorGeneric: 'No se pudo cargar tu perfil.',
     logoutConfirm:
       'Al cerrar sesión se eliminará la sesión en este dispositivo. Para volver, inicia sesión con email y contraseña.',
+    avatar: {
+      sectionTitle: 'Foto de perfil',
+      hint: 'Foto de identificación (256x256). JPG · PNG · WEBP, recorte cuadrado automático.',
+      altMine: 'Mi foto de perfil',
+      uploadCta: 'Subir',
+      changeCta: 'Cambiar',
+      removeCta: 'Eliminar',
+      uploading: 'Subiendo…',
+      confirmDelete: '¿Eliminar tu foto de perfil?',
+      errCodes: {
+        PAYLOAD_TOO_LARGE: 'La imagen es demasiado grande (menos de 256KB).',
+        INVALID_MIME: 'Formatos: JPG · PNG · WEBP.',
+        INVALID_DATA: 'No se pudo procesar la imagen.',
+        UNAUTHORIZED: 'Inicia sesión.',
+        generic: 'No se pudo guardar.',
+      },
+    },
   },
   roadmap: {
     pageTitle: 'Hoja de ruta',

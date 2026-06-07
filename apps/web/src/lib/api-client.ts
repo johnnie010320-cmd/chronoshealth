@@ -288,6 +288,8 @@ export type MeProfile = {
   consentRecordedAt: string | null;
   isProfileComplete: boolean;
   revealed: boolean;
+  hasAvatar: boolean;
+  avatarUpdatedAt: string | null;
 };
 
 export async function fetchMeProfile(reveal: boolean): Promise<{ profile: MeProfile }> {
@@ -924,4 +926,52 @@ export async function estimateCalories(
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as CalorieEstimateResponse;
+}
+
+// 프로필 사진 — base64 (image/jpeg|png|webp, ≤ 256KB)
+export type AvatarMime = 'image/jpeg' | 'image/png' | 'image/webp';
+export type MyAvatarPhoto = {
+  mimeType: AvatarMime;
+  dataB64: string;
+  byteSize: number;
+  updatedAt: string;
+};
+
+export async function fetchMyAvatar(): Promise<MyAvatarPhoto | null> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/avatar`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as MyAvatarPhoto;
+}
+
+export async function uploadMyAvatar(
+  mimeType: AvatarMime,
+  dataB64: string,
+): Promise<{ byteSize: number }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/avatar`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify({ mimeType, dataB64 }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { byteSize: number };
+}
+
+export async function deleteMyAvatar(): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/avatar`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
 }

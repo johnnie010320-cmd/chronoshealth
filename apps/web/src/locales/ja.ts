@@ -736,6 +736,23 @@ export const ja: Dictionary = {
     errorGeneric: 'プロフィールを読み込めませんでした。',
     logoutConfirm:
       'ログアウトするとこの端末のセッションが削除されます。再度ご利用にはメールとパスワードでログインしてください。',
+    avatar: {
+      sectionTitle: 'プロフィール写真',
+      hint: '本人識別用写真 (256x256)。JPG · PNG · WEBP、自動で正方形にトリミング。',
+      altMine: '私のプロフィール写真',
+      uploadCta: '写真アップロード',
+      changeCta: '写真を変更',
+      removeCta: '削除',
+      uploading: 'アップロード中…',
+      confirmDelete: 'プロフィール写真を削除しますか?',
+      errCodes: {
+        PAYLOAD_TOO_LARGE: '画像が大きすぎます (256KB以下)。',
+        INVALID_MIME: '対応形式: JPG · PNG · WEBP。',
+        INVALID_DATA: '画像を処理できませんでした。',
+        UNAUTHORIZED: 'ログインが必要です。',
+        generic: '保存できませんでした。',
+      },
+    },
   },
   roadmap: {
     pageTitle: 'ロードマップ',

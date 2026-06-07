@@ -682,6 +682,23 @@ export const ko = {
     logout: '로그아웃',
     logoutConfirm: '로그아웃 시 이 디바이스의 세션이 삭제됩니다. 다시 이용하시려면 이메일·비밀번호로 로그인해 주세요.',
     errorGeneric: '내 정보를 불러오지 못했습니다.',
+    avatar: {
+      sectionTitle: '프로필 사진',
+      hint: '본인 식별용 사진 (256x256). JPG · PNG · WEBP, 자동 정사각 크롭됩니다.',
+      altMine: '내 프로필 사진',
+      uploadCta: '사진 올리기',
+      changeCta: '사진 변경',
+      removeCta: '삭제',
+      uploading: '업로드 중…',
+      confirmDelete: '프로필 사진을 삭제할까요?',
+      errCodes: {
+        PAYLOAD_TOO_LARGE: '이미지가 너무 큽니다 (256KB 이하).',
+        INVALID_MIME: '지원 형식: JPG · PNG · WEBP.',
+        INVALID_DATA: '이미지를 처리하지 못했습니다.',
+        UNAUTHORIZED: '로그인이 필요합니다.',
+        generic: '저장하지 못했습니다.',
+      },
+    },
   },
   roadmap: {
     pageTitle: '로드맵',

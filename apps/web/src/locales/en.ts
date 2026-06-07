@@ -739,6 +739,23 @@ export const en: Dictionary = {
     logout: 'Log out',
     logoutConfirm: 'Logging out clears your session on this device. To return, sign in with email and password.',
     errorGeneric: 'Could not load your profile.',
+    avatar: {
+      sectionTitle: 'Profile photo',
+      hint: 'Identification photo (256x256). JPG · PNG · WEBP, auto center-cropped to square.',
+      altMine: 'My profile photo',
+      uploadCta: 'Upload',
+      changeCta: 'Change',
+      removeCta: 'Remove',
+      uploading: 'Uploading…',
+      confirmDelete: 'Remove your profile photo?',
+      errCodes: {
+        PAYLOAD_TOO_LARGE: 'Image is too large (under 256KB).',
+        INVALID_MIME: 'Supported: JPG · PNG · WEBP.',
+        INVALID_DATA: 'Could not process the image.',
+        UNAUTHORIZED: 'Login required.',
+        generic: 'Could not save.',
+      },
+    },
   },
   roadmap: {
     pageTitle: 'Roadmap',

@@ -1,19 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { useI18n } from '@/lib/i18n';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
 import { useIsAdmin } from '@/lib/admin-state';
-import { fetchMeProfile, type MeProfile } from '@/lib/api-client';
+import {
+  deleteMyAvatar,
+  fetchMeProfile,
+  fetchMyAvatar,
+  uploadMyAvatar,
+  type MeProfile,
+} from '@/lib/api-client';
 import {
   UserCircleIcon,
   ShieldIcon,
   LogoutIcon,
   ChevronRightIcon,
 } from '@/components/HealthIcons';
+import { resizeImageToDataUrl } from '@/lib/image';
 
 type LoadState =
   | { status: 'loading' }
@@ -31,12 +38,17 @@ const NATIONALITY_LABEL: Record<string, string> = {
 export default function ProfilePage() {
   const { t, locale } = useI18n();
   const P = t.profile;
+  const A = P.avatar;
   const router = useRouter();
   const [session, setSession] = useState<StoredSession | null>(null);
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarErr, setAvatarErr] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isAdmin = useIsAdmin();
 
   useEffect(() => {
@@ -61,11 +73,53 @@ export default function ProfilePage() {
       const { profile } = await fetchMeProfile(reveal);
       setState({ status: 'ok', me: profile });
       setRevealed(reveal);
+      if (profile.hasAvatar) {
+        void loadAvatar();
+      } else {
+        setAvatarDataUrl(null);
+      }
     } catch (e) {
       const code = e instanceof Error ? e.message : 'generic';
       setState({ status: 'err', code });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loadAvatar() {
+    try {
+      const a = await fetchMyAvatar();
+      setAvatarDataUrl(a ? `data:${a.mimeType};base64,${a.dataB64}` : null);
+    } catch {
+      setAvatarDataUrl(null);
+    }
+  }
+
+  async function handleAvatarFile(file: File) {
+    setAvatarBusy(true);
+    setAvatarErr(null);
+    try {
+      const { mimeType, dataB64 } = await resizeImageToDataUrl(file, 256, 0.85);
+      await uploadMyAvatar(mimeType, dataB64);
+      setAvatarDataUrl(`data:${mimeType};base64,${dataB64}`);
+    } catch (e) {
+      setAvatarErr(e instanceof Error ? e.message : 'generic');
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function handleAvatarDelete() {
+    if (typeof window !== 'undefined' && !window.confirm(A.confirmDelete)) return;
+    setAvatarBusy(true);
+    setAvatarErr(null);
+    try {
+      await deleteMyAvatar();
+      setAvatarDataUrl(null);
+    } catch (e) {
+      setAvatarErr(e instanceof Error ? e.message : 'generic');
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -105,6 +159,67 @@ export default function ProfilePage() {
           <ChevronRightIcon className="h-5 w-5 shrink-0 text-white/90" />
         </Link>
       )}
+
+      <section className="card-shadow mt-4 flex items-center gap-4 rounded-3xl bg-white p-5 dark:bg-stone-900">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
+          {avatarDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarDataUrl}
+              alt={A.altMine}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-stone-400 dark:text-stone-500">
+              <UserCircleIcon className="h-12 w-12" />
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+            {A.sectionTitle}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+            {A.hint}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarBusy}
+              className="rounded-xl bg-stone-900 px-3 py-1.5 text-[12px] font-semibold text-white transition active:scale-[0.97] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+            >
+              {avatarBusy ? A.uploading : avatarDataUrl ? A.changeCta : A.uploadCta}
+            </button>
+            {avatarDataUrl && (
+              <button
+                type="button"
+                onClick={() => void handleAvatarDelete()}
+                disabled={avatarBusy}
+                className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-rose-700 transition active:scale-[0.97] disabled:opacity-60 dark:border-rose-900 dark:bg-stone-900 dark:text-rose-300"
+              >
+                {A.removeCta}
+              </button>
+            )}
+          </div>
+          {avatarErr && (
+            <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-300">
+              {A.errCodes[avatarErr as keyof typeof A.errCodes] ?? A.errCodes.generic}
+            </p>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleAvatarFile(f);
+              e.target.value = '';
+            }}
+          />
+        </div>
+      </section>
 
       <section className="card-shadow mt-4 rounded-3xl bg-white p-5 dark:bg-stone-900">
         <div className="mb-4 flex items-center justify-between gap-3">

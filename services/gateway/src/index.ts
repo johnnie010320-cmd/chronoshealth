@@ -30,7 +30,7 @@ app.use(
       'https://chronoshealth.pages.dev',
       'http://localhost:3000',
     ],
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400,
   }),
