@@ -658,9 +658,10 @@ export function makeMockAnalysisDb(): {
       const [slug, locale, title, body_md, version, updated_by_pseudonym_id] = args as [
         string, string, string, string, string, string,
       ];
-      const existing = state.contentPages.find((c) => c.slug === slug);
+      const existing = state.contentPages.find(
+        (c) => c.slug === slug && c.locale === locale,
+      );
       if (existing) {
-        existing.locale = locale;
         existing.title = title;
         existing.body_md = body_md;
         existing.version = version;

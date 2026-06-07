@@ -58,8 +58,7 @@ export async function upsertContentPage(
     .prepare(
       `INSERT INTO content_pages (slug, locale, title, body_md, version, updated_by_pseudonym_id)
        VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT (slug) DO UPDATE SET
-         locale = excluded.locale,
+       ON CONFLICT (slug, locale) DO UPDATE SET
          title = excluded.title,
          body_md = excluded.body_md,
          version = excluded.version,
