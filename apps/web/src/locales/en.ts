@@ -431,9 +431,9 @@ export const en: Dictionary = {
     },
     users: {
       title: 'User management',
-      searchPlaceholder: 'Search by anonymous ID…',
+      searchPlaceholder: 'Search by email…',
       columns: {
-        pseudonym: 'Pseudonym',
+        pseudonym: 'Email',
         createdAt: 'Joined',
         reports: 'Reports',
         balance: 'Points',
@@ -575,8 +575,7 @@ export const en: Dictionary = {
     pageTitle: 'Log in',
     heroTitle: 'Welcome back',
     heroBody: 'Sign in with email and password.',
-    notice:
-      'Passwords are securely compared, and failed logins do not reveal whether an account exists.',
+    notice: '',
     email: {
       sectionTitle: 'Email',
       emailLabel: 'Email',
@@ -595,6 +594,7 @@ export const en: Dictionary = {
     divider: 'or',
     kakao: 'Continue with Kakao',
     google: 'Continue with Google',
+    apple: 'Continue with Apple',
     noAccount: "Don't have an account?",
     signupCta: 'Sign up',
     unavailable:
@@ -925,6 +925,7 @@ export const en: Dictionary = {
     social: {
       kakao: 'Sign up with Kakao',
       google: 'Sign up with Google',
+      apple: 'Sign up with Apple',
       divider: 'Or sign up with email',
       unavailable: 'This feature is in preparation. Please use the form below.',
     },

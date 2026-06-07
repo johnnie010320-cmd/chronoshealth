@@ -28,7 +28,6 @@ export function AdminShell({
   const tabs: Tab[] = [
     { href: '/admin', label: A.dashboard.title },
     { href: '/admin/users', label: A.users.title },
-    { href: '/admin/beta-signups', label: A.betaSignups.title },
     { href: '/admin/content', label: A.content.pageTitle },
   ];
 

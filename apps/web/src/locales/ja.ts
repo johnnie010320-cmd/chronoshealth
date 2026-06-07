@@ -428,17 +428,17 @@ export const ja: Dictionary = {
     },
     users: {
       title: 'ユーザー管理',
-      searchPlaceholder: 'pseudonym検索…',
+      searchPlaceholder: 'メール検索…',
       columns: {
-        pseudonym: 'pseudonym',
+        pseudonym: 'メール',
         createdAt: '登録日',
         reports: 'レポート',
         balance: 'ポイント',
       },
       empty: '結果がありません。',
       detailTitle: 'ユーザー詳細',
-      unmaskCta: 'PII表示 (記録)',
-      unmaskOn: 'PII表示中',
+      unmaskCta: '個人情報を表示 (監査記録)',
+      unmaskOn: '個人情報表示中',
       maskedHint: '既定はマスク表示です。',
       nameLabel: '氏名',
       emailLabel: 'メール',
@@ -572,8 +572,7 @@ export const ja: Dictionary = {
     pageTitle: 'ログイン',
     heroTitle: 'おかえりなさい',
     heroBody: 'メールとパスワードでログインします。',
-    notice:
-      'パスワードは安全に照合され、ログイン失敗時にアカウントの有無は明かしません。',
+    notice: '',
     email: {
       sectionTitle: 'メール',
       emailLabel: 'メール',
@@ -592,6 +591,7 @@ export const ja: Dictionary = {
     divider: 'または',
     kakao: 'カカオで続ける',
     google: 'Google で続ける',
+    apple: 'Appleで続ける',
     noAccount: 'アカウントをお持ちでない方は',
     signupCta: '会員登録',
     unavailable: 'この機能は準備中です。メールログインまたは会員登録をご利用ください。',
@@ -921,6 +921,7 @@ export const ja: Dictionary = {
     social: {
       kakao: 'カカオで開始',
       google: 'Googleで開始',
+      apple: 'Appleで開始',
       divider: 'またはメールで登録',
       unavailable: '本機能は準備中です。下のフォームから登録してください。',
     },

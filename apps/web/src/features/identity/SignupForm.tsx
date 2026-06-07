@@ -15,7 +15,7 @@ import {
   ShieldIcon,
   AlertIcon,
 } from '@/components/HealthIcons';
-import { KakaoLogo, GoogleLogo } from '@/components/SocialIcons';
+import { KakaoLogo, GoogleLogo, AppleLogo } from '@/components/SocialIcons';
 
 const TERMS_VERSION = 'v1.0';
 const PRIVACY_VERSION = 'v1.0';
@@ -142,6 +142,14 @@ export function SignupForm() {
         >
           <GoogleLogo className="h-5 w-5" />
           {S.social.google}
+        </button>
+        <button
+          type="button"
+          onClick={notifySocialUnavailable}
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black px-6 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-stone-800"
+        >
+          <AppleLogo className="h-5 w-5" />
+          {S.social.apple}
         </button>
       </div>
 

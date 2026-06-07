@@ -101,8 +101,8 @@ export default function AdminUsersPage() {
                 className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:bg-stone-50 disabled:opacity-50 dark:active:bg-stone-800/50"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-mono text-[12px] text-stone-700 dark:text-stone-200">
-                    {user.userPseudonymId.slice(0, 12)}…
+                  <p className="truncate text-[13px] font-semibold text-stone-800 dark:text-stone-100">
+                    {user.emailMasked}
                   </p>
                   <p className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-400">
                     {U.columns.createdAt}: {new Date(user.createdAt).toLocaleString()}
@@ -129,11 +129,8 @@ export default function AdminUsersPage() {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {U.detailTitle}
             </p>
-            <p className="mt-1 font-mono text-[12px] text-stone-700 dark:text-stone-200 break-all">
-              {selected.userPseudonymId}
-            </p>
 
-            <dl className="mt-4 space-y-2 text-[13px]">
+            <dl className="mt-3 space-y-2 text-[13px]">
               <DetailRow label={U.nameLabel} value={selected.name ?? '—'} />
               <DetailRow label={U.emailLabel} value={selected.emailMasked ?? '—'} />
               <DetailRow label={U.phoneLabel} value={selected.phoneMasked ?? '—'} />

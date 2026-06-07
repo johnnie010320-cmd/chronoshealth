@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 import { AlertIcon } from '@/components/HealthIcons';
-import { KakaoLogo, GoogleLogo } from '@/components/SocialIcons';
+import { KakaoLogo, GoogleLogo, AppleLogo } from '@/components/SocialIcons';
 import {
   submitLogin,
   submitSetPassword,
@@ -74,13 +74,15 @@ export function LoginForm() {
         </p>
       </header>
 
-      <div
-        role="note"
-        className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] leading-relaxed text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300"
-      >
-        <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>{L.notice}</span>
-      </div>
+      {L.notice && (
+        <div
+          role="note"
+          className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] leading-relaxed text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300"
+        >
+          <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{L.notice}</span>
+        </div>
+      )}
 
       {error && (
         <div
@@ -143,6 +145,14 @@ export function LoginForm() {
         >
           <GoogleLogo className="h-5 w-5" />
           {L.google}
+        </button>
+        <button
+          type="button"
+          onClick={notifySocial}
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black px-6 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-stone-800"
+        >
+          <AppleLogo className="h-5 w-5" />
+          {L.apple}
         </button>
       </div>
 

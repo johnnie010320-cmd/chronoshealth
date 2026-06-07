@@ -275,7 +275,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
   function allStmt(sql: string, args: unknown[]): { results: unknown[] } {
     const trimmed = sql.trim();
     if (
-      trimmed.startsWith('SELECT user_pseudonym_id, created_at FROM users') &&
+      trimmed.startsWith('SELECT user_pseudonym_id, email, created_at FROM users') &&
       trimmed.includes('ORDER BY created_at DESC')
     ) {
       const limit = args[args.length - 1] as number;
@@ -285,15 +285,19 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         const cursor = args[argIdx++] as string;
         pool = pool.filter((u) => (u.created_at ?? '') < cursor);
       }
-      if (trimmed.includes('user_pseudonym_id LIKE ?')) {
+      if (trimmed.includes('(user_pseudonym_id LIKE ? OR email LIKE ?)')) {
         const needle = (args[argIdx++] as string).replace(/^%|%$/g, '');
-        pool = pool.filter((u) => u.user_pseudonym_id.includes(needle));
+        argIdx++; // skip second binding
+        pool = pool.filter(
+          (u) => u.user_pseudonym_id.includes(needle) || u.email.includes(needle),
+        );
       }
       const rows = pool
         .sort((a, b) => ((a.created_at ?? '') > (b.created_at ?? '') ? -1 : 1))
         .slice(0, limit)
         .map((u) => ({
           user_pseudonym_id: u.user_pseudonym_id,
+          email: u.email,
           created_at: u.created_at ?? new Date().toISOString(),
         }));
       return { results: rows };

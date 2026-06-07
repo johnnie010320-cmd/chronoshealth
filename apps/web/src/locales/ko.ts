@@ -425,9 +425,9 @@ export const ko = {
     },
     users: {
       title: '사용자 관리',
-      searchPlaceholder: '익명 ID 검색…',
+      searchPlaceholder: '이메일 검색…',
       columns: {
-        pseudonym: '익명 ID',
+        pseudonym: '이메일',
         createdAt: '가입일',
         reports: '리포트',
         balance: '포인트',
@@ -867,6 +867,7 @@ export const ko = {
     social: {
       kakao: '카카오로 시작하기',
       google: 'Google로 시작하기',
+      apple: 'Apple로 시작하기',
       divider: '또는 이메일로 가입',
       unavailable: '본 기능은 준비 중입니다. 아래 양식으로 가입해 주세요.',
     },
@@ -905,8 +906,7 @@ export const ko = {
     pageTitle: '로그인',
     heroTitle: '다시 오신 것을 환영합니다',
     heroBody: '이메일 + 비밀번호로 로그인합니다.',
-    notice:
-      '비밀번호는 안전하게 비교되며, 로그인 실패 시 계정 존재 여부는 표시하지 않습니다.',
+    notice: '',
     email: {
       sectionTitle: '이메일',
       emailLabel: '이메일',
@@ -925,6 +925,7 @@ export const ko = {
     divider: '또는',
     kakao: '카카오로 계속하기',
     google: 'Google로 계속하기',
+    apple: 'Apple로 계속하기',
     noAccount: '아직 계정이 없으신가요?',
     signupCta: '회원가입',
     unavailable: '본 기능은 준비 중입니다. 이메일 로그인 또는 회원가입을 이용해 주세요.',

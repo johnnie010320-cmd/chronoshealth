@@ -431,9 +431,9 @@ export const es: Dictionary = {
     },
     users: {
       title: 'Gestión de usuarios',
-      searchPlaceholder: 'Buscar pseudónimo…',
+      searchPlaceholder: 'Buscar email…',
       columns: {
-        pseudonym: 'Pseudónimo',
+        pseudonym: 'Email',
         createdAt: 'Registro',
         reports: 'Informes',
         balance: 'Puntos',
@@ -577,7 +577,7 @@ export const es: Dictionary = {
     heroTitle: 'Bienvenido de nuevo',
     heroBody: 'Inicia sesión con email y contraseña.',
     notice:
-      'Las contraseñas se comparan de forma segura y los fallos no revelan si la cuenta existe.',
+      '',
     email: {
       sectionTitle: 'Correo',
       emailLabel: 'Correo',
@@ -596,6 +596,7 @@ export const es: Dictionary = {
     divider: 'o',
     kakao: 'Continuar con Kakao',
     google: 'Continuar con Google',
+    apple: 'Continuar con Apple',
     noAccount: '¿No tienes cuenta?',
     signupCta: 'Registro',
     unavailable:
@@ -927,6 +928,7 @@ export const es: Dictionary = {
     social: {
       kakao: 'Continuar con Kakao',
       google: 'Continuar con Google',
+      apple: 'Continuar con Apple',
       divider: 'O regístrate por email',
       unavailable: 'Esta función está en preparación. Usa el formulario debajo.',
     },

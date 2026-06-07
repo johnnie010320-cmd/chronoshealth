@@ -42,12 +42,6 @@ export default function AdminDashboardPage() {
       active: true,
     },
     {
-      href: '/admin/beta-signups',
-      title: D.actionBetaSignups,
-      desc: D.actionBetaSignupsDesc,
-      active: true,
-    },
-    {
       href: '/admin',
       title: D.actionNotices,
       desc: D.actionNoticesDesc,
@@ -108,7 +102,6 @@ export default function AdminDashboardPage() {
       {state.status === 'ok' && (
         <section className="mt-3 grid grid-cols-2 gap-3">
           <StatCard label={D.statTotalUsers} value={state.stats.totalUsers} />
-          <StatCard label={D.statBetaSignups} value={state.stats.totalBetaSignups} />
           <StatCard label={D.statRiskReports} value={state.stats.totalRiskReports} />
           <StatCard label={D.statCommunityPosts} value={state.stats.totalCommunityPosts} />
           <StatCard label={D.statCommunityComments} value={state.stats.totalCommunityComments} />

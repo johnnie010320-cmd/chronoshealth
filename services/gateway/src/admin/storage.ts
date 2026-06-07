@@ -63,6 +63,7 @@ export async function readAdminStats(
 
 export type AdminUserRow = {
   userPseudonymId: string;
+  emailMasked: string;
   createdAt: string;
   reportCount: number;
   ledgerBalance: number;
@@ -74,15 +75,15 @@ export async function listAdminUsers(
   opts: { limit: number; cursor: string | null; search: string | null },
 ): Promise<AdminUserRow[]> {
   let sql =
-    'SELECT user_pseudonym_id, created_at FROM users WHERE 1=1';
+    'SELECT user_pseudonym_id, email, created_at FROM users WHERE 1=1';
   const args: unknown[] = [];
   if (opts.cursor) {
     sql += ' AND created_at < ?';
     args.push(opts.cursor);
   }
   if (opts.search) {
-    sql += ' AND user_pseudonym_id LIKE ?';
-    args.push(`%${opts.search}%`);
+    sql += ' AND (user_pseudonym_id LIKE ? OR email LIKE ?)';
+    args.push(`%${opts.search}%`, `%${opts.search}%`);
   }
   sql += ' ORDER BY created_at DESC LIMIT ?';
   args.push(opts.limit);
@@ -90,7 +91,7 @@ export async function listAdminUsers(
   const result = await identityDb
     .prepare(sql)
     .bind(...args)
-    .all<{ user_pseudonym_id: string; created_at: string }>();
+    .all<{ user_pseudonym_id: string; email: string; created_at: string }>();
 
   const rows = result.results ?? [];
   if (rows.length === 0) return [];
@@ -121,6 +122,7 @@ export async function listAdminUsers(
 
   return rows.map((row) => ({
     userPseudonymId: row.user_pseudonym_id,
+    emailMasked: maskEmail(row.email),
     createdAt: row.created_at,
     reportCount: reportCounts.get(row.user_pseudonym_id) ?? 0,
     ledgerBalance: ledgerSums.get(row.user_pseudonym_id) ?? 0,

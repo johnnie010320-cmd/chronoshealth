@@ -319,6 +319,7 @@ export type AdminStats = {
 
 export type AdminUserRow = {
   userPseudonymId: string;
+  emailMasked: string;
   createdAt: string;
   reportCount: number;
   ledgerBalance: number;
