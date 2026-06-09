@@ -35,7 +35,7 @@ const MENU_GROUPS: MenuGroup[] = [
     groupKey: 'groupTwin',
     items: [
       { itemKey: 'itemData1', href: '/survey' },
-      { itemKey: 'itemData2', href: '/menu', disabled: true, phaseHint: 'phaseHintP2' },
+      { itemKey: 'itemData2', href: '/twin' },
       { itemKey: 'itemData3', href: '/menu', disabled: true, phaseHint: 'phaseHintP2' },
       { itemKey: 'itemWearable', href: '/menu', disabled: true, phaseHint: 'phaseHintP2' },
     ],

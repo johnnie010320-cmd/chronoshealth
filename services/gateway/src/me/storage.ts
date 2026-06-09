@@ -6,6 +6,7 @@ import type { ProfileUpdateRequest } from '../schemas/signup.js';
 export type MeProfile = {
   userPseudonymId: string;
   name: string | null;
+  nickname: string | null;
   email: string;
   phone: string | null;
   birthYear: number | null;
@@ -16,6 +17,7 @@ export type MeProfile = {
   consentPrivacyVersion: string | null;
   consentRecordedAt: string | null;
   isProfileComplete: boolean;
+  marketingOptIn: boolean;
 };
 
 export async function readMeProfile(
@@ -24,15 +26,17 @@ export async function readMeProfile(
 ): Promise<MeProfile | null> {
   const row = await identityDb
     .prepare(
-      `SELECT user_pseudonym_id, name, email, phone, birth_year, sex,
+      `SELECT user_pseudonym_id, name, nickname, email, phone, birth_year, sex,
               nationality, created_at,
-              consent_terms_version, consent_privacy_version, consent_recorded_at
+              consent_terms_version, consent_privacy_version, consent_recorded_at,
+              marketing_opt_in
          FROM users WHERE user_pseudonym_id = ? LIMIT 1`,
     )
     .bind(userPseudonymId)
     .first<{
       user_pseudonym_id: string;
       name: string | null;
+      nickname: string | null;
       email: string;
       phone: string | null;
       birth_year: number | null;
@@ -42,6 +46,7 @@ export async function readMeProfile(
       consent_terms_version: string | null;
       consent_privacy_version: string | null;
       consent_recorded_at: string | null;
+      marketing_opt_in: number;
     }>();
 
   if (!row) return null;
@@ -58,6 +63,7 @@ export async function readMeProfile(
   return {
     userPseudonymId: row.user_pseudonym_id,
     name: row.name,
+    nickname: row.nickname,
     email: row.email,
     phone: row.phone,
     birthYear: row.birth_year,
@@ -68,13 +74,36 @@ export async function readMeProfile(
     consentPrivacyVersion: row.consent_privacy_version,
     consentRecordedAt: row.consent_recorded_at,
     isProfileComplete,
+    marketingOptIn: row.marketing_opt_in === 1,
   };
+}
+
+export async function existsNickname(
+  identityDb: D1Database,
+  nickname: string,
+  excludePseudonymId?: string,
+): Promise<boolean> {
+  const sql = excludePseudonymId
+    ? 'SELECT 1 FROM users WHERE nickname = ? AND user_pseudonym_id != ? LIMIT 1'
+    : 'SELECT 1 FROM users WHERE nickname = ? LIMIT 1';
+  const stmt = identityDb.prepare(sql);
+  const bound = excludePseudonymId
+    ? stmt.bind(nickname, excludePseudonymId)
+    : stmt.bind(nickname);
+  const row = await bound.first<{ '1': number }>();
+  return row !== null;
 }
 
 // ADR 0013 — Step 2 본인정보 입력.
 // 전화번호 UNIQUE 충돌 시 PHONE_EXISTS.
 export class ProfileUpdateError extends Error {
-  constructor(public code: 'PHONE_EXISTS' | 'DB_ERROR') {
+  constructor(
+    public code:
+      | 'PHONE_EXISTS'
+      | 'NICKNAME_EXISTS'
+      | 'NICKNAME_LOCKED'
+      | 'DB_ERROR',
+  ) {
     super(code);
   }
 }
@@ -95,24 +124,65 @@ export async function updateMeProfile(
     throw new ProfileUpdateError('PHONE_EXISTS');
   }
 
+  // 닉네임 — 이미 설정된 경우 변경 불가 (스토리보드 p12).
+  let nicknameToSet: string | null = null;
+  if (input.nickname !== undefined) {
+    const current = await identityDb
+      .prepare('SELECT nickname FROM users WHERE user_pseudonym_id = ? LIMIT 1')
+      .bind(userPseudonymId)
+      .first<{ nickname: string | null }>();
+    if (current?.nickname && current.nickname !== input.nickname) {
+      throw new ProfileUpdateError('NICKNAME_LOCKED');
+    }
+    if (!current?.nickname) {
+      const dupNick = await existsNickname(identityDb, input.nickname, userPseudonymId);
+      if (dupNick) {
+        throw new ProfileUpdateError('NICKNAME_EXISTS');
+      }
+      nicknameToSet = input.nickname;
+    }
+  }
+
   try {
-    await identityDb
-      .prepare(
-        `UPDATE users SET
-           name = ?, phone = ?, birth_year = ?, sex = ?, nationality = ?
-         WHERE user_pseudonym_id = ?`,
-      )
-      .bind(
-        input.name,
-        input.phone,
-        input.birthYear,
-        input.sex,
-        input.nationality,
-        userPseudonymId,
-      )
-      .run();
+    if (nicknameToSet !== null) {
+      await identityDb
+        .prepare(
+          `UPDATE users SET
+             name = ?, phone = ?, birth_year = ?, sex = ?, nationality = ?, nickname = ?
+           WHERE user_pseudonym_id = ?`,
+        )
+        .bind(
+          input.name,
+          input.phone,
+          input.birthYear,
+          input.sex,
+          input.nationality,
+          nicknameToSet,
+          userPseudonymId,
+        )
+        .run();
+    } else {
+      await identityDb
+        .prepare(
+          `UPDATE users SET
+             name = ?, phone = ?, birth_year = ?, sex = ?, nationality = ?
+           WHERE user_pseudonym_id = ?`,
+        )
+        .bind(
+          input.name,
+          input.phone,
+          input.birthYear,
+          input.sex,
+          input.nationality,
+          userPseudonymId,
+        )
+        .run();
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('UNIQUE') && msg.includes('nickname')) {
+      throw new ProfileUpdateError('NICKNAME_EXISTS');
+    }
     if (msg.includes('UNIQUE') || msg.includes('constraint')) {
       throw new ProfileUpdateError('PHONE_EXISTS');
     }

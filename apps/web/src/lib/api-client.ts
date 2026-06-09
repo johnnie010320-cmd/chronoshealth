@@ -235,6 +235,7 @@ export type AvatarResponse = {
     vascular: number;
     joint: number;
   };
+  confidence?: number;
   lastReportAt: string;
   modelVersion: string;
   disclaimer: string;
@@ -277,6 +278,7 @@ export type LeaderboardResponse = {
 export type MeProfile = {
   userPseudonymId: string;
   name: string | null;
+  nickname: string | null;
   email: string;
   phone: string | null;
   birthYear: number | null;
@@ -287,6 +289,7 @@ export type MeProfile = {
   consentPrivacyVersion: string | null;
   consentRecordedAt: string | null;
   isProfileComplete: boolean;
+  marketingOptIn: boolean;
   revealed: boolean;
   hasAvatar: boolean;
   avatarUpdatedAt: string | null;
@@ -310,6 +313,7 @@ export type ProfileUpdateBody = {
   birthYear: number;
   sex: 'male' | 'female' | 'other';
   nationality: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER';
+  nickname?: string;
 };
 
 export async function submitProfileUpdate(
@@ -974,4 +978,142 @@ export async function deleteMyAvatar(): Promise<void> {
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
+}
+
+// Phase 1.1 — 닉네임
+export async function checkNicknameAvailable(nickname: string): Promise<boolean> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/me/check-nickname?nickname=${encodeURIComponent(nickname)}`,
+    { headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+  const data = (await res.json()) as { available: boolean };
+  return data.available;
+}
+
+// Phase 1.2 — 의료 이력
+export type ConditionCategory = 'chronic' | 'critical' | 'family';
+export type MedicalCondition = {
+  code: string;
+  category: ConditionCategory;
+  granted: boolean;
+  updatedAt: string;
+};
+export type Surgery = {
+  id: string;
+  surgeryName: string;
+  surgeryYear: number | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export async function fetchConditions(): Promise<{
+  conditions: MedicalCondition[];
+  catalog: Record<ConditionCategory, readonly string[]>;
+}> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/medical/conditions`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { conditions: MedicalCondition[]; catalog: Record<ConditionCategory, readonly string[]> };
+}
+
+export async function saveConditions(
+  category: ConditionCategory,
+  codes: string[],
+): Promise<MedicalCondition[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/medical/conditions`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ category, codes }),
+  });
+  if (!res.ok) await throwOnError(res);
+  const data = (await res.json()) as { conditions: MedicalCondition[] };
+  return data.conditions;
+}
+
+export async function fetchSurgeries(): Promise<Surgery[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/medical/surgeries`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { surgeries: Surgery[] }).surgeries;
+}
+
+export async function addSurgery(input: {
+  surgeryName: string;
+  surgeryYear: number | null;
+  note: string | null;
+}): Promise<string> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/medical/surgeries`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { id: string }).id;
+}
+
+export async function removeSurgery(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/medical/surgeries/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// Phase 1.3 — 내 댓글
+export type MyComment = {
+  id: string;
+  postId: string;
+  postTitle: string;
+  body: string;
+  createdAt: string;
+};
+export async function fetchMyComments(): Promise<MyComment[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/my-comments`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { comments: MyComment[] }).comments;
+}
+
+// Phase 1.4 — AI 건강 처방
+export type AiPrescription = {
+  summary: string;
+  diet: string[];
+  exercise: string[];
+  rest: string[];
+};
+export async function fetchAiPrescription(body: {
+  bioAge?: number;
+  youthAge?: number;
+  chronologicalAge?: number;
+  risks?: { cvd?: number; diabetes?: number; ckd?: number; dementia?: number; cancer?: number };
+  routine?: { caloriesKcal?: number | null; exerciseMinutes?: number | null; sleepHours?: number | null };
+  locale: 'ko' | 'en' | 'ja' | 'es';
+}): Promise<AiPrescription> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/ai/prescription`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { prescription: AiPrescription }).prescription;
 }

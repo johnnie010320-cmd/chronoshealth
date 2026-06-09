@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import {
+  existsNickname,
   maskEmail,
   maskName,
   maskPhone,
@@ -19,7 +20,8 @@ import {
   upsertAvatar,
   validateAvatarPayload,
 } from '../../me/avatar.js';
-import { ProfileUpdateRequest } from '../../schemas/signup.js';
+import { CheckNicknameQuery, ProfileUpdateRequest } from '../../schemas/signup.js';
+import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
 import type { Bindings } from '../../bindings.js';
 
 export const meRoute = new Hono<{
@@ -41,6 +43,7 @@ meRoute.get('/', authMiddleware, rateLimit(120), async (c) => {
     profile: {
       userPseudonymId: profile.userPseudonymId,
       name: profile.name == null ? null : reveal ? profile.name : maskName(profile.name),
+      nickname: profile.nickname,
       email: reveal ? profile.email : maskEmail(profile.email),
       phone: profile.phone == null ? null : reveal ? profile.phone : maskPhone(profile.phone),
       birthYear: profile.birthYear,
@@ -51,11 +54,22 @@ meRoute.get('/', authMiddleware, rateLimit(120), async (c) => {
       consentPrivacyVersion: profile.consentPrivacyVersion,
       consentRecordedAt: profile.consentRecordedAt,
       isProfileComplete: profile.isProfileComplete,
+      marketingOptIn: profile.marketingOptIn,
       revealed: reveal,
       hasAvatar: avatar.exists,
       avatarUpdatedAt: avatar.updatedAt,
     },
   });
+});
+
+meRoute.get('/check-nickname', authMiddleware, rateLimit(60), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const parsed = CheckNicknameQuery.safeParse({ nickname: c.req.query('nickname') ?? '' });
+  if (!parsed.success) {
+    return c.json({ error: { code: 'INVALID_NICKNAME' } }, 400);
+  }
+  const taken = await existsNickname(c.env.IDENTITY_DB, parsed.data.nickname, pseudonymId);
+  return c.json({ available: !taken, nickname: parsed.data.nickname });
 });
 
 // ADR 0013 — Step 2 본인정보 입력/갱신.
@@ -76,6 +90,9 @@ meRoute.put('/profile', authMiddleware, rateLimit(30), async (c) => {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   }
 
+  const before = await readMeProfile(c.env.IDENTITY_DB, pseudonymId);
+  const wasComplete = before?.isProfileComplete ?? false;
+
   try {
     await updateMeProfile(c.env.IDENTITY_DB, pseudonymId, parsed.data);
   } catch (err) {
@@ -83,6 +100,10 @@ meRoute.put('/profile', authMiddleware, rateLimit(30), async (c) => {
       switch (err.code) {
         case 'PHONE_EXISTS':
           return c.json({ error: { code: 'PHONE_EXISTS' } }, 409);
+        case 'NICKNAME_EXISTS':
+          return c.json({ error: { code: 'NICKNAME_EXISTS' } }, 409);
+        case 'NICKNAME_LOCKED':
+          return c.json({ error: { code: 'NICKNAME_LOCKED' } }, 409);
         case 'DB_ERROR':
           return c.json({ error: { code: 'INTERNAL_ERROR' } }, 500);
       }
@@ -91,6 +112,23 @@ meRoute.put('/profile', authMiddleware, rateLimit(30), async (c) => {
   }
 
   const updated = await readMeProfile(c.env.IDENTITY_DB, pseudonymId);
+
+  // 스토리보드 p11 — 1st Data 입력 완료 시 200 coin (1회).
+  if (!wasComplete && updated?.isProfileComplete) {
+    try {
+      const already = await hasEarnedFor(c.env.DB, pseudonymId, 'onboarding_data1', 'profile');
+      if (!already) {
+        await appendLedger(c.env.DB, pseudonymId, {
+          kind: 'onboarding_data1',
+          amount: EARN_AMOUNTS.onboarding_data1,
+          sourceRef: 'profile',
+        });
+      }
+    } catch (e) {
+      console.error('onboarding_data1 ledger failed', e);
+    }
+  }
+
   return c.json({ profile: updated });
 });
 

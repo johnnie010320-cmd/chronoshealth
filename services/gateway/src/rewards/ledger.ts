@@ -4,6 +4,10 @@ export type LedgerKind =
   | 'community_post'
   | 'community_comment'
   | 'community_like_received'
+  | 'onboarding_data1'
+  | 'onboarding_data2'
+  | 'onboarding_data3'
+  | 'community_trending'
   | 'spend_coupon'
   | 'admin_adjust';
 
@@ -22,6 +26,12 @@ export const EARN_AMOUNTS: Record<Exclude<LedgerKind, 'spend_coupon' | 'admin_ad
   community_post: 10,
   community_comment: 2,
   community_like_received: 1,
+  // 스토리보드 p11/p13/p19/p32 — 단계별 Data 입력 보상 (각 200 coin).
+  onboarding_data1: 200,
+  onboarding_data2: 200,
+  onboarding_data3: 200,
+  // 스토리보드 p32 — 인기글(트렌딩 진입) 1회 보상.
+  community_trending: 500,
 };
 
 export async function appendLedger(

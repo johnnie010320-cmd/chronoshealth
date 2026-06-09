@@ -10,6 +10,7 @@ export type PostRow = {
   commentCount: number;
   allowLikes: boolean;
   allowComments: boolean;
+  tag: string | null;
 };
 
 export type CommentRow = {
@@ -31,13 +32,14 @@ export async function insertPost(
     videoUrl: string | null;
     allowLikes: boolean;
     allowComments: boolean;
+    tag: string | null;
   },
 ): Promise<void> {
   await db
     .prepare(
       `INSERT INTO community_posts
-         (id, community_id, user_pseudonym_id, title, body, video_url, allow_likes, allow_comments)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, community_id, user_pseudonym_id, title, body, video_url, allow_likes, allow_comments, tag)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -48,6 +50,7 @@ export async function insertPost(
       row.videoUrl,
       row.allowLikes ? 1 : 0,
       row.allowComments ? 1 : 0,
+      row.tag,
     )
     .run();
 }
@@ -79,6 +82,7 @@ type PostRawRow = {
   comment_count: number;
   allow_likes: number;
   allow_comments: number;
+  tag: string | null;
 };
 
 function mapPost(row: PostRawRow): PostRow {
@@ -94,12 +98,13 @@ function mapPost(row: PostRawRow): PostRow {
     commentCount: row.comment_count,
     allowLikes: row.allow_likes === 1,
     allowComments: row.allow_comments === 1,
+    tag: row.tag,
   };
 }
 
 const POST_SELECT = `
   SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
-         p.created_at, p.allow_likes, p.allow_comments,
+         p.created_at, p.allow_likes, p.allow_comments, p.tag,
          (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
          (SELECT COUNT(*) FROM community_comments c
             WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
@@ -116,13 +121,27 @@ export async function readPost(db: D1Database, postId: string): Promise<PostRow 
 
 export async function listPosts(
   db: D1Database,
-  opts: { limit: number; cursor: string | null; communityId?: string | null },
+  opts: {
+    limit: number;
+    cursor: string | null;
+    communityId?: string | null;
+    tag?: string | null;
+    userPseudonymId?: string | null;
+  },
 ): Promise<PostRow[]> {
   const filters: string[] = ['p.deleted_at IS NULL'];
   const args: unknown[] = [];
   if (opts.communityId) {
     filters.push('p.community_id = ?');
     args.push(opts.communityId);
+  }
+  if (opts.tag) {
+    filters.push('p.tag = ?');
+    args.push(opts.tag);
+  }
+  if (opts.userPseudonymId) {
+    filters.push('p.user_pseudonym_id = ?');
+    args.push(opts.userPseudonymId);
   }
   if (opts.cursor) {
     filters.push('p.created_at < ?');
@@ -138,6 +157,45 @@ export async function listPosts(
   return (result.results ?? []).map(mapPost);
 }
 
+export type CommentWithPost = {
+  id: string;
+  postId: string;
+  postTitle: string;
+  body: string;
+  createdAt: string;
+};
+
+export async function listMyComments(
+  db: D1Database,
+  userPseudonymId: string,
+  limit: number,
+): Promise<CommentWithPost[]> {
+  const result = await db
+    .prepare(
+      `SELECT c.id, c.post_id, c.body, c.created_at, p.title AS post_title
+         FROM community_comments c
+         JOIN community_posts p ON p.id = c.post_id
+        WHERE c.user_pseudonym_id = ? AND c.deleted_at IS NULL
+        ORDER BY c.created_at DESC
+        LIMIT ?`,
+    )
+    .bind(userPseudonymId, limit)
+    .all<{
+      id: string;
+      post_id: string;
+      body: string;
+      created_at: string;
+      post_title: string;
+    }>();
+  return (result.results ?? []).map((row) => ({
+    id: row.id,
+    postId: row.post_id,
+    postTitle: row.post_title,
+    body: row.body,
+    createdAt: row.created_at,
+  }));
+}
+
 export async function listTrending(
   db: D1Database,
   limit: number,
@@ -145,7 +203,7 @@ export async function listTrending(
   const result = await db
     .prepare(
       `SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
-              p.created_at, p.allow_likes, p.allow_comments,
+              p.created_at, p.allow_likes, p.allow_comments, p.tag,
               (SELECT COUNT(*) FROM community_likes l
                 WHERE l.post_id = p.id AND l.created_at > datetime('now','-1 day')) AS like_count,
               (SELECT COUNT(*) FROM community_comments c

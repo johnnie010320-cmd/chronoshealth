@@ -11,6 +11,7 @@ import {
   insertComment,
   insertPost,
   listComments,
+  listMyComments,
   listPosts,
   listTrending,
   readPost,
@@ -83,6 +84,7 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
     videoUrl: parsed.data.videoUrl,
     allowLikes: parsed.data.allowLikes,
     allowComments: parsed.data.allowComments,
+    tag: parsed.data.tag,
   });
   try {
     await appendLedger(c.env.DB, pseudonymId, {
@@ -98,10 +100,13 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
 });
 
 communityRoute.get('/posts', authMiddleware, rateLimit(200), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
   const parsed = ListPostsQuery.safeParse({
     limit: c.req.query('limit'),
     cursor: c.req.query('cursor') ?? null,
     communityId: c.req.query('communityId') ?? undefined,
+    tag: c.req.query('tag') ?? undefined,
+    mine: c.req.query('mine') ?? undefined,
   });
   if (!parsed.success) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
@@ -110,8 +115,16 @@ communityRoute.get('/posts', authMiddleware, rateLimit(200), async (c) => {
     limit: parsed.data.limit,
     cursor: parsed.data.cursor,
     communityId: parsed.data.communityId ?? null,
+    tag: parsed.data.tag ?? null,
+    userPseudonymId: parsed.data.mine ? pseudonymId : null,
   });
   return c.json({ posts, modelVersion: MODEL_VERSION });
+});
+
+communityRoute.get('/my-comments', authMiddleware, rateLimit(120), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const comments = await listMyComments(c.env.DB, pseudonymId, 50);
+  return c.json({ comments, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.get('/trending', authMiddleware, rateLimit(200), async (c) => {

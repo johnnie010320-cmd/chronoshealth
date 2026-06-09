@@ -59,8 +59,9 @@ export async function signupUser(
         `INSERT INTO users (
           user_pseudonym_id, email,
           password_hash, password_salt, password_algo,
-          consent_terms_version, consent_privacy_version, consent_recorded_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          consent_terms_version, consent_privacy_version, consent_recorded_at,
+          marketing_opt_in
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         userPseudonymId,
@@ -71,6 +72,7 @@ export async function signupUser(
         input.consentTermsVersion,
         input.consentPrivacyVersion,
         recordedAt,
+        input.marketingOptIn ? 1 : 0,
       ),
     db
       .prepare(

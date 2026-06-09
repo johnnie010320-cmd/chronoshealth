@@ -10,6 +10,10 @@ const PHONE_REGEX = /^(\+\d{7,17}|0\d{1,2}-\d{3,4}-\d{4})$/;
 export const Nationality = z.enum(['KR', 'US', 'JP', 'ES', 'OTHER']);
 export type Nationality = z.infer<typeof Nationality>;
 
+// 스토리보드 p12 — 한글/영문/숫자/특수문자, 2~8자.
+export const NICKNAME_REGEX = /^[A-Za-z0-9가-힣ぁ-んァ-ヶ一-龯_\-.]{2,8}$/;
+export const NicknameSchema = z.string().regex(NICKNAME_REGEX);
+
 // ADR 0013 — Step 1 회원가입 (계정 생성).
 // 본인정보 (이름·전화·생년·성별·국적)는 Step 2에서 별도 PUT.
 export const SignupRequest = z
@@ -21,6 +25,7 @@ export const SignupRequest = z
     consentPrivacy: z.boolean(),
     consentTermsVersion: z.string().min(1).max(20),
     consentPrivacyVersion: z.string().min(1).max(20),
+    marketingOptIn: z.boolean().default(false),
   })
   .strict();
 export type SignupRequest = z.infer<typeof SignupRequest>;
@@ -45,9 +50,15 @@ export const ProfileUpdateRequest = z
       }),
     sex: z.enum(['male', 'female', 'other']),
     nationality: Nationality,
+    nickname: NicknameSchema.optional(),
   })
   .strict();
 export type ProfileUpdateRequest = z.infer<typeof ProfileUpdateRequest>;
+
+export const CheckNicknameQuery = z
+  .object({ nickname: NicknameSchema })
+  .strict();
+export type CheckNicknameQuery = z.infer<typeof CheckNicknameQuery>;
 
 // 로그인 (변경 없음)
 export const LoginRequest = z

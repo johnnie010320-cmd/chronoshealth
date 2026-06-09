@@ -84,6 +84,20 @@ export default function ReportsPage() {
 
       {state.status === 'ok' && (
         <div className="space-y-5 pb-10 pt-4">
+          {typeof state.data.confidence === 'number' && (
+            <section className="card-shadow rounded-2xl bg-gradient-to-r from-brand-700 to-teal-600 px-4 py-3 text-white">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-widest opacity-90">
+                  {R.confidenceLabel}
+                </span>
+                <span className="text-2xl font-bold tabular-nums">
+                  {state.data.confidence}%
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] opacity-80">{R.confidenceHint}</p>
+            </section>
+          )}
+
           <section>
             <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {R.vitalitySectionTitle}

@@ -16,6 +16,8 @@ type UserRow = {
   consent_terms_version?: string | null;
   consent_privacy_version?: string | null;
   consent_recorded_at?: string | null;
+  nickname?: string | null;
+  marketing_opt_in?: number;
 };
 
 type ContentPageRow = {
@@ -77,15 +79,17 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     const trimmed = sql.trim();
 
     if (trimmed.startsWith('INSERT INTO users')) {
-      // ADR 0013 — Step 1 가입은 8 컬럼 (email + password 3 + consent 3 + pseudonym).
+      // ADR 0013 + 0006 — Step 1 가입 9 컬럼 (email + password 3 + consent 3 + pseudonym + marketing).
       const [
         user_pseudonym_id, email,
         password_hash, password_salt, password_algo,
         consent_terms_version, consent_privacy_version, consent_recorded_at,
+        marketing_opt_in,
       ] = args as [
         string, string,
         string | null, string | null, string | null,
         string | null, string | null, string | null,
+        number,
       ];
       if (state.users.some((u) => u.email === email)) {
         throw new Error('UNIQUE constraint failed: users.email');
@@ -102,6 +106,8 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         password_hash,
         password_salt,
         password_algo,
+        marketing_opt_in: marketing_opt_in ?? 0,
+        nickname: null,
         consent_terms_version,
         consent_privacy_version,
         consent_recorded_at,
@@ -276,6 +282,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         ? {
             user_pseudonym_id: u.user_pseudonym_id,
             name: u.name,
+            nickname: (u as { nickname?: string | null }).nickname ?? null,
             email: u.email,
             phone: u.phone,
             birth_year: u.birth_year,
@@ -285,6 +292,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
             consent_terms_version: u.consent_terms_version ?? null,
             consent_privacy_version: u.consent_privacy_version ?? null,
             consent_recorded_at: u.consent_recorded_at ?? null,
+            marketing_opt_in: (u as { marketing_opt_in?: number }).marketing_opt_in ?? 0,
           }
         : null;
     }
@@ -307,6 +315,20 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       const [pseudo] = args as [string];
       const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
       return u ? { name: u.name } : null;
+    }
+
+    if (trimmed.includes('FROM user_avatars WHERE user_pseudonym_id')) {
+      // tests 에서는 아바타 없음.
+      return null;
+    }
+    if (trimmed.includes('FROM users WHERE phone =') || trimmed.includes('FROM users WHERE nickname =')) {
+      // PUT /profile 의 중복 체크 — 빈 결과 반환 (테스트가 phone/nickname 충돌을 의도하지 않으면).
+      return null;
+    }
+    if (trimmed.startsWith('SELECT nickname FROM users')) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u ? { nickname: u.nickname ?? null } : null;
     }
 
     if (trimmed.startsWith('SELECT COUNT(*) AS c FROM users')) {
@@ -1314,6 +1336,13 @@ export function makeMockAnalysisDb(): {
           note: r.note,
         }));
       return { results: rows };
+    }
+    if (trimmed.includes('FROM medical_conditions')) {
+      // tests 없이도 빈 결과로 동작.
+      return { results: [] };
+    }
+    if (trimmed.includes('FROM surgery_records')) {
+      return { results: [] };
     }
     throw new Error(`mock-analysis-d1 all() unknown: ${trimmed.substring(0, 80)}`);
   }

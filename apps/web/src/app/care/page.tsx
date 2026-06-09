@@ -12,7 +12,15 @@ import {
 import { LoginRequired } from '@/components/LoginRequired';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
-import { fetchCareMe, type CareResponse, type CareRule, type CareAffiliate } from '@/lib/api-client';
+import {
+  fetchAvatarMe,
+  fetchCareMe,
+  fetchAiPrescription,
+  type AiPrescription,
+  type CareResponse,
+  type CareRule,
+  type CareAffiliate,
+} from '@/lib/api-client';
 
 type LoadState =
   | { status: 'loading' }
@@ -24,7 +32,11 @@ type LoadState =
 export default function CarePage() {
   const { t, locale } = useI18n();
   const C = t.care;
+  const P = C.prescription;
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const [rx, setRx] = useState<AiPrescription | null>(null);
+  const [rxBusy, setRxBusy] = useState(false);
+  const [rxErr, setRxErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!readSession()) {
@@ -81,6 +93,33 @@ export default function CarePage() {
       {state.status === 'ok' && (
         <div className="space-y-5 pb-10 pt-4">
           <ContextCard data={state.data} />
+
+          <PrescriptionCard
+            rx={rx}
+            busy={rxBusy}
+            err={rxErr}
+            onRequest={async () => {
+              setRxBusy(true);
+              setRxErr(null);
+              try {
+                let avatar = null;
+                try { avatar = await fetchAvatarMe(); } catch { /* avatar 없을 수 있음 */ }
+                const body: Parameters<typeof fetchAiPrescription>[0] = { locale };
+                if (avatar) {
+                  body.bioAge = avatar.fiveAges.life;
+                  body.youthAge = avatar.fiveAges.vitality;
+                  body.chronologicalAge = avatar.chronologicalAge;
+                }
+                const result = await fetchAiPrescription(body);
+                setRx(result);
+              } catch (e) {
+                setRxErr(e instanceof Error ? e.message : 'generic');
+              } finally {
+                setRxBusy(false);
+              }
+            }}
+            labels={P}
+          />
 
           <CategorySection
             Icon={LeafIcon}
@@ -238,3 +277,88 @@ const SEVERITY_CLASS: Record<CareRule['severity'], string> = {
   recommend: 'bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200',
   attention: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-200',
 };
+
+function PrescriptionCard({
+  rx,
+  busy,
+  err,
+  onRequest,
+  labels,
+}: {
+  rx: AiPrescription | null;
+  busy: boolean;
+  err: string | null;
+  onRequest: () => Promise<void> | void;
+  labels: {
+    sectionTitle: string;
+    sectionHint: string;
+    requestCta: string;
+    requesting: string;
+    dietTitle: string;
+    exerciseTitle: string;
+    restTitle: string;
+    note: string;
+    errGeneric: string;
+  };
+}) {
+  return (
+    <section className="card-shadow rounded-2xl bg-gradient-to-br from-rose-50 to-amber-50 px-4 py-4 dark:from-rose-950/30 dark:to-amber-950/30">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+          {labels.sectionTitle}
+        </h2>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          AI
+        </span>
+      </div>
+      <p className="mt-1 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+        {labels.sectionHint}
+      </p>
+      {!rx && (
+        <button
+          type="button"
+          onClick={() => void onRequest()}
+          disabled={busy}
+          className="mt-3 w-full rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60 dark:bg-white dark:text-stone-900"
+        >
+          {busy ? labels.requesting : labels.requestCta}
+        </button>
+      )}
+      {err && (
+        <p className="mt-2 text-[11px] text-rose-700 dark:text-rose-300">
+          {labels.errGeneric}
+        </p>
+      )}
+      {rx && (
+        <div className="mt-3 space-y-3">
+          <p className="rounded-xl bg-white/70 px-3 py-2 text-[12px] leading-relaxed text-stone-800 dark:bg-stone-900/50 dark:text-stone-100">
+            {rx.summary}
+          </p>
+          <RxList title={labels.dietTitle} items={rx.diet} />
+          <RxList title={labels.exerciseTitle} items={rx.exercise} />
+          <RxList title={labels.restTitle} items={rx.rest} />
+          <p className="text-[10px] text-stone-500 dark:text-stone-400">{labels.note}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RxList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        {title}
+      </p>
+      <ul className="mt-1 space-y-1">
+        {items.map((s, i) => (
+          <li key={i} className="flex items-start gap-2 text-[12px] text-stone-800 dark:text-stone-200">
+            <span aria-hidden className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-brand-600" />
+            <span>{s}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

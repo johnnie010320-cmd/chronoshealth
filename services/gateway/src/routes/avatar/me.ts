@@ -3,7 +3,24 @@ import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { readLatestReport, readUserName } from '../../avatar/storage.js';
 import { calcVitalityScore } from '../../avatar/vitality.js';
 import { predictedYearsRemaining } from '../../avatar/pyr.js';
+import { listConditions } from '../../medical/storage.js';
+import { listSurgeries } from '../../medical/storage.js';
 import type { Bindings } from '../../bindings.js';
+
+// 스토리보드 p25 — Data 입력 수준에 따른 신뢰도 표시.
+// 1차(설문) 50%, 2차(의료이력) +25%, 3차(특수진단, 미구현) +21%.
+// 본 함수는 P0~P1 한정 — 3rd Data 미구현이므로 최대 75% 권장.
+function calcConfidence(opts: {
+  hasReport: boolean;
+  conditionCount: number;
+  surgeryCount: number;
+}): number {
+  let c = 0;
+  if (opts.hasReport) c += 50; // 1st Data — survey 완료
+  if (opts.conditionCount > 0 || opts.surgeryCount > 0) c += 25; // 2nd Data
+  // 3rd Data는 미구현 — P3에서 +21% 추가 예정.
+  return Math.max(0, Math.min(100, c));
+}
 
 // spec docs/spec/avatar-chronos.md §5.
 // ADR 0003 — name 은 identity-vault 에서 응답 직전에만 조회.
@@ -23,7 +40,16 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     return c.json({ error: { code: 'NO_REPORT' } }, 404);
   }
 
-  const name = await readUserName(c.env.IDENTITY_DB, pseudonymId);
+  const [name, conditions, surgeries] = await Promise.all([
+    readUserName(c.env.IDENTITY_DB, pseudonymId),
+    listConditions(c.env.DB, pseudonymId),
+    listSurgeries(c.env.DB, pseudonymId),
+  ]);
+  const confidence = calcConfidence({
+    hasReport: true,
+    conditionCount: conditions.length,
+    surgeryCount: surgeries.length,
+  });
 
   const chronologicalAge = latest.payload.bioAge.chronologicalAge;
   const diseaseProbs = latest.payload.diseaseRisk.map((d) => d.probability5y);
@@ -58,6 +84,7 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     vitalityScore: vitality,
     predictedYearsRemaining: pyr,
     fiveAges,
+    confidence,
     lastReportAt: latest.generatedAt,
     modelVersion: latest.payload.modelVersion,
     disclaimer: DISCLAIMER,
