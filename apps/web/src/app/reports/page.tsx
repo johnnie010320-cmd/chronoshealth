@@ -127,6 +127,28 @@ export default function ReportsPage() {
             <FiveAgesGrid fiveAges={state.data.fiveAges} />
           </section>
 
+          {state.data.lifetimeMedicalCost && (
+            <section>
+              <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                {R.lifetimeCostTitle}
+              </h2>
+              <div className="card-shadow rounded-2xl bg-white p-4 dark:bg-stone-900">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[12px] text-stone-500 dark:text-stone-400">
+                    {R.lifetimeCostLabel}
+                  </span>
+                  <span className="text-2xl font-bold tabular-nums tracking-tight text-stone-900 dark:text-stone-100">
+                    {(state.data.lifetimeMedicalCost.totalKrw / 100_000_000).toFixed(1)}
+                    {R.lifetimeCostUnit}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-stone-500 dark:text-stone-400">
+                  {state.data.lifetimeMedicalCost.basis}
+                </p>
+              </div>
+            </section>
+          )}
+
           <section className="grid grid-cols-2 gap-3">
             <Link
               href="/leaderboard"

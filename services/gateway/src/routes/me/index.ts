@@ -55,6 +55,7 @@ meRoute.get('/', authMiddleware, rateLimit(120), async (c) => {
       consentRecordedAt: profile.consentRecordedAt,
       isProfileComplete: profile.isProfileComplete,
       marketingOptIn: profile.marketingOptIn,
+      role: profile.role,
       revealed: reveal,
       hasAvatar: avatar.exists,
       avatarUpdatedAt: avatar.updatedAt,

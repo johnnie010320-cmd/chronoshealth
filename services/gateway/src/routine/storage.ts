@@ -4,6 +4,14 @@ export type RoutineEntry = {
   exerciseMinutes: number | null;
   sleepHours: number | null;
   note: string | null;
+  // 스토리보드 p20 추가 카테고리 (확장).
+  weightKg?: number | null;
+  waistCm?: number | null;
+  bloodGlucoseMgDl?: number | null;
+  bloodPressureSystolic?: number | null;
+  bloodPressureDiastolic?: number | null;
+  medicationTaken?: boolean;
+  stressLevel?: 'low' | 'medium' | 'high' | null;
 };
 
 export async function upsertRoutineEntry(
@@ -15,13 +23,23 @@ export async function upsertRoutineEntry(
     .prepare(
       `INSERT INTO routine_entries (
         user_pseudonym_id, purpose_code, entry_date,
-        calories_kcal, exercise_minutes, sleep_hours, note
-      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?)
+        calories_kcal, exercise_minutes, sleep_hours, note,
+        weight_kg, waist_cm, blood_glucose_mg_dl,
+        blood_pressure_systolic, blood_pressure_diastolic,
+        medication_taken, stress_level
+      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (user_pseudonym_id, entry_date) DO UPDATE SET
         calories_kcal = excluded.calories_kcal,
         exercise_minutes = excluded.exercise_minutes,
         sleep_hours = excluded.sleep_hours,
         note = excluded.note,
+        weight_kg = excluded.weight_kg,
+        waist_cm = excluded.waist_cm,
+        blood_glucose_mg_dl = excluded.blood_glucose_mg_dl,
+        blood_pressure_systolic = excluded.blood_pressure_systolic,
+        blood_pressure_diastolic = excluded.blood_pressure_diastolic,
+        medication_taken = excluded.medication_taken,
+        stress_level = excluded.stress_level,
         updated_at = datetime('now')`,
     )
     .bind(
@@ -31,6 +49,13 @@ export async function upsertRoutineEntry(
       entry.exerciseMinutes,
       entry.sleepHours,
       entry.note,
+      entry.weightKg ?? null,
+      entry.waistCm ?? null,
+      entry.bloodGlucoseMgDl ?? null,
+      entry.bloodPressureSystolic ?? null,
+      entry.bloodPressureDiastolic ?? null,
+      entry.medicationTaken ? 1 : 0,
+      entry.stressLevel ?? null,
     )
     .run();
 }

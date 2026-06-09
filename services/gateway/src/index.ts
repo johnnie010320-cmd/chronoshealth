@@ -17,7 +17,9 @@ import { meRoute } from './routes/me/index.js';
 import { checkEmailRoute } from './routes/auth/check-email.js';
 import { aiCalorieRoute } from './routes/ai/calorie.js';
 import { aiPrescriptionRoute } from './routes/ai/prescription.js';
+import { aiFoodshotRoute } from './routes/ai/foodshot.js';
 import { medicalRoute } from './routes/medical/index.js';
+import { diaryRoute } from './routes/diary/index.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -59,7 +61,9 @@ app.route('/api/v1/me', meRoute);
 app.route('/api/v1/auth/check-email', checkEmailRoute);
 app.route('/api/v1/ai', aiCalorieRoute);
 app.route('/api/v1/ai', aiPrescriptionRoute);
+app.route('/api/v1/ai', aiFoodshotRoute);
 app.route('/api/v1/me/medical', medicalRoute);
+app.route('/api/v1/me/diary', diaryRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));
 

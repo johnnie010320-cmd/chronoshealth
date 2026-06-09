@@ -5,6 +5,7 @@ import { calcVitalityScore } from '../../avatar/vitality.js';
 import { predictedYearsRemaining } from '../../avatar/pyr.js';
 import { listConditions } from '../../medical/storage.js';
 import { listSurgeries } from '../../medical/storage.js';
+import { estimateLifetimeCost } from '../../avatar/medical_cost.js';
 import type { Bindings } from '../../bindings.js';
 
 // 스토리보드 p25 — Data 입력 수준에 따른 신뢰도 표시.
@@ -78,6 +79,16 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     joint: bioAge + (latest.stressLevel === 'high' ? 2 : 0),
   };
 
+  const lifetimeCost = estimateLifetimeCost({
+    chronologicalAge,
+    predictedRemainingYears: pyr.median,
+    bioAgePenalty: Math.max(0, latest.payload.bioAge.value - chronologicalAge),
+    risks: latest.payload.diseaseRisk.reduce<Partial<Record<string, number>>>((acc, d) => {
+      acc[d.code] = d.probability5y;
+      return acc;
+    }, {}),
+  });
+
   return c.json({
     name: name ?? '',
     chronologicalAge,
@@ -85,6 +96,7 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     predictedYearsRemaining: pyr,
     fiveAges,
     confidence,
+    lifetimeMedicalCost: lifetimeCost,
     lastReportAt: latest.generatedAt,
     modelVersion: latest.payload.modelVersion,
     disclaimer: DISCLAIMER,

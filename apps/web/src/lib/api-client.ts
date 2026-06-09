@@ -236,6 +236,12 @@ export type AvatarResponse = {
     joint: number;
   };
   confidence?: number;
+  lifetimeMedicalCost?: {
+    totalKrw: number;
+    perDecadeKrw: number[];
+    basis: string;
+    modelVersion: string;
+  };
   lastReportAt: string;
   modelVersion: string;
   disclaimer: string;
@@ -290,6 +296,7 @@ export type MeProfile = {
   consentRecordedAt: string | null;
   isProfileComplete: boolean;
   marketingOptIn: boolean;
+  role: 'user' | 'partner' | 'admin';
   revealed: boolean;
   hasAvatar: boolean;
   avatarUpdatedAt: string | null;
@@ -1116,4 +1123,69 @@ export async function fetchAiPrescription(body: {
   });
   if (!res.ok) await throwOnError(res);
   return ((await res.json()) as { prescription: AiPrescription }).prescription;
+}
+
+// Phase 2.2 — MY DIARY
+export type DiaryMood = 'great' | 'good' | 'soso' | 'tired' | 'bad';
+export type DiaryEntry = {
+  id: string;
+  entryDate: string;
+  mood: DiaryMood | null;
+  body: string;
+  createdAt: string;
+};
+export async function fetchDiary(): Promise<DiaryEntry[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { entries: DiaryEntry[] }).entries;
+}
+export async function addDiary(body: {
+  entryDate: string;
+  mood: DiaryMood | null;
+  body: string;
+}): Promise<string> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { id: string }).id;
+}
+export async function removeDiary(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// Phase 2.5 — Foodshot
+export type FoodshotResult = {
+  description: string;
+  estimatedItems: { name: string; amount: string; calories: number }[];
+  totalCalories: number;
+  modelVersion: string;
+};
+export async function estimateFoodshot(
+  imageB64: string,
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<FoodshotResult> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/ai/foodshot`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ imageB64, locale }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as FoodshotResult;
 }

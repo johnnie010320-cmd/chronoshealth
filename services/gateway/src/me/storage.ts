@@ -18,6 +18,7 @@ export type MeProfile = {
   consentRecordedAt: string | null;
   isProfileComplete: boolean;
   marketingOptIn: boolean;
+  role: 'user' | 'partner' | 'admin';
 };
 
 export async function readMeProfile(
@@ -29,7 +30,7 @@ export async function readMeProfile(
       `SELECT user_pseudonym_id, name, nickname, email, phone, birth_year, sex,
               nationality, created_at,
               consent_terms_version, consent_privacy_version, consent_recorded_at,
-              marketing_opt_in
+              marketing_opt_in, role
          FROM users WHERE user_pseudonym_id = ? LIMIT 1`,
     )
     .bind(userPseudonymId)
@@ -47,6 +48,7 @@ export async function readMeProfile(
       consent_privacy_version: string | null;
       consent_recorded_at: string | null;
       marketing_opt_in: number;
+      role: string;
     }>();
 
   if (!row) return null;
@@ -59,6 +61,9 @@ export async function readMeProfile(
   const isProfileComplete = Boolean(
     row.name && row.phone && row.birth_year && sex && row.nationality,
   );
+
+  const role: MeProfile['role'] =
+    row.role === 'partner' || row.role === 'admin' ? row.role : 'user';
 
   return {
     userPseudonymId: row.user_pseudonym_id,
@@ -75,6 +80,7 @@ export async function readMeProfile(
     consentRecordedAt: row.consent_recorded_at,
     isProfileComplete,
     marketingOptIn: row.marketing_opt_in === 1,
+    role,
   };
 }
 

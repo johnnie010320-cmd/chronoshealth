@@ -18,6 +18,7 @@ type UserRow = {
   consent_recorded_at?: string | null;
   nickname?: string | null;
   marketing_opt_in?: number;
+  role?: string;
 };
 
 type ContentPageRow = {
@@ -293,6 +294,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
             consent_privacy_version: u.consent_privacy_version ?? null,
             consent_recorded_at: u.consent_recorded_at ?? null,
             marketing_opt_in: (u as { marketing_opt_in?: number }).marketing_opt_in ?? 0,
+            role: (u as { role?: string }).role ?? 'user',
           }
         : null;
     }
