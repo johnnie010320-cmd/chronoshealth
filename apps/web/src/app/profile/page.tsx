@@ -260,6 +260,7 @@ export default function ProfilePage() {
         {state.status === 'ok' && (
           <>
             <dl className="space-y-3 text-sm">
+              <Row label={P.nicknameLabel} value={state.me.nickname ?? P.nicknameUnset} />
               <Row label={P.nameLabel} value={state.me.name ?? '—'} />
               <Row label={P.emailLabel} value={state.me.email} mono />
               <Row label={P.phoneLabel} value={state.me.phone ?? '—'} mono />

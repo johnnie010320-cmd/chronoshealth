@@ -7,6 +7,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu } from './UserMenu';
 import { BottomNav } from './BottomNav';
 import { useI18n } from '@/lib/i18n';
+import { useTwinNickname } from '@/lib/profile-state';
 
 type Props = {
   children: ReactNode;
@@ -26,6 +27,7 @@ export function AppShell({
   hideBottomNav = false,
 }: Props) {
   const { t } = useI18n();
+  const nickname = useTwinNickname();
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-hidden">
@@ -60,10 +62,15 @@ export function AppShell({
           </Link>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1">
           {title && (
-            <span className="mr-1 text-sm font-medium text-stone-700 dark:text-stone-300">
+            <span className="mr-1 truncate text-sm font-medium text-stone-700 dark:text-stone-300">
               {title}
+            </span>
+          )}
+          {!title && nickname && (
+            <span className="mr-0.5 max-w-[7.5rem] truncate rounded-full bg-brand-50 px-2.5 py-1 text-[12px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+              {nickname}
             </span>
           )}
           <LanguageSwitcher />

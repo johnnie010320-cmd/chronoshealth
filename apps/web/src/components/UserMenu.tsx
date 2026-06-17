@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
+import { useTwinNickname } from '@/lib/profile-state';
 import { UserCircleIcon, LogoutIcon, MenuIcon } from './HealthIcons';
 
 // 헤더 우측 드롭다운 메뉴.
@@ -15,6 +16,7 @@ export function UserMenu() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
+  const nickname = useTwinNickname();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -80,6 +82,13 @@ export function UserMenu() {
         >
           {isLoggedIn ? (
             <>
+              {nickname && (
+                <div className="border-b border-stone-200/70 px-4 py-2.5 dark:border-stone-800">
+                  <p className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    {nickname}
+                  </p>
+                </div>
+              )}
               <Link
                 href="/profile"
                 role="menuitem"

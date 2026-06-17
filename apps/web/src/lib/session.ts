@@ -32,13 +32,15 @@ export function readSession(): StoredSession | null {
 export function writeSession(s: StoredSession): void {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  // 새 세션 시작 시 이전 admin 캐시 무효화 — 다음 useIsAdmin 호출에서 새로 fetch.
+  // 새 세션 시작 시 이전 admin·닉네임 캐시 무효화 — 다음 훅 호출에서 새로 fetch.
   window.localStorage.removeItem('chronos.isAdmin');
+  window.localStorage.removeItem('chronos.nickname');
 }
 
 export function clearSession(): void {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(STORAGE_KEY);
-  // admin 캐시도 같이 비움 — 다른 사용자가 같은 브라우저에서 로그인할 때 잘못된 권한 표시 방지.
+  // admin·닉네임 캐시도 같이 비움 — 다른 사용자가 같은 브라우저에서 로그인할 때 잘못된 표시 방지.
   window.localStorage.removeItem('chronos.isAdmin');
+  window.localStorage.removeItem('chronos.nickname');
 }
