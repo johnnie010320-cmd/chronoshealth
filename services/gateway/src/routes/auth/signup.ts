@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { SignupRequest } from '../../schemas/signup.js';
 import { signupUser, SignupError } from '../../auth/signup.js';
 import { ipRateLimit } from '../../middleware/ip-rate-limit.js';
+import { setSessionCookies } from '../../auth/cookies.js';
 import type { Bindings } from '../../bindings.js';
 
 // spec docs/spec/identity/01-signup.md / ADR 0010 + 0012 정합.
@@ -32,6 +33,8 @@ signupRoute.post('/', ipRateLimit(SIGNUP_IP_LIMIT_PER_DAY), async (c) => {
 
   try {
     const result = await signupUser(c.env.IDENTITY_DB, parsed.data);
+    // ADR 0014 — 가입 직후 자동 로그인 → httpOnly 세션 쿠키 발급.
+    setSessionCookies(c, result.sessionToken, result.userPseudonymId);
     return c.json(result, 201);
   } catch (err) {
     if (err instanceof SignupError) {

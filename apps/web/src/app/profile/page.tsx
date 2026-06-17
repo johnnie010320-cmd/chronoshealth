@@ -11,6 +11,7 @@ import {
   deleteMyAvatar,
   fetchMeProfile,
   fetchMyAvatar,
+  submitLogout,
   uploadMyAvatar,
   type MeProfile,
 } from '@/lib/api-client';
@@ -125,10 +126,11 @@ export default function ProfilePage() {
 
   if (!ready || !session) return null;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== 'undefined' && !window.confirm(P.logoutConfirm)) {
       return;
     }
+    await submitLogout(); // ADR 0014 — 서버에서 httpOnly 쿠키 삭제 + 토큰 revoke.
     clearSession();
     router.push('/');
   };

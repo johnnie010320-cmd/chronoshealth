@@ -3,6 +3,7 @@ import { LoginRequest, SetPasswordRequest } from '../../schemas/signup.js';
 import { loginUser, LoginError } from '../../auth/login.js';
 import { setPasswordForLegacy, SetPasswordError } from '../../auth/set-password.js';
 import { ipRateLimit } from '../../middleware/ip-rate-limit.js';
+import { setSessionCookies } from '../../auth/cookies.js';
 import type { Bindings } from '../../bindings.js';
 
 // spec docs/spec/identity/02-login.md (예정) / ADR 0012 정합.
@@ -25,6 +26,8 @@ loginRoute.post('/', ipRateLimit(LOGIN_IP_LIMIT_PER_DAY), async (c) => {
 
   try {
     const result = await loginUser(c.env.IDENTITY_DB, parsed.data);
+    // ADR 0014 — httpOnly 세션 쿠키 발급.
+    setSessionCookies(c, result.sessionToken, result.userPseudonymId);
     return c.json(result, 200);
   } catch (err) {
     if (err instanceof LoginError) {
@@ -58,6 +61,8 @@ setPasswordRoute.post('/', ipRateLimit(LOGIN_IP_LIMIT_PER_DAY), async (c) => {
 
   try {
     const result = await setPasswordForLegacy(c.env.IDENTITY_DB, parsed.data);
+    // ADR 0014 — httpOnly 세션 쿠키 발급.
+    setSessionCookies(c, result.sessionToken, result.userPseudonymId);
     return c.json(result, 200);
   } catch (err) {
     if (err instanceof SetPasswordError) {

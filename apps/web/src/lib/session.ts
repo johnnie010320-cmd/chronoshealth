@@ -11,22 +11,42 @@ export type StoredSession = {
   expiresAt: string;
 };
 
+// ADR 0014 — 비-httpOnly 마커 쿠키(chronos_uid). 토큰 아님, pseudonym 값만.
+function readUidCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(/(?:^|;\s*)chronos_uid=([^;]+)/);
+  return m && m[1] ? decodeURIComponent(m[1]) : null;
+}
+
 export function readSession(): StoredSession | null {
   if (typeof window === 'undefined') return null;
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as StoredSession;
-    if (!parsed.sessionToken || !parsed.expiresAt) return null;
-    if (new Date(parsed.expiresAt).getTime() <= Date.now()) {
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as StoredSession;
+      if (
+        parsed.sessionToken &&
+        parsed.expiresAt &&
+        new Date(parsed.expiresAt).getTime() > Date.now()
+      ) {
+        return parsed;
+      }
       window.localStorage.removeItem(STORAGE_KEY);
-      return null;
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
     }
-    return parsed;
-  } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
-    return null;
   }
+  // ADR 0014 — localStorage 가 비어도(iOS Safari ITP 7일 캡) httpOnly 세션 쿠키는 살아있을 수 있음.
+  // 마커 쿠키로 로그인 상태를 복원. 실제 인증은 httpOnly 쿠키(서버)가 수행하므로 sessionToken 은 불필요.
+  const uid = readUidCookie();
+  if (uid) {
+    return {
+      userPseudonymId: uid,
+      sessionToken: '',
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    };
+  }
+  return null;
 }
 
 export function writeSession(s: StoredSession): void {

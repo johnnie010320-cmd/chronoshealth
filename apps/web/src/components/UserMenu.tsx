@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
+import { submitLogout } from '@/lib/api-client';
 import { useTwinNickname } from '@/lib/profile-state';
 import { UserCircleIcon, LogoutIcon, MenuIcon } from './HealthIcons';
 
@@ -47,7 +48,8 @@ export function UserMenu() {
     };
   }, [open]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await submitLogout(); // ADR 0014 — 서버에서 httpOnly 쿠키 삭제 + 토큰 revoke.
     clearSession();
     setSession(null);
     setOpen(false);

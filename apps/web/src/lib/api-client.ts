@@ -10,8 +10,9 @@ import type {
 } from './signup-schema';
 import { readSession } from './session';
 
-const GATEWAY_URL =
-  'https://chronoshealth-gateway.l2pamerica.workers.dev';
+// ADR 0014 — same-origin 상대경로. `/api/*` 는 CF Pages Function 프록시가 게이트웨이로 전달.
+// same-origin 이므로 쿠키 자동 전송(fetch credentials 기본 'same-origin').
+const GATEWAY_URL = '';
 
 async function throwOnError(res: Response): Promise<never> {
   let errCode = `HTTP_${res.status}`;
@@ -79,6 +80,15 @@ export async function submitSetPassword(
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as LoginResponse;
+}
+
+// ADR 0014 — 로그아웃. httpOnly 쿠키는 서버만 삭제 가능 → /logout 호출로 revoke + 쿠키 삭제.
+export async function submitLogout(): Promise<void> {
+  try {
+    await fetch(`${GATEWAY_URL}/api/v1/auth/logout`, { method: 'POST' });
+  } catch {
+    // 네트워크 실패해도 클라이언트 세션은 어차피 정리됨 — 무시.
+  }
 }
 
 // 콘텐츠 페이지 (약관 / 개인정보 처리방침)

@@ -160,6 +160,13 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       return { success: true };
     }
 
+    if (trimmed.startsWith('UPDATE session_tokens SET revoked_at')) {
+      const [revoked_at, token] = args as [string, string];
+      const t = state.tokens.find((x) => x.token === token);
+      if (t) t.revoked_at = revoked_at;
+      return { success: true };
+    }
+
     if (trimmed.startsWith('INSERT INTO consent_log')) {
       // signup.ts는 kind/granted/source를 SQL 리터럴로 인라인 — pseudonym만 바인딩.
       const [user_pseudonym_id] = args as [string];
