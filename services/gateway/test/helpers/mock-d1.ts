@@ -217,6 +217,18 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
   function firstStmt(sql: string, args: unknown[]): unknown {
     const trimmed = sql.trim();
 
+    // R9 메시징 — 닉네임↔pseudonym 해석 (generic user_pseudonym_id 핸들러보다 먼저).
+    if (trimmed.startsWith('SELECT user_pseudonym_id FROM users WHERE nickname')) {
+      const [nickname] = args as [string];
+      const u = state.users.find((x) => x.nickname === nickname);
+      return u ? { user_pseudonym_id: u.user_pseudonym_id } : null;
+    }
+    if (trimmed.startsWith('SELECT nickname FROM users WHERE user_pseudonym_id')) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u ? { nickname: u.nickname ?? null } : null;
+    }
+
     if (trimmed.includes('FROM users WHERE email = ? OR phone = ?')) {
       const [email, phone] = args as [string, string];
       const hit = state.users.find((u) => u.email === email || u.phone === phone);
@@ -564,6 +576,32 @@ type LedgerRow = {
   created_at: string;
 };
 
+type ConversationMockRow = {
+  id: string;
+  kind: string;
+  title: string | null;
+  owner_pseudonym_id: string | null;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+type ConversationMemberMockRow = {
+  conversation_id: string;
+  member_pseudonym_id: string;
+  role: string;
+  joined_at: string;
+  last_read_at: string;
+};
+
+type MessageMockRow = {
+  id: string;
+  conversation_id: string;
+  sender_pseudonym_id: string;
+  body: string;
+  created_at: string;
+  deleted_at: string | null;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
@@ -577,6 +615,9 @@ export type MockAnalysisState = {
   contentPages: ContentPageRow[];
   communities: CommunityRow[];
   followers: CommunityFollowerRow[];
+  conversations: ConversationMockRow[];
+  conversationMembers: ConversationMemberMockRow[];
+  messages: MessageMockRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -608,9 +649,16 @@ export function makeMockAnalysisDb(): {
       },
     ],
     followers: [],
+    conversations: [],
+    conversationMembers: [],
+    messages: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
+  // R9 메시징 — 단조 증가 시계(ms). datetime('now') 초 해상도 충돌을 피해 테스트에서
+  // 메시지/읽음 순서를 결정적으로 보장한다.
+  let msgClock = Date.now();
+  const nextTs = (): string => new Date(msgClock++).toISOString();
 
   function runStmt(sql: string, args: unknown[]): {
     success: true;
@@ -934,11 +982,122 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: {} };
     }
 
+    if (trimmed.startsWith('INSERT OR IGNORE INTO conversations')) {
+      const [id, kind, title, owner_pseudonym_id] = args as [
+        string, string, string | null, string | null,
+      ];
+      if (!state.conversations.some((x) => x.id === id)) {
+        state.conversations.push({
+          id, kind, title, owner_pseudonym_id,
+          created_at: nextTs(),
+          deleted_at: null,
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT OR IGNORE INTO conversation_members')) {
+      const [conversation_id, member_pseudonym_id, role] = args as [
+        string, string, string,
+      ];
+      const exists = state.conversationMembers.some(
+        (m) => m.conversation_id === conversation_id && m.member_pseudonym_id === member_pseudonym_id,
+      );
+      if (!exists) {
+        const ts = nextTs();
+        state.conversationMembers.push({
+          conversation_id, member_pseudonym_id, role,
+          joined_at: ts, last_read_at: ts,
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT INTO messages')) {
+      const [id, conversation_id, sender_pseudonym_id, body] = args as [
+        string, string, string, string,
+      ];
+      state.messages.push({
+        id, conversation_id, sender_pseudonym_id, body,
+        created_at: nextTs(),
+        deleted_at: null,
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('UPDATE conversation_members SET last_read_at')) {
+      const [conversation_id, member_pseudonym_id] = args as [string, string];
+      const m = state.conversationMembers.find(
+        (x) => x.conversation_id === conversation_id && x.member_pseudonym_id === member_pseudonym_id,
+      );
+      if (m) m.last_read_at = nextTs();
+      return { success: true, meta: { changes: m ? 1 : 0 } };
+    }
+
+    if (trimmed.startsWith('DELETE FROM conversation_members')) {
+      const [conversation_id, member_pseudonym_id] = args as [string, string];
+      const idx = state.conversationMembers.findIndex(
+        (x) => x.conversation_id === conversation_id && x.member_pseudonym_id === member_pseudonym_id,
+      );
+      if (idx < 0) return { success: true, meta: { changes: 0 } };
+      state.conversationMembers.splice(idx, 1);
+      return { success: true, meta: { changes: 1 } };
+    }
+
     throw new Error(`mock-analysis-d1 unknown statement: ${trimmed.substring(0, 80)}`);
   }
 
   function firstStmtAnalysis(sql: string, args: unknown[]): unknown {
     const trimmed = sql.trim();
+
+    // R9 메시징 ─────────────────────────────────────────────────────────
+    if (trimmed.includes('FROM conversations WHERE id = ?')) {
+      const [id] = args as [string];
+      const c = state.conversations.find((x) => x.id === id && x.deleted_at === null);
+      return c
+        ? {
+            id: c.id,
+            kind: c.kind,
+            title: c.title,
+            owner_pseudonym_id: c.owner_pseudonym_id,
+            created_at: c.created_at,
+          }
+        : null;
+    }
+    if (trimmed.startsWith('SELECT 1 FROM conversation_members')) {
+      const [conversationId, memberPseudonymId] = args as [string, string];
+      const exists = state.conversationMembers.some(
+        (m) => m.conversation_id === conversationId && m.member_pseudonym_id === memberPseudonymId,
+      );
+      return exists ? { '1': 1 } : null;
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM messages')) {
+      const [conversationId, lastReadAt, senderExcl] = args as [string, string, string];
+      const count = state.messages.filter(
+        (m) =>
+          m.conversation_id === conversationId &&
+          m.deleted_at === null &&
+          m.created_at > lastReadAt &&
+          m.sender_pseudonym_id !== senderExcl,
+      ).length;
+      return { c: count };
+    }
+    if (trimmed.includes('FROM messages') && trimmed.includes('LIMIT 1')) {
+      const [conversationId] = args as [string];
+      const rows = state.messages
+        .filter((m) => m.conversation_id === conversationId && m.deleted_at === null)
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
+      const last = rows[0];
+      return last
+        ? {
+            id: last.id,
+            sender_pseudonym_id: last.sender_pseudonym_id,
+            body: last.body,
+            created_at: last.created_at,
+          }
+        : null;
+    }
+
     if (trimmed.includes('FROM beta_signups WHERE email_pseudonym = ?')) {
       const [pseudonym] = args as [string];
       return state.betaSignups.find((r) => r.email_pseudonym === pseudonym)
@@ -1176,6 +1335,63 @@ export function makeMockAnalysisDb(): {
         ).length,
       };
     };
+
+    // R9 메시징 ─────────────────────────────────────────────────────────
+    if (trimmed.startsWith('SELECT member_pseudonym_id, role, last_read_at')) {
+      const [conversationId] = args as [string];
+      const rows = state.conversationMembers
+        .filter((m) => m.conversation_id === conversationId)
+        .map((m) => ({
+          member_pseudonym_id: m.member_pseudonym_id,
+          role: m.role,
+          last_read_at: m.last_read_at,
+        }));
+      return { results: rows };
+    }
+    if (trimmed.includes('FROM conversations c') && trimmed.includes('JOIN conversation_members')) {
+      const [pseudonym] = args as [string];
+      const myConvIds = state.conversationMembers
+        .filter((m) => m.member_pseudonym_id === pseudonym)
+        .map((m) => m.conversation_id);
+      const rows = state.conversations
+        .filter((c) => myConvIds.includes(c.id) && c.deleted_at === null)
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .map((c) => {
+          const m = state.conversationMembers.find(
+            (x) => x.conversation_id === c.id && x.member_pseudonym_id === pseudonym,
+          );
+          return {
+            id: c.id,
+            kind: c.kind,
+            title: c.title,
+            owner_pseudonym_id: c.owner_pseudonym_id,
+            created_at: c.created_at,
+            last_read_at: m?.last_read_at ?? c.created_at,
+          };
+        });
+      return { results: rows };
+    }
+    if (trimmed.includes('FROM messages') && trimmed.includes('ORDER BY created_at DESC')) {
+      const limit = args[args.length - 1] as number;
+      const conversationId = args[0] as string;
+      const before = trimmed.includes('created_at < ?') ? (args[1] as string) : null;
+      const rows = state.messages
+        .filter(
+          (m) =>
+            m.conversation_id === conversationId &&
+            m.deleted_at === null &&
+            (!before || m.created_at < before),
+        )
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .slice(0, limit)
+        .map((m) => ({
+          id: m.id,
+          sender_pseudonym_id: m.sender_pseudonym_id,
+          body: m.body,
+          created_at: m.created_at,
+        }));
+      return { results: rows };
+    }
 
     if (
       trimmed.includes('FROM community_posts p') &&

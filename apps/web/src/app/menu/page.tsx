@@ -13,6 +13,7 @@ type GroupKey =
   | 'groupAiAge'
   | 'groupAiCare'
   | 'groupCommunity'
+  | 'groupMessaging'
   | 'groupAffiliates'
   | 'groupRewards'
   | 'groupProfile';
@@ -70,6 +71,13 @@ const MENU_GROUPS: MenuGroup[] = [
       { itemKey: 'itemCommunityComment', href: '/community' },
       { itemKey: 'itemCommunityHot', href: '/community' },
       { itemKey: 'itemCommunityRanking', href: '/leaderboard' },
+    ],
+  },
+  {
+    groupKey: 'groupMessaging',
+    items: [
+      { itemKey: 'itemMessagesDm', href: '/messages' },
+      { itemKey: 'itemMessagesRoom', href: '/messages/room/new' },
     ],
   },
   {

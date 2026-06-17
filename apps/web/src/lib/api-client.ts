@@ -1199,3 +1199,154 @@ export async function estimateFoodshot(
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as FoodshotResult;
 }
+
+// R9 — 회원간 메시지(DM) + 대화방. ADR 0015 (닉네임 공개 핸들, 폴링 기반).
+export type ConversationKind = 'dm' | 'room';
+
+export type ConversationListItem = {
+  id: string;
+  kind: ConversationKind;
+  title: string | null;
+  displayName: string | null;
+  memberCount: number;
+  unreadCount: number;
+  lastMessage: { body: string; createdAt: string; senderNickname: string | null } | null;
+  createdAt: string;
+};
+
+export type ConversationDetail = {
+  id: string;
+  kind: ConversationKind;
+  title: string | null;
+  displayName: string | null;
+  isOwner: boolean;
+  createdAt: string;
+};
+
+export type ConversationMember = {
+  nickname: string | null;
+  role: 'owner' | 'member';
+  isMe: boolean;
+};
+
+export type ChatMessage = {
+  id: string;
+  body: string;
+  createdAt: string;
+  senderNickname: string | null;
+  isMine: boolean;
+};
+
+function authHeaders(token: string): Record<string, string> {
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+}
+
+export async function openDm(nickname: string): Promise<{ conversation: ConversationDetail }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/dm`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+    body: JSON.stringify({ nickname }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { conversation: ConversationDetail };
+}
+
+export async function createRoom(
+  title: string,
+  inviteNicknames: string[],
+): Promise<{ conversation: ConversationDetail }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/rooms`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+    body: JSON.stringify({ title, inviteNicknames }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { conversation: ConversationDetail };
+}
+
+export async function fetchConversations(): Promise<ConversationListItem[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations`, {
+    method: 'GET',
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { conversations: ConversationListItem[] }).conversations;
+}
+
+export async function fetchConversation(
+  id: string,
+): Promise<{ conversation: ConversationDetail; members: ConversationMember[] }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}`, {
+    method: 'GET',
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as {
+    conversation: ConversationDetail;
+    members: ConversationMember[];
+  };
+}
+
+export async function fetchMessages(
+  id: string,
+  before?: string,
+): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const qs = before ? `?before=${encodeURIComponent(before)}` : '';
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/messages${qs}`, {
+    method: 'GET',
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { messages: ChatMessage[]; hasMore: boolean };
+}
+
+export async function sendMessage(id: string, body: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/messages`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function markConversationRead(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) return;
+  await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/read`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+  });
+}
+
+export async function inviteToRoom(id: string, nickname: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/invite`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+    body: JSON.stringify({ nickname }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function leaveConversation(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/leave`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+}
