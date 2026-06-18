@@ -394,6 +394,7 @@ export const ja: Dictionary = {
   community: {
     pageTitle: 'コミュニティ',
     nav: 'コミュニティ',
+    homeCardLabel: 'コミュニティを見る',
     title: '今日のホット',
     feedTitle: '最新投稿',
     trendingTitle: '今日のホット (24h)',

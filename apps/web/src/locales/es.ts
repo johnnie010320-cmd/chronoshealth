@@ -397,6 +397,7 @@ export const es: Dictionary = {
   community: {
     pageTitle: 'Comunidad',
     nav: 'Comunidad',
+    homeCardLabel: 'Explorar la comunidad',
     title: 'Personas destacadas de hoy',
     feedTitle: 'Publicaciones recientes',
     trendingTitle: 'Destacados de hoy (24h)',

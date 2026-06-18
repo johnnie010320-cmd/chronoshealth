@@ -9,6 +9,7 @@ import { ChatBubbleIcon, ChevronRightIcon, UsersIcon } from '@/components/Health
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fetchConversations, openDm, type ConversationListItem } from '@/lib/api-client';
+import { NicknameAutocomplete } from '@/components/NicknameAutocomplete';
 
 export default function MessagesPage() {
   const { t } = useI18n();
@@ -96,14 +97,13 @@ export default function MessagesPage() {
             {M.dmNicknameLabel}
           </label>
           <div className="mt-1 flex gap-2">
-            <input
-              type="text"
-              value={nickname}
-              placeholder={M.dmNicknamePlaceholder}
-              maxLength={8}
-              onChange={(e) => setNickname(e.target.value)}
-              className="block w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
-            />
+            <div className="min-w-0 flex-1">
+              <NicknameAutocomplete
+                value={nickname}
+                onChange={setNickname}
+                placeholder={M.dmNicknamePlaceholder}
+              />
+            </div>
             <button
               type="submit"
               disabled={submitting || nickname.trim().length < 2}

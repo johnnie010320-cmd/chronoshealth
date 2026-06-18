@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { PulseBackground } from '@/components/PulseBackground';
 import {
-  HeartPulseIcon,
   ChevronRightIcon,
   ActivityIcon,
+  UsersIcon,
 } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
@@ -231,10 +231,10 @@ export default function HomePage() {
       >
         <div className="flex min-w-0 items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
-            <HeartPulseIcon className="h-4 w-4" />
+            <UsersIcon className="h-4 w-4" />
           </span>
-          <p className="truncate text-[12px] text-stone-700 dark:text-stone-300">
-            {H.affiliateRolling}
+          <p className="truncate text-[12px] font-medium text-stone-700 dark:text-stone-300">
+            {t.community.homeCardLabel}
           </p>
         </div>
         <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />

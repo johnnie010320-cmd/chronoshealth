@@ -1426,6 +1426,18 @@ export async function leaveConversation(id: string): Promise<void> {
   if (!res.ok) await throwOnError(res);
 }
 
+// 닉네임 자동검색 — 기존 회원 선택용(DM/대화방 초대/커뮤니티 관리자 지정). 닉네임만 반환.
+export async function searchMembers(q: string): Promise<string[]> {
+  const session = readSession();
+  if (!session) return [];
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/members/search?q=${encodeURIComponent(q)}`,
+    { headers: authHeaders(session.sessionToken) },
+  );
+  if (!res.ok) return [];
+  return ((await res.json()) as { nicknames: string[] }).nicknames;
+}
+
 // R-Admin — 공지사항. 공개 조회는 로그인 불필요.
 export type Notice = {
   id: string;

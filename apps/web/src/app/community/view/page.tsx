@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon, UsersIcon } from '@/components/HealthIcons';
+import { NicknameAutocomplete } from '@/components/NicknameAutocomplete';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -93,12 +94,11 @@ function CommunityViewPageInner() {
     }
   }
 
-  async function handleAddAdmin(e: React.FormEvent) {
-    e.preventDefault();
-    if (!detail || adminNick.trim().length < 2) return;
+  async function addAdminByNick(nick: string) {
+    if (!detail || nick.trim().length < 2) return;
     setBusy(true);
     try {
-      await addCommunityAdmin(detail.community.id, adminNick.trim());
+      await addCommunityAdmin(detail.community.id, nick.trim());
       setAdminNick('');
       setAdmins(await fetchCommunityAdmins(detail.community.id));
     } catch {
@@ -106,6 +106,11 @@ function CommunityViewPageInner() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleAddAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    void addAdminByNick(adminNick);
   }
 
   async function handleRemoveAdmin(pseudonymId: string) {
@@ -229,14 +234,15 @@ function CommunityViewPageInner() {
             {G.adminsLabel}
           </p>
           <form onSubmit={handleAddAdmin} className="mt-1 flex gap-2">
-            <input
-              type="text"
-              value={adminNick}
-              placeholder={G.adminAddPlaceholder}
-              maxLength={8}
-              onChange={(e) => setAdminNick(e.target.value)}
-              className="block w-full rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
-            />
+            <div className="min-w-0 flex-1">
+              <NicknameAutocomplete
+                value={adminNick}
+                onChange={setAdminNick}
+                onPick={(nick) => void addAdminByNick(nick)}
+                placeholder={G.adminAddPlaceholder}
+                exclude={admins.map((a) => a.nickname ?? '')}
+              />
+            </div>
             <button
               type="submit"
               disabled={busy || adminNick.trim().length < 2}

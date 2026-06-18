@@ -43,7 +43,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="primary"
-      className="fixed inset-x-0 bottom-0 z-10 mx-auto max-w-md border-t border-stone-200/60 bg-white/85 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5 backdrop-blur-md dark:border-stone-800/60 dark:bg-stone-950/85"
+      className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),0.75rem)] z-20 mx-auto max-w-md rounded-2xl border border-stone-200/70 bg-white/90 px-1 py-1.5 shadow-lg backdrop-blur-md dark:border-stone-800/70 dark:bg-stone-950/90"
     >
       <ul className="flex items-stretch justify-around">
         {ITEMS.map(({ href, labelKey, Icon }) => {

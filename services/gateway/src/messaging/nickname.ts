@@ -13,6 +13,25 @@ export async function findPseudonymByNickname(
   return r?.user_pseudonym_id ?? null;
 }
 
+// 닉네임 prefix 자동검색 — 비-PII 닉네임만 반환(ADR 0015). 본인 제외.
+// LIKE 와일드카드는 호출 전 제거되어 순수 prefix 매칭만 수행.
+export async function searchNicknames(
+  identityDb: D1Database,
+  prefix: string,
+  limit: number,
+  excludePseudonymId: string,
+): Promise<string[]> {
+  const { results } = await identityDb
+    .prepare(
+      `SELECT nickname FROM users
+        WHERE nickname IS NOT NULL AND nickname LIKE ? AND user_pseudonym_id != ?
+        ORDER BY nickname LIMIT ?`,
+    )
+    .bind(`${prefix}%`, excludePseudonymId, limit)
+    .all<{ nickname: string }>();
+  return (results ?? []).map((r) => r.nickname);
+}
+
 export async function resolveNickname(
   identityDb: D1Database,
   pseudonymId: string,

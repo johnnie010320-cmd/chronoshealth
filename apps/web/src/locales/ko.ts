@@ -391,6 +391,7 @@ export const ko = {
   community: {
     pageTitle: '커뮤니티',
     nav: '커뮤니티',
+    homeCardLabel: '커뮤니티 둘러보기',
     title: '오늘의 핫피플',
     feedTitle: '최신 게시물',
     trendingTitle: '오늘의 핫피플 (24h)',

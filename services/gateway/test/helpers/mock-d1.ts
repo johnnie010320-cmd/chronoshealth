@@ -361,6 +361,21 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
 
   function allStmt(sql: string, args: unknown[]): { results: unknown[] } {
     const trimmed = sql.trim();
+    if (trimmed.startsWith('SELECT nickname FROM users') && trimmed.includes('nickname LIKE ?')) {
+      const [pattern, excludeId, limit] = args as [string, string, number];
+      const prefix = pattern.replace(/%$/, '');
+      const rows = state.users
+        .filter(
+          (u) =>
+            u.nickname != null &&
+            u.nickname.startsWith(prefix) &&
+            u.user_pseudonym_id !== excludeId,
+        )
+        .sort((a, b) => ((a.nickname ?? '') > (b.nickname ?? '') ? 1 : -1))
+        .slice(0, limit)
+        .map((u) => ({ nickname: u.nickname }));
+      return { results: rows };
+    }
     if (
       trimmed.startsWith('SELECT user_pseudonym_id, name, nickname, email, phone, created_at FROM users') &&
       trimmed.includes('ORDER BY created_at DESC')

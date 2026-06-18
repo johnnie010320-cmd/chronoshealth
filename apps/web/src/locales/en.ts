@@ -397,6 +397,7 @@ export const en: Dictionary = {
   community: {
     pageTitle: 'Community',
     nav: 'Community',
+    homeCardLabel: 'Explore the community',
     title: "Today's hot people",
     feedTitle: 'Latest posts',
     trendingTitle: "Today's hot people (24h)",
