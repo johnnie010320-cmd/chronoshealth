@@ -181,6 +181,89 @@ export async function softDeleteCommunity(
   return (res.meta?.changes ?? 0) > 0;
 }
 
+// owner 가 공개/비공개 전환.
+export async function updateCommunityVisibility(
+  db: D1Database,
+  id: string,
+  visibility: CommunityVisibility,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE communities SET visibility = ?
+        WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(visibility, id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// 커뮤니티 관리자(owner 위임) — 모더레이션 권한.
+export async function isCommunityAdmin(
+  db: D1Database,
+  communityId: string,
+  pseudonymId: string,
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT 1 FROM community_admins
+        WHERE community_id = ? AND admin_pseudonym_id = ? LIMIT 1`,
+    )
+    .bind(communityId, pseudonymId)
+    .first<{ '1': number }>();
+  return row !== null;
+}
+
+export async function addCommunityAdmin(
+  db: D1Database,
+  communityId: string,
+  pseudonymId: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO community_admins (community_id, admin_pseudonym_id)
+       VALUES (?, ?)`,
+    )
+    .bind(communityId, pseudonymId)
+    .run();
+  // 관리자는 active 팔로워로도 등록.
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO community_followers (community_id, follower_pseudonym_id, status)
+       VALUES (?, ?, 'active')`,
+    )
+    .bind(communityId, pseudonymId)
+    .run();
+}
+
+export async function removeCommunityAdmin(
+  db: D1Database,
+  communityId: string,
+  pseudonymId: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `DELETE FROM community_admins
+        WHERE community_id = ? AND admin_pseudonym_id = ?`,
+    )
+    .bind(communityId, pseudonymId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function listCommunityAdmins(
+  db: D1Database,
+  communityId: string,
+): Promise<string[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT admin_pseudonym_id FROM community_admins
+        WHERE community_id = ? ORDER BY created_at ASC`,
+    )
+    .bind(communityId)
+    .all<{ admin_pseudonym_id: string }>();
+  return (results ?? []).map((r) => r.admin_pseudonym_id);
+}
+
 export async function readFollower(
   db: D1Database,
   communityId: string,

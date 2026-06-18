@@ -22,6 +22,7 @@ import { aiFoodshotRoute } from './routes/ai/foodshot.js';
 import { medicalRoute } from './routes/medical/index.js';
 import { diaryRoute } from './routes/diary/index.js';
 import { messagingRoute } from './routes/messaging/index.js';
+import { noticesPublicRoute, noticesAdminRoute } from './routes/notices/index.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -70,6 +71,8 @@ app.route('/api/v1/ai', aiFoodshotRoute);
 app.route('/api/v1/me/medical', medicalRoute);
 app.route('/api/v1/me/diary', diaryRoute);
 app.route('/api/v1/messages', messagingRoute);
+app.route('/api/v1/notices', noticesPublicRoute);
+app.route('/api/v1/admin/notices', noticesAdminRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));
 

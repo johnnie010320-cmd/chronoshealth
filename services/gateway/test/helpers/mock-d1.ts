@@ -362,7 +362,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
   function allStmt(sql: string, args: unknown[]): { results: unknown[] } {
     const trimmed = sql.trim();
     if (
-      trimmed.startsWith('SELECT user_pseudonym_id, email, created_at FROM users') &&
+      trimmed.startsWith('SELECT user_pseudonym_id, name, nickname, email, phone, created_at FROM users') &&
       trimmed.includes('ORDER BY created_at DESC')
     ) {
       const limit = args[args.length - 1] as number;
@@ -372,11 +372,15 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         const cursor = args[argIdx++] as string;
         pool = pool.filter((u) => (u.created_at ?? '') < cursor);
       }
-      if (trimmed.includes('(user_pseudonym_id LIKE ? OR email LIKE ?)')) {
+      if (trimmed.includes('user_pseudonym_id LIKE ?')) {
         const needle = (args[argIdx++] as string).replace(/^%|%$/g, '');
-        argIdx++; // skip second binding
+        argIdx += 3; // skip email/nickname/name bindings
         pool = pool.filter(
-          (u) => u.user_pseudonym_id.includes(needle) || u.email.includes(needle),
+          (u) =>
+            u.user_pseudonym_id.includes(needle) ||
+            u.email.includes(needle) ||
+            (u.nickname ?? '').includes(needle) ||
+            (u.name ?? '').includes(needle),
         );
       }
       const rows = pool
@@ -384,7 +388,10 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         .slice(0, limit)
         .map((u) => ({
           user_pseudonym_id: u.user_pseudonym_id,
+          name: u.name,
+          nickname: u.nickname ?? null,
           email: u.email,
+          phone: u.phone,
           created_at: u.created_at ?? new Date().toISOString(),
         }));
       return { results: rows };
@@ -551,6 +558,12 @@ type CommunityFollowerRow = {
   created_at: string;
 };
 
+type CommunityAdminMockRow = {
+  community_id: string;
+  admin_pseudonym_id: string;
+  created_at: string;
+};
+
 type CommunityCommentRow = {
   id: string;
   post_id: string;
@@ -602,6 +615,17 @@ type MessageMockRow = {
   deleted_at: string | null;
 };
 
+type NoticeMockRow = {
+  id: string;
+  title: string;
+  body: string;
+  pinned: number;
+  published: number;
+  created_by_pseudonym_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
@@ -615,9 +639,11 @@ export type MockAnalysisState = {
   contentPages: ContentPageRow[];
   communities: CommunityRow[];
   followers: CommunityFollowerRow[];
+  communityAdmins: CommunityAdminMockRow[];
   conversations: ConversationMockRow[];
   conversationMembers: ConversationMemberMockRow[];
   messages: MessageMockRow[];
+  notices: NoticeMockRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -649,9 +675,11 @@ export function makeMockAnalysisDb(): {
       },
     ],
     followers: [],
+    communityAdmins: [],
     conversations: [],
     conversationMembers: [],
     messages: [],
+    notices: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -662,7 +690,7 @@ export function makeMockAnalysisDb(): {
 
   function runStmt(sql: string, args: unknown[]): {
     success: true;
-    meta: { last_row_id?: number };
+    meta: { last_row_id?: number; changes?: number };
   } {
     const trimmed = sql.trim();
 
@@ -934,12 +962,74 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('UPDATE community_posts SET deleted_at')) {
-      const [postId, userPseudonymId] = args as [string, string];
-      const post = state.posts.find(
-        (p) => p.id === postId && p.user_pseudonym_id === userPseudonymId && p.deleted_at === null,
-      );
+      // 작성자 삭제(user_pseudonym_id 검사 포함) vs 모더레이터 삭제(id 만) 분기.
+      if (trimmed.includes('user_pseudonym_id = ?')) {
+        const [postId, userPseudonymId] = args as [string, string];
+        const post = state.posts.find(
+          (p) => p.id === postId && p.user_pseudonym_id === userPseudonymId && p.deleted_at === null,
+        );
+        if (!post) return { success: true, meta: { changes: 0 } };
+        post.deleted_at = new Date().toISOString();
+        return { success: true, meta: { changes: 1 } };
+      }
+      const [postId] = args as [string];
+      const post = state.posts.find((p) => p.id === postId && p.deleted_at === null);
       if (!post) return { success: true, meta: { changes: 0 } };
       post.deleted_at = new Date().toISOString();
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('UPDATE community_comments SET deleted_at')) {
+      const [commentId] = args as [string];
+      const cmt = state.comments.find((cc) => cc.id === commentId && cc.deleted_at === null);
+      if (!cmt) return { success: true, meta: { changes: 0 } };
+      cmt.deleted_at = new Date().toISOString();
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('UPDATE communities SET visibility')) {
+      const [visibility, id] = args as [string, string];
+      const com = state.communities.find((x) => x.id === id && x.deleted_at === null);
+      if (!com) return { success: true, meta: { changes: 0 } };
+      com.visibility = visibility;
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('INSERT OR IGNORE INTO community_admins')) {
+      const [community_id, admin_pseudonym_id] = args as [string, string];
+      if (
+        !state.communityAdmins.some(
+          (a) => a.community_id === community_id && a.admin_pseudonym_id === admin_pseudonym_id,
+        )
+      ) {
+        state.communityAdmins.push({
+          community_id, admin_pseudonym_id, created_at: new Date().toISOString(),
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('INSERT OR IGNORE INTO community_followers')) {
+      const [community_id, follower_pseudonym_id, status] = args as [string, string, string];
+      if (
+        !state.followers.some(
+          (f) => f.community_id === community_id && f.follower_pseudonym_id === follower_pseudonym_id,
+        )
+      ) {
+        state.followers.push({
+          community_id, follower_pseudonym_id, status, created_at: new Date().toISOString(),
+        });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('DELETE FROM community_admins')) {
+      const [community_id, admin_pseudonym_id] = args as [string, string];
+      const idx = state.communityAdmins.findIndex(
+        (a) => a.community_id === community_id && a.admin_pseudonym_id === admin_pseudonym_id,
+      );
+      if (idx < 0) return { success: true, meta: { changes: 0 } };
+      state.communityAdmins.splice(idx, 1);
       return { success: true, meta: { changes: 1 } };
     }
 
@@ -1044,6 +1134,39 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (trimmed.startsWith('INSERT INTO notices')) {
+      const [id, title, body, pinned, published, created_by_pseudonym_id] = args as [
+        string, string, string, number, number, string,
+      ];
+      const ts = nextTs();
+      state.notices.push({
+        id, title, body, pinned, published, created_by_pseudonym_id,
+        created_at: ts, updated_at: ts,
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('UPDATE notices SET')) {
+      const id = args[args.length - 1] as string;
+      const n = state.notices.find((x) => x.id === id);
+      if (!n) return { success: true, meta: { changes: 0 } };
+      let i = 0;
+      if (trimmed.includes('title = ?')) n.title = args[i++] as string;
+      if (trimmed.includes('body = ?')) n.body = args[i++] as string;
+      if (trimmed.includes('pinned = ?')) n.pinned = args[i++] as number;
+      if (trimmed.includes('published = ?')) n.published = args[i++] as number;
+      n.updated_at = nextTs();
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('DELETE FROM notices')) {
+      const [id] = args as [string];
+      const idx = state.notices.findIndex((x) => x.id === id);
+      if (idx < 0) return { success: true, meta: { changes: 0 } };
+      state.notices.splice(idx, 1);
+      return { success: true, meta: { changes: 1 } };
+    }
+
     throw new Error(`mock-analysis-d1 unknown statement: ${trimmed.substring(0, 80)}`);
   }
 
@@ -1094,6 +1217,32 @@ export function makeMockAnalysisDb(): {
             sender_pseudonym_id: last.sender_pseudonym_id,
             body: last.body,
             created_at: last.created_at,
+          }
+        : null;
+    }
+    if (trimmed.startsWith('SELECT 1 FROM community_admins')) {
+      const [communityId, adminId] = args as [string, string];
+      const exists = state.communityAdmins.some(
+        (a) => a.community_id === communityId && a.admin_pseudonym_id === adminId,
+      );
+      return exists ? { '1': 1 } : null;
+    }
+    if (trimmed.includes('FROM community_comments c') && trimmed.includes('JOIN community_posts p')) {
+      const [commentId] = args as [string];
+      const cmt = state.comments.find((cc) => cc.id === commentId && cc.deleted_at === null);
+      if (!cmt) return null;
+      const post = state.posts.find((p) => p.id === cmt.post_id);
+      if (!post) return null;
+      return { comment_id: cmt.id, community_id: post.community_id };
+    }
+    if (trimmed.includes('FROM notices WHERE id = ?')) {
+      const [id] = args as [string];
+      const n = state.notices.find((x) => x.id === id);
+      return n
+        ? {
+            id: n.id, title: n.title, body: n.body,
+            pinned: n.pinned, published: n.published,
+            created_at: n.created_at, updated_at: n.updated_at,
           }
         : null;
     }
@@ -1371,6 +1520,23 @@ export function makeMockAnalysisDb(): {
         });
       return { results: rows };
     }
+    if (trimmed.includes('FROM notices') && trimmed.includes('ORDER BY pinned DESC')) {
+      const limit = args[args.length - 1] as number;
+      const publishedOnly = trimmed.includes('WHERE published = 1');
+      const rows = state.notices
+        .filter((n) => (publishedOnly ? n.published === 1 : true))
+        .sort((a, b) => {
+          if (a.pinned !== b.pinned) return b.pinned - a.pinned;
+          return a.created_at > b.created_at ? -1 : 1;
+        })
+        .slice(0, limit)
+        .map((n) => ({
+          id: n.id, title: n.title, body: n.body,
+          pinned: n.pinned, published: n.published,
+          created_at: n.created_at, updated_at: n.updated_at,
+        }));
+      return { results: rows };
+    }
     if (trimmed.includes('FROM messages') && trimmed.includes('ORDER BY created_at DESC')) {
       const limit = args[args.length - 1] as number;
       const conversationId = args[0] as string;
@@ -1453,6 +1619,14 @@ export function makeMockAnalysisDb(): {
       return { results: rows };
     }
 
+    if (trimmed.startsWith('SELECT admin_pseudonym_id FROM community_admins')) {
+      const [communityId] = args as [string];
+      const rows = state.communityAdmins
+        .filter((a) => a.community_id === communityId)
+        .sort((a, b) => (a.created_at > b.created_at ? 1 : -1))
+        .map((a) => ({ admin_pseudonym_id: a.admin_pseudonym_id }));
+      return { results: rows };
+    }
     if (trimmed.includes('FROM community_followers') && trimmed.includes('WHERE community_id = ?')) {
       const [communityId] = args as [string];
       const rows = state.followers

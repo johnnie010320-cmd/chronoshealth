@@ -97,6 +97,7 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     groupKey: 'groupProfile',
     items: [
+      { itemKey: 'itemNotices', href: '/notices' },
       { itemKey: 'itemProfileEdit', href: '/profile' },
       { itemKey: 'itemProfileDiary', href: '/diary' },
       { itemKey: 'itemProfileMyPosts', href: '/community?mine=1' },

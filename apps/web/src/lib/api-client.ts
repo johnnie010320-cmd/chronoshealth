@@ -382,7 +382,10 @@ export type AdminStats = {
 
 export type AdminUserRow = {
   userPseudonymId: string;
-  emailMasked: string;
+  name: string | null;
+  nickname: string | null;
+  email: string;
+  phone: string | null;
   createdAt: string;
   reportCount: number;
   ledgerBalance: number;
@@ -602,9 +605,12 @@ export type CommunityListResponse = {
 export type CommunityDetailResponse = {
   community: CommunitySummary;
   isOwner: boolean;
+  isModerator: boolean;
   myStatus: FollowerStatus | null;
   modelVersion: string;
 };
+
+export type CommunityAdminEntry = { pseudonymId: string; nickname: string | null };
 
 export type CreateCommunityBody = {
   name: string;
@@ -895,6 +901,75 @@ export async function toggleCommunityFollow(
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as { following: boolean; status: FollowerStatus | null };
+}
+
+// R-Community owner 권한 — 공개/비공개, 관리자 위임, 모더레이션 삭제.
+export async function setCommunityVisibility(
+  id: string,
+  visibility: CommunityVisibility,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ visibility }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function fetchCommunityAdmins(id: string): Promise<CommunityAdminEntry[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities/${id}/admins`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { admins: CommunityAdminEntry[] }).admins;
+}
+
+export async function addCommunityAdmin(id: string, nickname: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/communities/${id}/admins`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ nickname }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function removeCommunityAdmin(id: string, pseudonymId: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/community/communities/${id}/admins/${pseudonymId}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function moderatorDeletePost(communityId: string, postId: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/community/communities/${communityId}/posts/${postId}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function moderatorDeleteComment(
+  communityId: string,
+  commentId: string,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/community/communities/${communityId}/comments/${commentId}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
 }
 
 export async function fetchAdminCommunities(): Promise<AdminCommunityListResponse> {
@@ -1346,6 +1421,75 @@ export async function leaveConversation(id: string): Promise<void> {
   if (!session) throw new Error('UNAUTHORIZED');
   const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/leave`, {
     method: 'POST',
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// R-Admin — 공지사항. 공개 조회는 로그인 불필요.
+export type Notice = {
+  id: string;
+  title: string;
+  body: string;
+  pinned: boolean;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function fetchNotices(): Promise<Notice[]> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/notices`, { method: 'GET' });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { notices: Notice[] }).notices;
+}
+
+export async function fetchAdminNotices(): Promise<Notice[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/notices`, {
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { notices: Notice[] }).notices;
+}
+
+export async function createNotice(body: {
+  title: string;
+  body: string;
+  pinned: boolean;
+  published: boolean;
+}): Promise<Notice> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/notices`, {
+    method: 'POST',
+    headers: authHeaders(session.sessionToken),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { notice: Notice }).notice;
+}
+
+export async function updateNotice(
+  id: string,
+  patch: { title?: string; body?: string; pinned?: boolean; published?: boolean },
+): Promise<Notice> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/notices/${id}`, {
+    method: 'PATCH',
+    headers: authHeaders(session.sessionToken),
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { notice: Notice }).notice;
+}
+
+export async function deleteNotice(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/notices/${id}`, {
+    method: 'DELETE',
     headers: authHeaders(session.sessionToken),
   });
   if (!res.ok) await throwOnError(res);

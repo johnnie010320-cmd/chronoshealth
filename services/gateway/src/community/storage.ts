@@ -232,6 +232,47 @@ export async function insertComment(
     .run();
 }
 
+// 모더레이터(owner/커뮤니티 관리자/사이트 관리자) 가 임의의 글을 삭제 — 작성자 일치 검사 없음.
+export async function moderatorDeletePost(db: D1Database, postId: string): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE community_posts SET deleted_at = datetime('now')
+        WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(postId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// 모더레이터가 임의의 댓글을 삭제(다른 회원 댓글 포함).
+export async function moderatorDeleteComment(db: D1Database, commentId: string): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE community_comments SET deleted_at = datetime('now')
+        WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(commentId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// 댓글 1건 조회 — 모더레이션 시 소속 커뮤니티 확인용.
+export async function readCommentCommunity(
+  db: D1Database,
+  commentId: string,
+): Promise<{ commentId: string; communityId: string } | null> {
+  const row = await db
+    .prepare(
+      `SELECT c.id AS comment_id, p.community_id AS community_id
+         FROM community_comments c
+         JOIN community_posts p ON p.id = c.post_id
+        WHERE c.id = ? AND c.deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(commentId)
+    .first<{ comment_id: string; community_id: string }>();
+  return row ? { commentId: row.comment_id, communityId: row.community_id } : null;
+}
+
 export async function listComments(db: D1Database, postId: string): Promise<CommentRow[]> {
   const result = await db
     .prepare(

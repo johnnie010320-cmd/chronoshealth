@@ -3,12 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useI18n } from '@/lib/i18n';
-import {
-  fetchAdminUsers,
-  fetchAdminUserDetail,
-  type AdminUserDetail,
-  type AdminUserRow,
-} from '@/lib/api-client';
+import { fetchAdminUsers, type AdminUserRow } from '@/lib/api-client';
 
 export default function AdminUsersPage() {
   const { t } = useI18n();
@@ -19,9 +14,6 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [errCode, setErrCode] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AdminUserDetail | null>(null);
-  const [unmaskedId, setUnmaskedId] = useState<string | null>(null);
-  const [detailBusy, setDetailBusy] = useState(false);
 
   useEffect(() => {
     void loadUsers('');
@@ -34,24 +26,9 @@ export default function AdminUsersPage() {
       const data = await fetchAdminUsers(q || undefined);
       setUsers(data.users);
     } catch (e) {
-      const code = e instanceof Error ? e.message : 'generic';
-      setErrCode(code);
+      setErrCode(e instanceof Error ? e.message : 'generic');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function openDetail(id: string, unmask: boolean) {
-    setDetailBusy(true);
-    try {
-      const data = await fetchAdminUserDetail(id, unmask);
-      setSelected(data.detail);
-      setUnmaskedId(unmask ? id : null);
-    } catch (e) {
-      const code = e instanceof Error ? e.message : 'generic';
-      setErrCode(code);
-    } finally {
-      setDetailBusy(false);
     }
   }
 
@@ -93,91 +70,44 @@ export default function AdminUsersPage() {
       {!loading && users.length > 0 && (
         <ul className="card-shadow mt-3 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
           {users.map((user) => (
-            <li key={user.userPseudonymId}>
-              <button
-                type="button"
-                onClick={() => void openDetail(user.userPseudonymId, false)}
-                disabled={detailBusy}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:bg-stone-50 disabled:opacity-50 dark:active:bg-stone-800/50"
-              >
+            <li key={user.userPseudonymId} className="px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-stone-800 dark:text-stone-100">
-                    {user.emailMasked}
+                  <p className="truncate text-[13px] font-semibold text-stone-900 dark:text-stone-100">
+                    {user.name ?? user.nickname ?? '—'}
+                    {user.nickname && (
+                      <span className="ml-1.5 text-[11px] font-normal text-stone-400">
+                        @{user.nickname}
+                      </span>
+                    )}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-400">
+                  <p className="mt-0.5 truncate text-[12px] text-stone-600 dark:text-stone-300">
+                    {U.columns.email}: {user.email}
+                  </p>
+                  <p className="mt-0.5 truncate text-[12px] text-stone-600 dark:text-stone-300">
+                    {U.columns.phone}: {user.phone ?? '—'}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-500">
                     {U.columns.createdAt}: {new Date(user.createdAt).toLocaleString()}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[10px] text-stone-500 dark:text-stone-400">
-                    {U.columns.reports} {user.reportCount} · {U.columns.balance} {user.ledgerBalance}
+                  <p className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                    {user.ledgerBalance.toLocaleString()} CHRO
+                  </p>
+                  <p className="mt-1 text-[10px] text-stone-400 dark:text-stone-500">
+                    {U.columns.reports} {user.reportCount}
                   </p>
                 </div>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
 
       <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-        {U.maskedHint}
+        {U.piiHint}
       </div>
-
-      {selected && (
-        <div className="fixed inset-0 z-20 flex items-end justify-center bg-stone-900/40 backdrop-blur-sm">
-          <div className="card-shadow w-full max-w-md rounded-t-3xl bg-white p-5 dark:bg-stone-900">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {U.detailTitle}
-            </p>
-
-            <dl className="mt-3 space-y-2 text-[13px]">
-              <DetailRow label={U.nameLabel} value={selected.name ?? '—'} />
-              <DetailRow label={U.emailLabel} value={selected.emailMasked ?? '—'} />
-              <DetailRow label={U.phoneLabel} value={selected.phoneMasked ?? '—'} />
-            </dl>
-
-            <div className="mt-4 flex gap-2">
-              {unmaskedId === selected.userPseudonymId ? (
-                <span className="inline-flex items-center rounded-xl bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
-                  {U.unmaskOn}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void openDetail(selected.userPseudonymId, true)}
-                  disabled={detailBusy}
-                  className="inline-flex items-center rounded-xl bg-stone-900 px-3 py-2 text-[12px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-50 dark:bg-white dark:text-stone-900"
-                >
-                  {U.unmaskCta}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelected(null);
-                  setUnmaskedId(null);
-                }}
-                className="ml-auto inline-flex items-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-[12px] font-semibold text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-              >
-                {U.close}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminShell>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-        {label}
-      </dt>
-      <dd className="break-all text-right text-stone-800 dark:text-stone-100">
-        {value}
-      </dd>
-    </div>
   );
 }

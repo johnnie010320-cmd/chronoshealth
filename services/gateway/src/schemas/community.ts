@@ -40,6 +40,22 @@ export const ListPostsQuery = z
   .strict();
 export type ListPostsQuery = z.infer<typeof ListPostsQuery>;
 
+// owner 전용 — 공개/비공개 전환.
+export const UpdateCommunityRequest = z
+  .object({
+    visibility: z.enum(['public', 'private']),
+  })
+  .strict();
+export type UpdateCommunityRequest = z.infer<typeof UpdateCommunityRequest>;
+
+// owner 전용 — 커뮤니티 관리자 지정(닉네임).
+export const AddCommunityAdminRequest = z
+  .object({
+    nickname: z.string().trim().min(2).max(8),
+  })
+  .strict();
+export type AddCommunityAdminRequest = z.infer<typeof AddCommunityAdminRequest>;
+
 export const CreateCommunityRequest = z
   .object({
     name: z.string().min(2).max(60),

@@ -63,7 +63,12 @@ export async function readAdminStats(
 
 export type AdminUserRow = {
   userPseudonymId: string;
-  emailMasked: string;
+  // ADR 0003 — admin 전용 라우트(adminMiddleware)에서만 노출. 항상 평문(2026-06-17 죠니 승인).
+  // 정보가 없으면 null — UI 는 항목을 항상 표시(빈 값은 '—').
+  name: string | null;
+  nickname: string | null;
+  email: string;
+  phone: string | null;
   createdAt: string;
   reportCount: number;
   ledgerBalance: number;
@@ -75,15 +80,15 @@ export async function listAdminUsers(
   opts: { limit: number; cursor: string | null; search: string | null },
 ): Promise<AdminUserRow[]> {
   let sql =
-    'SELECT user_pseudonym_id, email, created_at FROM users WHERE 1=1';
+    'SELECT user_pseudonym_id, name, nickname, email, phone, created_at FROM users WHERE 1=1';
   const args: unknown[] = [];
   if (opts.cursor) {
     sql += ' AND created_at < ?';
     args.push(opts.cursor);
   }
   if (opts.search) {
-    sql += ' AND (user_pseudonym_id LIKE ? OR email LIKE ?)';
-    args.push(`%${opts.search}%`, `%${opts.search}%`);
+    sql += ' AND (user_pseudonym_id LIKE ? OR email LIKE ? OR nickname LIKE ? OR name LIKE ?)';
+    args.push(`%${opts.search}%`, `%${opts.search}%`, `%${opts.search}%`, `%${opts.search}%`);
   }
   sql += ' ORDER BY created_at DESC LIMIT ?';
   args.push(opts.limit);
@@ -91,7 +96,14 @@ export async function listAdminUsers(
   const result = await identityDb
     .prepare(sql)
     .bind(...args)
-    .all<{ user_pseudonym_id: string; email: string; created_at: string }>();
+    .all<{
+      user_pseudonym_id: string;
+      name: string | null;
+      nickname: string | null;
+      email: string;
+      phone: string | null;
+      created_at: string;
+    }>();
 
   const rows = result.results ?? [];
   if (rows.length === 0) return [];
@@ -122,7 +134,10 @@ export async function listAdminUsers(
 
   return rows.map((row) => ({
     userPseudonymId: row.user_pseudonym_id,
-    emailMasked: maskEmail(row.email),
+    name: row.name,
+    nickname: row.nickname,
+    email: row.email,
+    phone: row.phone,
     createdAt: row.created_at,
     reportCount: reportCounts.get(row.user_pseudonym_id) ?? 0,
     ledgerBalance: ledgerSums.get(row.user_pseudonym_id) ?? 0,

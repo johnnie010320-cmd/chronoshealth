@@ -8,9 +8,15 @@ import { ChevronRightIcon, UsersIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
+  addCommunityAdmin,
   fetchCommunity,
+  fetchCommunityAdmins,
   fetchCommunityPosts,
+  moderatorDeletePost,
+  removeCommunityAdmin,
+  setCommunityVisibility,
   toggleCommunityFollow,
+  type CommunityAdminEntry,
   type CommunityDetailResponse,
   type CommunityPost,
 } from '@/lib/api-client';
@@ -28,6 +34,17 @@ function CommunityViewPageInner() {
   const [loading, setLoading] = useState(true);
   const [errCode, setErrCode] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
+  const [admins, setAdmins] = useState<CommunityAdminEntry[]>([]);
+  const [adminNick, setAdminNick] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function loadPosts() {
+    fetchCommunityPosts(null, 20, id)
+      .then((p) => setPosts(p.posts))
+      .catch(() => {
+        /* noop */
+      });
+  }
 
   useEffect(() => {
     if (!readSession()) {
@@ -38,6 +55,13 @@ function CommunityViewPageInner() {
       .then(([d, p]) => {
         setDetail(d);
         setPosts(p.posts);
+        if (d.isOwner) {
+          fetchCommunityAdmins(id)
+            .then(setAdmins)
+            .catch(() => {
+              /* noop */
+            });
+        }
       })
       .catch((err) => {
         setErrCode(err instanceof Error ? err.message : 'generic');
@@ -49,12 +73,60 @@ function CommunityViewPageInner() {
     if (!detail) return;
     setFollowing(true);
     try {
-      const res = await toggleCommunityFollow(detail.community.id);
+      await toggleCommunityFollow(detail.community.id);
       const refreshed = await fetchCommunity(detail.community.id);
       setDetail(refreshed);
-      void res;
     } finally {
       setFollowing(false);
+    }
+  }
+
+  async function handleToggleVisibility() {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const next = detail.community.visibility === 'public' ? 'private' : 'public';
+      await setCommunityVisibility(detail.community.id, next);
+      setDetail(await fetchCommunity(detail.community.id));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAddAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!detail || adminNick.trim().length < 2) return;
+    setBusy(true);
+    try {
+      await addCommunityAdmin(detail.community.id, adminNick.trim());
+      setAdminNick('');
+      setAdmins(await fetchCommunityAdmins(detail.community.id));
+    } catch {
+      /* noop */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemoveAdmin(pseudonymId: string) {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      await removeCommunityAdmin(detail.community.id, pseudonymId);
+      setAdmins(await fetchCommunityAdmins(detail.community.id));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleModerateDelete(postId: string) {
+    if (!detail) return;
+    if (typeof window !== 'undefined' && !window.confirm(G.moderateDeleteConfirm)) return;
+    try {
+      await moderatorDeletePost(detail.community.id, postId);
+      loadPosts();
+    } catch {
+      /* noop */
     }
   }
 
@@ -139,6 +211,67 @@ function CommunityViewPageInner() {
         )}
       </section>
 
+      {detail.isOwner && (
+        <section className="card-shadow mt-3 rounded-2xl bg-white px-4 py-4 dark:bg-stone-900">
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+            {G.ownerPanelTitle}
+          </h2>
+          <button
+            type="button"
+            onClick={handleToggleVisibility}
+            disabled={busy}
+            className="mt-2 inline-flex w-full items-center justify-center rounded-2xl border border-stone-300 bg-white px-4 py-2.5 text-[13px] font-semibold text-stone-800 transition active:scale-[0.98] disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+          >
+            {c.visibility === 'public' ? G.makePrivate : G.makePublic}
+          </button>
+
+          <p className="mt-4 text-[11px] font-semibold text-stone-600 dark:text-stone-300">
+            {G.adminsLabel}
+          </p>
+          <form onSubmit={handleAddAdmin} className="mt-1 flex gap-2">
+            <input
+              type="text"
+              value={adminNick}
+              placeholder={G.adminAddPlaceholder}
+              maxLength={8}
+              onChange={(e) => setAdminNick(e.target.value)}
+              className="block w-full rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+            />
+            <button
+              type="submit"
+              disabled={busy || adminNick.trim().length < 2}
+              className="shrink-0 rounded-2xl bg-brand-600 px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
+            >
+              {G.adminAddCta}
+            </button>
+          </form>
+          {admins.length === 0 ? (
+            <p className="mt-2 text-[11px] text-stone-400 dark:text-stone-500">{G.noAdmins}</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {admins.map((a) => (
+                <li
+                  key={a.pseudonymId}
+                  className="flex items-center justify-between gap-2 rounded-xl bg-stone-50 px-3 py-2 dark:bg-stone-800/50"
+                >
+                  <span className="truncate text-[13px] text-stone-800 dark:text-stone-100">
+                    {a.nickname ?? a.pseudonymId.slice(0, 8)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleRemoveAdmin(a.pseudonymId)}
+                    disabled={busy}
+                    className="shrink-0 text-[11px] font-semibold text-rose-600 disabled:opacity-60 dark:text-rose-300"
+                  >
+                    {G.adminRemoveCta}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       <section className="mt-5">
         <div className="mb-2 flex items-center justify-between px-1">
           <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
@@ -165,10 +298,10 @@ function CommunityViewPageInner() {
         ) : (
           <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
             {posts.map((p) => (
-              <li key={p.id}>
+              <li key={p.id} className="flex items-stretch">
                 <Link
                   href={`/community/post?id=${p.id}`}
-                  className="flex items-start gap-3 px-4 py-3 transition active:bg-stone-50 dark:active:bg-stone-800/50"
+                  className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 transition active:bg-stone-50 dark:active:bg-stone-800/50"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">
@@ -189,6 +322,15 @@ function CommunityViewPageInner() {
                   </div>
                   <ChevronRightIcon className="h-4 w-4 shrink-0 self-center text-stone-400 dark:text-stone-500" />
                 </Link>
+                {detail.isModerator && (
+                  <button
+                    type="button"
+                    onClick={() => void handleModerateDelete(p.id)}
+                    className="shrink-0 px-3 text-[11px] font-semibold text-rose-600 dark:text-rose-300"
+                  >
+                    {G.moderateDelete}
+                  </button>
+                )}
               </li>
             ))}
           </ul>

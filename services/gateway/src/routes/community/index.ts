@@ -2,10 +2,12 @@ import { Hono } from 'hono';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import {
+  AddCommunityAdminRequest,
   CreateCommentRequest,
   CreateCommunityRequest,
   CreatePostRequest,
   ListPostsQuery,
+  UpdateCommunityRequest,
 } from '../../schemas/community.js';
 import {
   insertComment,
@@ -14,22 +16,33 @@ import {
   listMyComments,
   listPosts,
   listTrending,
+  moderatorDeleteComment,
+  moderatorDeletePost,
+  readCommentCommunity,
   readPost,
   softDeletePost,
   toggleLike,
 } from '../../community/storage.js';
 import {
+  addCommunityAdmin,
   insertCommunity,
+  isCommunityAdmin,
+  listCommunityAdmins,
   listMyCommunities,
   listPublicCommunities,
   readCommunity,
   readFollower,
+  removeCommunityAdmin,
   toggleFollow,
+  updateCommunityVisibility,
+  type CommunityRow,
 } from '../../community/communities.js';
 import {
   moderateText,
   moderateVideoUrl,
 } from '../../community/moderation.js';
+import { findPseudonymByNickname, resolveNicknames } from '../../messaging/nickname.js';
+import { isAdmin } from '../../middleware/admin-auth.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
 import type { Bindings } from '../../bindings.js';
 
@@ -277,12 +290,134 @@ communityRoute.get('/communities/:id', authMiddleware, rateLimit(200), async (c)
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
   const follower = await readFollower(c.env.DB, id, pseudonymId);
+  const isOwner = community.ownerPseudonymId === pseudonymId;
+  const moderator = isOwner || (await canModerate(c.env, community, pseudonymId));
   return c.json({
     community,
-    isOwner: community.ownerPseudonymId === pseudonymId,
+    isOwner,
+    isModerator: moderator,
     myStatus: follower?.status ?? null,
     modelVersion: MODEL_VERSION,
   });
+});
+
+// 모더레이션 권한: owner | 커뮤니티 관리자 | 사이트 관리자.
+async function canModerate(
+  env: Bindings,
+  community: CommunityRow,
+  pseudonymId: string,
+): Promise<boolean> {
+  if (community.ownerPseudonymId === pseudonymId) return true;
+  if (await isCommunityAdmin(env.DB, community.id, pseudonymId)) return true;
+  return isAdmin(env, pseudonymId);
+}
+
+// ── owner 전용: 공개/비공개 전환 ─────────────────────────────────────────
+communityRoute.patch('/communities/:id', authMiddleware, rateLimit(30), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (community.ownerPseudonymId !== pseudonymId) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+  }
+  const parsed = UpdateCommunityRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  await updateCommunityVisibility(c.env.DB, id, parsed.data.visibility);
+  const updated = await readCommunity(c.env.DB, id);
+  return c.json({ community: updated, modelVersion: MODEL_VERSION });
+});
+
+// ── owner 전용: 커뮤니티 관리자 목록/지정/해제 ─────────────────────────────
+communityRoute.get('/communities/:id/admins', authMiddleware, rateLimit(100), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (community.ownerPseudonymId !== pseudonymId) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  const ids = await listCommunityAdmins(c.env.DB, id);
+  const nicks = await resolveNicknames(c.env.IDENTITY_DB, ids);
+  const admins = ids.map((pid) => ({ pseudonymId: pid, nickname: nicks.get(pid) ?? null }));
+  return c.json({ admins, modelVersion: MODEL_VERSION });
+});
+
+communityRoute.post('/communities/:id/admins', authMiddleware, rateLimit(30), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (community.ownerPseudonymId !== pseudonymId) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+  }
+  const parsed = AddCommunityAdminRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const targetId = await findPseudonymByNickname(c.env.IDENTITY_DB, parsed.data.nickname);
+  if (!targetId) return c.json({ error: { code: 'USER_NOT_FOUND' } }, 404);
+  await addCommunityAdmin(c.env.DB, id, targetId);
+  return c.json({ ok: true, modelVersion: MODEL_VERSION });
+});
+
+communityRoute.delete('/communities/:id/admins/:pseudonym', authMiddleware, rateLimit(30), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const target = c.req.param('pseudonym');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (community.ownerPseudonymId !== pseudonymId) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  const ok = await removeCommunityAdmin(c.env.DB, id, target);
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  return c.json({ ok: true, modelVersion: MODEL_VERSION });
+});
+
+// ── 모더레이션: 글/댓글 삭제 (owner/커뮤니티 관리자/사이트 관리자) ─────────
+communityRoute.delete('/communities/:id/posts/:postId', authMiddleware, rateLimit(60), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const postId = c.req.param('postId');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  const post = await readPost(c.env.DB, postId);
+  if (!post || post.communityId !== id) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  if (!(await canModerate(c.env, community, pseudonymId))) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  await moderatorDeletePost(c.env.DB, postId);
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
+});
+
+communityRoute.delete('/communities/:id/comments/:commentId', authMiddleware, rateLimit(60), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const commentId = c.req.param('commentId');
+  const community = await readCommunity(c.env.DB, id);
+  if (!community) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  const link = await readCommentCommunity(c.env.DB, commentId);
+  if (!link || link.communityId !== id) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  if (!(await canModerate(c.env, community, pseudonymId))) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  await moderatorDeleteComment(c.env.DB, commentId);
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.post(

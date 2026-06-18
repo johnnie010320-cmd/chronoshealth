@@ -13,7 +13,13 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { useIsAdmin } from '@/lib/admin-state';
-import { fetchAvatarMe, fetchMeProfile, type AvatarResponse } from '@/lib/api-client';
+import {
+  fetchAvatarMe,
+  fetchMeProfile,
+  fetchNotices,
+  type AvatarResponse,
+  type Notice,
+} from '@/lib/api-client';
 
 type AgePair = { years: number; months: number };
 
@@ -33,6 +39,7 @@ export default function HomePage() {
   const [signedIn, setSignedIn] = useState(false);
   const [avatar, setAvatar] = useState<AvatarResponse | null>(null);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const isAdmin = useIsAdmin();
 
   useEffect(() => {
@@ -59,6 +66,15 @@ export default function HomePage() {
         setAvatarErr(code);
       });
   }, [router]);
+
+  useEffect(() => {
+    // 공지는 공개 — 로그인 여부 무관. 최신 1건만 배너로.
+    fetchNotices()
+      .then((list) => setNotice(list[0] ?? null))
+      .catch(() => {
+        /* noop */
+      });
+  }, []);
 
   const bioAge = avatar ? splitYearMonths(avatar.fiveAges.life) : null;
   const youthAge = avatar ? splitYearMonths(avatar.fiveAges.vitality) : null;
@@ -87,6 +103,23 @@ export default function HomePage() {
           {H.brandLine}
         </span>
       </section>
+
+      {notice && (
+        <Link
+          href="/notices"
+          className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-br from-brand-50 to-amber-50 px-4 py-3 transition active:scale-[0.99] dark:from-brand-900/30 dark:to-amber-900/20"
+        >
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-200">
+              {t.notices.homeEyebrow}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-bold text-stone-900 dark:text-stone-100">
+              {notice.title}
+            </p>
+          </div>
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-500 dark:text-stone-400" />
+        </Link>
+      )}
 
       {signedIn ? (
         <Link

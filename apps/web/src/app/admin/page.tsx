@@ -34,18 +34,13 @@ export default function AdminDashboardPage() {
       });
   }, []);
 
+  // 사용자 관리는 상단 메뉴바에 있어 빠른 작업에서는 제외(중복 제거, 2026-06-17).
   const actions: Action[] = [
     {
-      href: '/admin/users',
-      title: D.actionUsers,
-      desc: D.actionUsersDesc,
-      active: true,
-    },
-    {
-      href: '/admin',
+      href: '/admin/notices',
       title: D.actionNotices,
       desc: D.actionNoticesDesc,
-      active: false,
+      active: true,
     },
     {
       href: '/admin/content',

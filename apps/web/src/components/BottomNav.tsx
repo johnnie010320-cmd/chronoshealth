@@ -8,7 +8,7 @@ import {
   HomeIcon,
   FileTextIcon,
   HeartPulseIcon,
-  ShieldIcon,
+  UsersIcon,
   UserCircleIcon,
   MenuIcon,
 } from './HealthIcons';
@@ -17,15 +17,16 @@ type IconCmp = (p: { className?: string; strokeWidth?: number }) => ReactElement
 
 type Item = {
   href: string;
-  labelKey: 'home' | 'reports' | 'care' | 'rewards' | 'profile' | 'menu';
+  labelKey: 'home' | 'reports' | 'care' | 'community' | 'profile' | 'menu';
   Icon: IconCmp;
 };
 
+// 하단 주 네비 — 혜택(rewards)은 전체 메뉴(/menu)로 이동, 커뮤니티를 주 탭으로 승격(2026-06-17 죠니).
 const ITEMS: Item[] = [
   { href: '/', labelKey: 'home', Icon: HomeIcon },
   { href: '/reports', labelKey: 'reports', Icon: FileTextIcon },
   { href: '/care', labelKey: 'care', Icon: HeartPulseIcon },
-  { href: '/rewards', labelKey: 'rewards', Icon: ShieldIcon },
+  { href: '/community', labelKey: 'community', Icon: UsersIcon },
   { href: '/profile', labelKey: 'profile', Icon: UserCircleIcon },
   { href: '/menu', labelKey: 'menu', Icon: MenuIcon },
 ];

@@ -290,12 +290,25 @@ describe('Admin API', () => {
     expect(data.signups[0].emailPseudonym).toBe('hmac_abcdef');
   });
 
-  it('회귀 — admin 응답에 평문 PII 누출 0 (unmask 미사용)', async () => {
+  // 2026-06-17 정책 변경(죠니 승인 / ADR 0003): admin 전용 목록은 회원 PII 를 평문 노출한다.
+  // (admin 라우트는 adminMiddleware 로 보호되며, 비관리자/미인증은 별도 테스트에서 403/401 확인.)
+  it('admin 사용자 목록은 평문 PII(이름·이메일·전화)를 포함한다', async () => {
     const adminTok = setupAdmin();
     const res = await getUsers(adminTok.token);
-    const text = await res.text();
-    expect(text).not.toContain('admin@chronos.test');
-    expect(text).not.toContain('010-9999-0000');
-    expect(text).not.toContain('관리자');
+    const data = (await res.json()) as {
+      users: Array<{
+        name: string | null;
+        nickname: string | null;
+        email: string;
+        phone: string | null;
+        ledgerBalance: number;
+      }>;
+    };
+    const me = data.users.find((u) => u.email === 'admin@chronos.test');
+    expect(me).toBeDefined();
+    expect(me!.email).toBe('admin@chronos.test');
+    expect(me!.phone).toBe('010-9999-0000');
+    expect(me!.name).toBe('관리자');
+    expect(typeof me!.ledgerBalance).toBe('number');
   });
 });
