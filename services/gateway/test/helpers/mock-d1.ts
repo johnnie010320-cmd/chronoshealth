@@ -19,6 +19,7 @@ type UserRow = {
   nickname?: string | null;
   marketing_opt_in?: number;
   role?: string;
+  is_super_admin?: number;
 };
 
 type ContentPageRow = {
@@ -76,7 +77,10 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     betaIdentity: initial?.betaIdentity ?? [],
   };
 
-  function runStmt(sql: string, args: unknown[]): { success: true } {
+  function runStmt(sql: string, args: unknown[]): {
+    success: true;
+    meta?: { changes?: number };
+  } {
     const trimmed = sql.trim();
 
     if (trimmed.startsWith('INSERT INTO users')) {
@@ -114,6 +118,17 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         consent_recorded_at,
       });
       return { success: true };
+    }
+
+    if (trimmed.startsWith('UPDATE users SET role = ?')) {
+      const [role, user_pseudonym_id] = args as [string, string];
+      const user = state.users.find((u) => u.user_pseudonym_id === user_pseudonym_id);
+      // is_super_admin = 0 인 경우에만 변경 (superadmin 보호).
+      if (!user || (user.is_super_admin ?? 0) === 1) {
+        return { success: true, meta: { changes: 0 } };
+      }
+      user.role = role;
+      return { success: true, meta: { changes: 1 } };
     }
 
     if (trimmed.startsWith('UPDATE users SET password_hash')) {
@@ -217,6 +232,18 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
   function firstStmt(sql: string, args: unknown[]): unknown {
     const trimmed = sql.trim();
 
+    // 권한 — role/is_super_admin 조회 (generic user_pseudonym_id 핸들러보다 먼저).
+    if (trimmed.startsWith('SELECT email, role, is_super_admin FROM users')) {
+      const [pseudo] = args as [string];
+      const u = state.users.find((x) => x.user_pseudonym_id === pseudo);
+      return u
+        ? {
+            email: u.email,
+            role: (u as { role?: string }).role ?? 'user',
+            is_super_admin: (u as { is_super_admin?: number }).is_super_admin ?? 0,
+          }
+        : null;
+    }
     // R9 메시징 — 닉네임↔pseudonym 해석 (generic user_pseudonym_id 핸들러보다 먼저).
     if (trimmed.startsWith('SELECT user_pseudonym_id FROM users WHERE nickname')) {
       const [nickname] = args as [string];
@@ -377,7 +404,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       return { results: rows };
     }
     if (
-      trimmed.startsWith('SELECT user_pseudonym_id, name, nickname, email, phone, created_at FROM users') &&
+      trimmed.startsWith('SELECT user_pseudonym_id, name, nickname, email, phone, role, is_super_admin, created_at FROM users') &&
       trimmed.includes('ORDER BY created_at DESC')
     ) {
       const limit = args[args.length - 1] as number;
@@ -407,6 +434,8 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
           nickname: u.nickname ?? null,
           email: u.email,
           phone: u.phone,
+          role: (u as { role?: string }).role ?? 'user',
+          is_super_admin: (u as { is_super_admin?: number }).is_super_admin ?? 0,
           created_at: u.created_at ?? new Date().toISOString(),
         }));
       return { results: rows };
@@ -641,6 +670,15 @@ type NoticeMockRow = {
   updated_at: string;
 };
 
+type ReleaseMockRow = {
+  id: string;
+  component: string;
+  version: string;
+  notes: string;
+  created_by_pseudonym_id: string;
+  created_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
@@ -659,6 +697,7 @@ export type MockAnalysisState = {
   conversationMembers: ConversationMemberMockRow[];
   messages: MessageMockRow[];
   notices: NoticeMockRow[];
+  releases: ReleaseMockRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -695,6 +734,7 @@ export function makeMockAnalysisDb(): {
     conversationMembers: [],
     messages: [],
     notices: [],
+    releases: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -1182,6 +1222,24 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (trimmed.startsWith('INSERT INTO releases')) {
+      const [id, component, version, notes, created_by_pseudonym_id] = args as [
+        string, string, string, string, string,
+      ];
+      state.releases.push({
+        id, component, version, notes, created_by_pseudonym_id, created_at: nextTs(),
+      });
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('DELETE FROM releases')) {
+      const [id] = args as [string];
+      const idx = state.releases.findIndex((x) => x.id === id);
+      if (idx < 0) return { success: true, meta: { changes: 0 } };
+      state.releases.splice(idx, 1);
+      return { success: true, meta: { changes: 1 } };
+    }
+
     throw new Error(`mock-analysis-d1 unknown statement: ${trimmed.substring(0, 80)}`);
   }
 
@@ -1533,6 +1591,18 @@ export function makeMockAnalysisDb(): {
             last_read_at: m?.last_read_at ?? c.created_at,
           };
         });
+      return { results: rows };
+    }
+    if (trimmed.includes('FROM releases') && trimmed.includes('ORDER BY created_at DESC')) {
+      const limit = args[args.length - 1] as number;
+      const rows = state.releases
+        .slice()
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .slice(0, limit)
+        .map((r) => ({
+          id: r.id, component: r.component, version: r.version,
+          notes: r.notes, created_at: r.created_at,
+        }));
       return { results: rows };
     }
     if (trimmed.includes('FROM notices') && trimmed.includes('ORDER BY pinned DESC')) {

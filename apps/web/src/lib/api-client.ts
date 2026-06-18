@@ -367,6 +367,7 @@ export async function checkEmailAvailable(email: string): Promise<boolean> {
 export type AdminWhoami = {
   userPseudonymId: string;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 };
 
 export type AdminStats = {
@@ -380,15 +381,35 @@ export type AdminStats = {
   totalLedgerSum: number;
 };
 
+export type AdminRole = 'user' | 'partner' | 'admin';
+
 export type AdminUserRow = {
   userPseudonymId: string;
   name: string | null;
   nickname: string | null;
   email: string;
   phone: string | null;
+  role: AdminRole;
+  isSuperAdmin: boolean;
   createdAt: string;
   reportCount: number;
   ledgerBalance: number;
+};
+
+export type AdminLedgerEntry = {
+  txnId: string;
+  amount: number;
+  kind: string;
+  sourceRef: string | null;
+  createdAt: string;
+};
+
+export type ReleaseEntry = {
+  id: string;
+  component: string;
+  version: string;
+  notes: string;
+  createdAt: string;
 };
 
 export type AdminUserDetail = {
@@ -987,6 +1008,65 @@ export async function deleteAdminCommunity(id: string): Promise<void> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const res = await fetch(`${GATEWAY_URL}/api/v1/admin/communities/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 관리자 임명/해제 (superadmin 전용).
+export async function setUserRole(id: string, role: AdminRole): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/users/${id}/role`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 회원별 코인(CHRO) 적립/사용 내역.
+export async function fetchUserLedger(id: string): Promise<AdminLedgerEntry[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/users/${id}/ledger`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { entries: AdminLedgerEntry[] }).entries;
+}
+
+// 개발 로그(releases).
+export async function fetchReleases(): Promise<ReleaseEntry[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/releases`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { releases: ReleaseEntry[] }).releases;
+}
+
+export async function createRelease(body: {
+  component: string;
+  version: string;
+  notes: string;
+}): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/releases`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function deleteRelease(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/releases/${id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });

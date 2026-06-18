@@ -1,18 +1,40 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
-import { adminMiddleware, isAdmin } from '../../middleware/admin-auth.js';
+import {
+  adminMiddleware,
+  isAdmin,
+  isSuperAdmin,
+  superAdminMiddleware,
+} from '../../middleware/admin-auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import {
   listAdminBetaSignups,
   listAdminUsers,
   readAdminStats,
   readAdminUserDetail,
+  readUserLedger,
+  setUserRole,
 } from '../../admin/storage.js';
 import {
   listAllCommunitiesAdmin,
   softDeleteCommunity,
 } from '../../community/communities.js';
+import {
+  deleteRelease,
+  insertRelease,
+  listReleases,
+} from '../../releases/storage.js';
 import type { Bindings } from '../../bindings.js';
+
+const SetRoleRequest = z.object({ role: z.enum(['user', 'admin']) }).strict();
+const CreateReleaseRequest = z
+  .object({
+    component: z.string().trim().min(1).max(40),
+    version: z.string().trim().min(1).max(60),
+    notes: z.string().trim().min(1).max(4000),
+  })
+  .strict();
 
 const MODEL_VERSION = 'admin-v0.1.0';
 
@@ -25,9 +47,11 @@ export const adminRoute = new Hono<{
 adminRoute.get('/whoami', authMiddleware, rateLimit(200), async (c) => {
   const pseudonymId = c.get('userPseudonymId');
   const admin = await isAdmin(c.env, pseudonymId);
+  const superAdmin = admin ? await isSuperAdmin(c.env, pseudonymId) : false;
   return c.json({
     userPseudonymId: pseudonymId,
     isAdmin: admin,
+    isSuperAdmin: superAdmin,
     modelVersion: MODEL_VERSION,
   });
 });
@@ -77,6 +101,77 @@ adminRoute.get(
     return c.json({ detail, modelVersion: MODEL_VERSION });
   },
 );
+
+// 회원별 코인(CHRO) 적립/사용 내역 — 관리자.
+adminRoute.get(
+  '/users/:id/ledger',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(120),
+  async (c) => {
+    const targetId = c.req.param('id');
+    const entries = await readUserLedger(c.env.DB, targetId, 100);
+    return c.json({ entries, modelVersion: MODEL_VERSION });
+  },
+);
+
+// 관리자 임명/해제 — 슈퍼관리자 전용. (superadmin 행은 storage 에서 변경 거부.)
+adminRoute.post(
+  '/users/:id/role',
+  authMiddleware,
+  superAdminMiddleware,
+  rateLimit(30),
+  async (c) => {
+    const targetId = c.req.param('id');
+    let raw: unknown;
+    try {
+      raw = await c.req.json();
+    } catch {
+      return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+    }
+    const parsed = SetRoleRequest.safeParse(raw);
+    if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+    const ok = await setUserRole(c.env.IDENTITY_DB, targetId, parsed.data.role);
+    if (!ok) {
+      // 대상 없음 또는 superadmin(변경 불가).
+      return c.json({ error: { code: 'ROLE_UNCHANGED' } }, 409);
+    }
+    return c.json({ ok: true, role: parsed.data.role, modelVersion: MODEL_VERSION });
+  },
+);
+
+// 개발 로그(releases) — 관리자 조회/추가/삭제.
+adminRoute.get('/releases', authMiddleware, adminMiddleware, rateLimit(120), async (c) => {
+  const releases = await listReleases(c.env.DB, 200);
+  return c.json({ releases, modelVersion: MODEL_VERSION });
+});
+
+adminRoute.post('/releases', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
+  const me = c.get('userPseudonymId');
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+  }
+  const parsed = CreateReleaseRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const id = crypto.randomUUID();
+  await insertRelease(c.env.DB, {
+    id,
+    component: parsed.data.component,
+    version: parsed.data.version,
+    notes: parsed.data.notes,
+    createdByPseudonymId: me,
+  });
+  return c.json({ id, modelVersion: MODEL_VERSION }, 201);
+});
+
+adminRoute.delete('/releases/:id', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
+  const ok = await deleteRelease(c.env.DB, c.req.param('id'));
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
+});
 
 adminRoute.get(
   '/beta-signups',

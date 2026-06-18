@@ -22,4 +22,7 @@ export type Bindings = {
   //   ADMIN_PSEUDONYM_IDS: 콤마 구분 pseudonym 목록 (이메일 기반과 OR 결합, 테스트/직접 지정용).
   ADMIN_EMAILS?: string;
   ADMIN_PSEUDONYM_IDS?: string;
+  // 슈퍼관리자(창업자) 부트스트랩 폴백 — 평소엔 is_super_admin 컬럼이 진실원천.
+  SUPERADMIN_EMAILS?: string;
+  SUPERADMIN_PSEUDONYM_IDS?: string;
 };

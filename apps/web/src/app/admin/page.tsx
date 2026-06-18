@@ -43,6 +43,12 @@ export default function AdminDashboardPage() {
       active: true,
     },
     {
+      href: '/admin/devlog',
+      title: D.actionDevlog,
+      desc: D.actionDevlogDesc,
+      active: true,
+    },
+    {
       href: '/admin/content',
       title: D.actionContent,
       desc: D.actionContentDesc,
@@ -101,15 +107,18 @@ export default function AdminDashboardPage() {
       )}
 
       {state.status === 'ok' && (
-        <section className="mt-3 grid grid-cols-2 gap-3">
-          <StatCard label={D.statTotalUsers} value={state.stats.totalUsers} />
-          <StatCard label={D.statRiskReports} value={state.stats.totalRiskReports} />
-          <StatCard label={D.statCommunityPosts} value={state.stats.totalCommunityPosts} />
-          <StatCard label={D.statCommunityComments} value={state.stats.totalCommunityComments} />
-          <StatCard label={D.statLikes} value={state.stats.totalLikes} />
-          <StatCard label={D.statLedgerEntries} value={state.stats.totalLedgerEntries} />
-          <StatCard label={D.statLedgerSum} value={state.stats.totalLedgerSum} />
-        </section>
+        <>
+          <section className="mt-3 grid grid-cols-2 gap-3">
+            <StatCard label={D.statTotalUsers} value={state.stats.totalUsers} desc={D.statTotalUsersDesc} />
+            <StatCard label={D.statRiskReports} value={state.stats.totalRiskReports} desc={D.statRiskReportsDesc} />
+            <StatCard label={D.statCommunityPosts} value={state.stats.totalCommunityPosts} desc={D.statCommunityPostsDesc} />
+            <StatCard label={D.statCommunityComments} value={state.stats.totalCommunityComments} desc={D.statCommunityCommentsDesc} />
+            <StatCard label={D.statLikes} value={state.stats.totalLikes} desc={D.statLikesDesc} />
+            <StatCard label={D.statLedgerEntries} value={state.stats.totalLedgerEntries} desc={D.statLedgerEntriesDesc} />
+            <StatCard label={D.statLedgerSum} value={state.stats.totalLedgerSum} desc={D.statLedgerSumDesc} />
+          </section>
+          <p className="mt-2 px-1 text-[10px] text-stone-400 dark:text-stone-500">{D.statsLiveNote}</p>
+        </>
       )}
 
       <section className="mt-5">
@@ -158,7 +167,7 @@ export default function AdminDashboardPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, desc }: { label: string; value: number; desc?: string }) {
   return (
     <div className="card-shadow flex flex-col gap-1 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900">
       <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
@@ -167,6 +176,9 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <span className="text-2xl font-bold tabular-nums tracking-tight text-stone-900 dark:text-stone-100">
         {value.toLocaleString()}
       </span>
+      {desc && (
+        <span className="text-[10px] leading-snug text-stone-400 dark:text-stone-500">{desc}</span>
+      )}
     </div>
   );
 }

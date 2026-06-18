@@ -61,6 +61,8 @@ export async function readAdminStats(
   };
 }
 
+export type AdminRole = 'user' | 'partner' | 'admin';
+
 export type AdminUserRow = {
   userPseudonymId: string;
   // ADR 0003 — admin 전용 라우트(adminMiddleware)에서만 노출. 항상 평문(2026-06-17 죠니 승인).
@@ -69,6 +71,8 @@ export type AdminUserRow = {
   nickname: string | null;
   email: string;
   phone: string | null;
+  role: AdminRole;
+  isSuperAdmin: boolean;
   createdAt: string;
   reportCount: number;
   ledgerBalance: number;
@@ -80,7 +84,7 @@ export async function listAdminUsers(
   opts: { limit: number; cursor: string | null; search: string | null },
 ): Promise<AdminUserRow[]> {
   let sql =
-    'SELECT user_pseudonym_id, name, nickname, email, phone, created_at FROM users WHERE 1=1';
+    'SELECT user_pseudonym_id, name, nickname, email, phone, role, is_super_admin, created_at FROM users WHERE 1=1';
   const args: unknown[] = [];
   if (opts.cursor) {
     sql += ' AND created_at < ?';
@@ -102,6 +106,8 @@ export async function listAdminUsers(
       nickname: string | null;
       email: string;
       phone: string | null;
+      role: string;
+      is_super_admin: number;
       created_at: string;
     }>();
 
@@ -138,9 +144,56 @@ export async function listAdminUsers(
     nickname: row.nickname,
     email: row.email,
     phone: row.phone,
+    role: (row.role === 'admin' || row.role === 'partner' ? row.role : 'user') as AdminRole,
+    isSuperAdmin: row.is_super_admin === 1,
     createdAt: row.created_at,
     reportCount: reportCounts.get(row.user_pseudonym_id) ?? 0,
     ledgerBalance: ledgerSums.get(row.user_pseudonym_id) ?? 0,
+  }));
+}
+
+// superadmin 전용 — 일반↔관리자 임명/해제. superadmin 행은 변경 거부.
+export async function setUserRole(
+  identityDb: D1Database,
+  pseudonymId: string,
+  role: AdminRole,
+): Promise<boolean> {
+  const res = await identityDb
+    .prepare(
+      'UPDATE users SET role = ? WHERE user_pseudonym_id = ? AND is_super_admin = 0',
+    )
+    .bind(role, pseudonymId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export type AdminLedgerEntry = {
+  txnId: string;
+  amount: number;
+  kind: string;
+  sourceRef: string | null;
+  createdAt: string;
+};
+
+// 회원별 코인(CHRO) 적립/사용 내역 — 관리자 조회.
+export async function readUserLedger(
+  analysisDb: D1Database,
+  pseudonymId: string,
+  limit: number,
+): Promise<AdminLedgerEntry[]> {
+  const { results } = await analysisDb
+    .prepare(
+      `SELECT txn_id, amount, kind, source_ref, created_at FROM chr_ledger
+        WHERE user_pseudonym_id = ? ORDER BY created_at DESC LIMIT ?`,
+    )
+    .bind(pseudonymId, limit)
+    .all<{ txn_id: string; amount: number; kind: string; source_ref: string | null; created_at: string }>();
+  return (results ?? []).map((r) => ({
+    txnId: r.txn_id,
+    amount: r.amount,
+    kind: r.kind,
+    sourceRef: r.source_ref,
+    createdAt: r.created_at,
   }));
 }
 

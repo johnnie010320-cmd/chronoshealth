@@ -13,11 +13,12 @@ const TTL_MS = 30 * 60 * 1000; // 30분
 
 type CacheEntry = {
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   cachedAt: number;
   sessionToken: string;
 };
 
-function readCache(sessionToken: string): boolean | null {
+function readCache(sessionToken: string): { isAdmin: boolean; isSuperAdmin: boolean } | null {
   if (typeof window === 'undefined') return null;
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
@@ -25,16 +26,17 @@ function readCache(sessionToken: string): boolean | null {
     const e = JSON.parse(raw) as CacheEntry;
     if (e.sessionToken !== sessionToken) return null;
     if (Date.now() - e.cachedAt > TTL_MS) return null;
-    return e.isAdmin;
+    return { isAdmin: e.isAdmin, isSuperAdmin: e.isSuperAdmin ?? false };
   } catch {
     return null;
   }
 }
 
-function writeCache(sessionToken: string, isAdmin: boolean): void {
+function writeCache(sessionToken: string, isAdmin: boolean, isSuperAdmin: boolean): void {
   if (typeof window === 'undefined') return;
   const entry: CacheEntry = {
     isAdmin,
+    isSuperAdmin,
     cachedAt: Date.now(),
     sessionToken,
   };
@@ -47,35 +49,46 @@ export function invalidateAdminCache(): void {
 }
 
 // null = 로딩 중 / 미로그인. true / false = 결과.
-export function useIsAdmin(): boolean | null {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+function useWhoami(): { isAdmin: boolean; isSuperAdmin: boolean } | null {
+  const [state, setState] = useState<{ isAdmin: boolean; isSuperAdmin: boolean } | null>(null);
 
   useEffect(() => {
     const session = readSession();
     if (!session) {
-      setIsAdmin(false);
+      setState({ isAdmin: false, isSuperAdmin: false });
       return;
     }
     const cached = readCache(session.sessionToken);
     if (cached !== null) {
-      setIsAdmin(cached);
+      setState(cached);
       return;
     }
     let cancelled = false;
     fetchAdminWhoami()
       .then((data) => {
         if (cancelled) return;
-        writeCache(session.sessionToken, data.isAdmin);
-        setIsAdmin(data.isAdmin);
+        const next = { isAdmin: data.isAdmin, isSuperAdmin: data.isSuperAdmin ?? false };
+        writeCache(session.sessionToken, next.isAdmin, next.isSuperAdmin);
+        setState(next);
       })
       .catch(() => {
         if (cancelled) return;
-        setIsAdmin(false);
+        setState({ isAdmin: false, isSuperAdmin: false });
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return isAdmin;
+  return state;
+}
+
+export function useIsAdmin(): boolean | null {
+  const w = useWhoami();
+  return w === null ? null : w.isAdmin;
+}
+
+export function useIsSuperAdmin(): boolean | null {
+  const w = useWhoami();
+  return w === null ? null : w.isSuperAdmin;
 }
