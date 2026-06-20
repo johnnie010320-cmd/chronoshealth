@@ -18,6 +18,7 @@ export type CommentRow = {
   postId: string;
   userPseudonymId: string;
   body: string;
+  acceptsDm: boolean;
   createdAt: string;
 };
 
@@ -221,14 +222,14 @@ export async function listTrending(
 
 export async function insertComment(
   db: D1Database,
-  row: { id: string; postId: string; userPseudonymId: string; body: string },
+  row: { id: string; postId: string; userPseudonymId: string; body: string; acceptsDm: boolean },
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO community_comments (id, post_id, user_pseudonym_id, body)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO community_comments (id, post_id, user_pseudonym_id, body, accepts_dm)
+       VALUES (?, ?, ?, ?, ?)`,
     )
-    .bind(row.id, row.postId, row.userPseudonymId, row.body)
+    .bind(row.id, row.postId, row.userPseudonymId, row.body, row.acceptsDm ? 1 : 0)
     .run();
 }
 
@@ -276,7 +277,7 @@ export async function readCommentCommunity(
 export async function listComments(db: D1Database, postId: string): Promise<CommentRow[]> {
   const result = await db
     .prepare(
-      `SELECT id, post_id, user_pseudonym_id, body, created_at
+      `SELECT id, post_id, user_pseudonym_id, body, accepts_dm, created_at
          FROM community_comments
         WHERE post_id = ? AND deleted_at IS NULL
         ORDER BY created_at ASC`,
@@ -287,6 +288,7 @@ export async function listComments(db: D1Database, postId: string): Promise<Comm
       post_id: string;
       user_pseudonym_id: string;
       body: string;
+      accepts_dm: number;
       created_at: string;
     }>();
   return (result.results ?? []).map((row) => ({
@@ -294,6 +296,7 @@ export async function listComments(db: D1Database, postId: string): Promise<Comm
     postId: row.post_id,
     userPseudonymId: row.user_pseudonym_id,
     body: row.body,
+    acceptsDm: row.accepts_dm === 1,
     createdAt: row.created_at,
   }));
 }

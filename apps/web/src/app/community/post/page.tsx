@@ -10,6 +10,7 @@ import { readSession } from '@/lib/session';
 import {
   addCommunityComment,
   fetchCommunityPost,
+  openDm,
   toggleCommunityLike,
   type CommunityPost,
   type CommunityComment,
@@ -43,8 +44,10 @@ function CommunityDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errCode, setErrCode] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [acceptsDm, setAcceptsDm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
+  const [dmBusyId, setDmBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id === '') {
@@ -95,16 +98,31 @@ function CommunityDetailPage() {
     setSubmitting(true);
     setErrCode(null);
     try {
-      await addCommunityComment(id, draft.trim());
+      await addCommunityComment(id, draft.trim(), acceptsDm);
       const refreshed = await fetchCommunityPost(id);
       setPost(refreshed.post);
       setComments(refreshed.comments);
       setDraft('');
+      setAcceptsDm(false);
     } catch (err) {
       const code = err instanceof Error ? err.message : 'generic';
       setErrCode(code);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleStartDm(comment: CommunityComment) {
+    if (!comment.authorNickname || dmBusyId) return;
+    setDmBusyId(comment.id);
+    setErrCode(null);
+    try {
+      const { conversation } = await openDm(comment.authorNickname);
+      router.push(`/messages/view?id=${conversation.id}`);
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'generic';
+      setErrCode(code);
+      setDmBusyId(null);
     }
   }
 
@@ -193,19 +211,37 @@ function CommunityDetailPage() {
               {Co.detail.noComments}
             </li>
           )}
-          {comments.map((c) => (
-            <li
-              key={c.id}
-              className="card-shadow rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-                {Co.pseudonymPrefix}·{c.userPseudonymId.slice(0, 6)}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-stone-700 dark:text-stone-200">
-                {c.body}
-              </p>
-            </li>
-          ))}
+          {comments.map((c) => {
+            const canDm = c.acceptsDm && !c.isSelf && !!c.authorNickname;
+            return (
+              <li
+                key={c.id}
+                className="card-shadow rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                    {c.authorNickname ?? `${Co.pseudonymPrefix}·${c.userPseudonymId.slice(0, 6)}`}
+                  </p>
+                  {canDm && (
+                    <button
+                      type="button"
+                      onClick={() => void handleStartDm(c)}
+                      disabled={dmBusyId !== null}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-semibold text-brand-700 transition active:scale-[0.97] disabled:opacity-60 dark:bg-brand-900/40 dark:text-brand-200"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                      </svg>
+                      {dmBusyId === c.id ? Co.detail.dmStarting : Co.detail.dmCta}
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-stone-700 dark:text-stone-200">
+                  {c.body}
+                </p>
+              </li>
+            );
+          })}
         </ul>
 
         <form onSubmit={handleAddComment} className="mt-3 space-y-2">
@@ -221,6 +257,17 @@ function CommunityDetailPage() {
               onChange={(e) => setDraft(e.target.value)}
               className="mt-1 block w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
             />
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 px-1">
+            <input
+              type="checkbox"
+              checked={acceptsDm}
+              onChange={(e) => setAcceptsDm(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500 dark:border-stone-700"
+            />
+            <span className="text-[12px] text-stone-600 dark:text-stone-300">
+              {Co.detail.dmAcceptLabel}
+            </span>
           </label>
           {errCode && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">

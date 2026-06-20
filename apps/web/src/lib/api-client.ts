@@ -579,6 +579,9 @@ export type CommunityComment = {
   userPseudonymId: string;
   body: string;
   createdAt: string;
+  acceptsDm: boolean;
+  authorNickname: string | null;
+  isSelf: boolean;
 };
 
 export type ListPostsResponse = {
@@ -701,13 +704,14 @@ export async function createCommunityPost(body: CreatePostBody): Promise<{ post:
 export async function addCommunityComment(
   postId: string,
   body: string,
+  acceptsDm = false,
 ): Promise<void> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}/comments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, acceptsDm }),
   });
   if (!res.ok) await throwOnError(res);
 }

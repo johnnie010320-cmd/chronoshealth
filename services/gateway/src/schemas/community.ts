@@ -25,6 +25,8 @@ export type CreatePostRequest = z.infer<typeof CreatePostRequest>;
 export const CreateCommentRequest = z
   .object({
     body: z.string().min(1).max(500),
+    // 1:1 대화 수용 여부 — 작성자가 다른 회원의 DM 시도를 허용할지 선택.
+    acceptsDm: z.boolean().default(false),
   })
   .strict();
 export type CreateCommentRequest = z.infer<typeof CreateCommentRequest>;

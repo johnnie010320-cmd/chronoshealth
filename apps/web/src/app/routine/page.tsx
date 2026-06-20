@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
   estimateCalories,
+  estimateFoodshot,
   fetchRoutineToday,
   fetchRoutineRange,
   submitRoutineDaily,
@@ -64,6 +65,9 @@ export default function RoutinePage() {
   const [estimating, setEstimating] = useState(false);
   const [estimateLines, setEstimateLines] = useState<CalorieEstimateLine[] | null>(null);
   const [estimateErr, setEstimateErr] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoErr, setPhotoErr] = useState<string | null>(null);
+  const [photoApplied, setPhotoApplied] = useState(false);
 
   useEffect(() => {
     if (!readSession()) {
@@ -130,6 +134,40 @@ export default function RoutinePage() {
     }
   }
 
+  async function handlePhoto(file: File | null) {
+    if (!file) return;
+    setPhotoErr(null);
+    setPhotoApplied(false);
+    setEstimateErr(null);
+    setPhotoBusy(true);
+    try {
+      const imageB64 = await fileToFoodshotB64(file);
+      const res = await estimateFoodshot(imageB64, locale);
+      if (res.estimatedItems.length === 0) {
+        setPhotoErr('errPhoto');
+        return;
+      }
+      // 인식 결과로 음식 항목과 칼로리를 자동 채움(최대 10항목).
+      setFoodRows(
+        res.estimatedItems.slice(0, 10).map((it) => ({ name: it.name, amount: it.amount })),
+      );
+      setEstimateLines(
+        res.estimatedItems.map((it) => ({
+          name: it.name,
+          amount: it.amount,
+          calories: it.calories,
+        })),
+      );
+      setForm((f) => ({ ...f, caloriesKcal: String(res.totalCalories) }));
+      setPhotoApplied(true);
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'errPhoto';
+      setPhotoErr(code in R.error ? code : 'errPhoto');
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus('saving');
@@ -179,6 +217,79 @@ export default function RoutinePage() {
           <p className="text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
             {F.sectionHint}
           </p>
+
+          {/* 사진으로 칼로리 추정 — 카메라/갤러리 → AI Vision(foodshot) */}
+          <div className="rounded-xl border border-stone-200 bg-stone-50/70 px-3 py-2.5 dark:border-stone-800 dark:bg-stone-800/30">
+            <p className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+              {F.photoTitle}
+            </p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500 dark:text-stone-400">
+              {F.photoHint}
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label
+                className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[12px] font-semibold text-stone-700 transition active:scale-[0.97] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 ${
+                  photoBusy ? 'pointer-events-none opacity-60' : ''
+                }`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>{F.photoCamera}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  disabled={photoBusy}
+                  onChange={(e) => {
+                    void handlePhoto(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              <label
+                className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[12px] font-semibold text-stone-700 transition active:scale-[0.97] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 ${
+                  photoBusy ? 'pointer-events-none opacity-60' : ''
+                }`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                <span>{F.photoGallery}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={photoBusy}
+                  onChange={(e) => {
+                    void handlePhoto(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
+            {photoBusy && (
+              <div className="mt-2 flex items-center gap-2 text-[11px] text-stone-500 dark:text-stone-400">
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-stone-300 border-t-brand-600 dark:border-stone-700 dark:border-t-brand-400" />
+                {F.photoAnalyzing}
+              </div>
+            )}
+            {photoApplied && !photoBusy && (
+              <p className="mt-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                {F.photoApplied}
+              </p>
+            )}
+            {photoErr && (
+              <p className="mt-2 text-[11px] font-medium text-rose-600 dark:text-rose-300">
+                {R.error[photoErr as keyof typeof R.error] ?? F.errPhoto}
+              </p>
+            )}
+          </div>
+
           <ul className="space-y-2">
             {foodRows.map((row, idx) => (
               <li key={idx} className="grid grid-cols-[1fr_auto_28px] items-center gap-2">
@@ -387,6 +498,44 @@ export default function RoutinePage() {
       </div>
     </AppShell>
   );
+}
+
+// 음식 사진 → JPEG 다운스케일·압축 → base64(데이터URL 접두 제거).
+// foodshot API 한도(base64 ≤ 512KB)에 맞도록 품질을 단계적으로 낮춤.
+async function fileToFoodshotB64(file: File): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('errPhoto'));
+    reader.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('errPhoto'));
+    el.src = dataUrl;
+  });
+  const maxDim = 1024;
+  let width = img.naturalWidth || img.width;
+  let height = img.naturalHeight || img.height;
+  if (width > maxDim || height > maxDim) {
+    const ratio = Math.min(maxDim / width, maxDim / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('errPhoto');
+  ctx.drawImage(img, 0, 0, width, height);
+  const LIMIT = 512 * 1024;
+  for (const quality of [0.8, 0.6, 0.45, 0.3, 0.2]) {
+    const url = canvas.toDataURL('image/jpeg', quality);
+    const b64 = url.slice(url.indexOf(',') + 1);
+    if (b64.length <= LIMIT) return b64;
+  }
+  throw new Error('errPhoto');
 }
 
 function NumberField({

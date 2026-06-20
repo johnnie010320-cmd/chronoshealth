@@ -613,6 +613,7 @@ type CommunityCommentRow = {
   post_id: string;
   user_pseudonym_id: string;
   body: string;
+  accepts_dm: number;
   created_at: string;
   deleted_at: string | null;
 };
@@ -981,14 +982,15 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('INSERT INTO community_comments')) {
-      const [id, post_id, user_pseudonym_id, body] = args as [
-        string, string, string, string,
+      const [id, post_id, user_pseudonym_id, body, accepts_dm] = args as [
+        string, string, string, string, number | undefined,
       ];
       state.comments.push({
         id,
         post_id,
         user_pseudonym_id,
         body,
+        accepts_dm: accepts_dm === 1 ? 1 : 0,
         created_at: new Date().toISOString(),
         deleted_at: null,
       });
@@ -1793,6 +1795,7 @@ export function makeMockAnalysisDb(): {
           post_id: c.post_id,
           user_pseudonym_id: c.user_pseudonym_id,
           body: c.body,
+          accepts_dm: c.accepts_dm,
           created_at: c.created_at,
         }));
       return { results: rows };

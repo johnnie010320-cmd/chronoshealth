@@ -147,12 +147,26 @@ communityRoute.get('/trending', authMiddleware, rateLimit(200), async (c) => {
 
 communityRoute.get('/posts/:id', authMiddleware, rateLimit(200), async (c) => {
   const id = c.req.param('id');
+  const me = c.get('userPseudonymId');
   const post = await readPost(c.env.DB, id);
   if (!post) {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
   const comments = await listComments(c.env.DB, id);
-  return c.json({ post, comments, modelVersion: MODEL_VERSION });
+  // 1:1 대화 버튼용 — 작성자 닉네임(공개 핸들) + 수용 여부 + 본인 여부.
+  const authorIds = [...new Set(comments.map((cm) => cm.userPseudonymId))];
+  const nicks = await resolveNicknames(c.env.IDENTITY_DB, authorIds);
+  const enriched = comments.map((cm) => ({
+    id: cm.id,
+    postId: cm.postId,
+    userPseudonymId: cm.userPseudonymId,
+    body: cm.body,
+    createdAt: cm.createdAt,
+    acceptsDm: cm.acceptsDm,
+    authorNickname: nicks.get(cm.userPseudonymId) ?? null,
+    isSelf: cm.userPseudonymId === me,
+  }));
+  return c.json({ post, comments: enriched, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async (c) => {
@@ -184,6 +198,7 @@ communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async
     postId,
     userPseudonymId: pseudonymId,
     body: parsed.data.body,
+    acceptsDm: parsed.data.acceptsDm,
   });
   try {
     await appendLedger(c.env.DB, pseudonymId, {
