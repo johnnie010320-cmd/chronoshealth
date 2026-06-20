@@ -122,12 +122,19 @@ describe('Community API', () => {
     expect(data.error.code).toBe('INVALID_VIDEO_URL');
   });
 
-  it('POST /posts 400 FORBIDDEN_KEYWORD — 금지 단어 본문', async () => {
+  // 2026-06-20: 의료 표현 차단 제거. 욕설은 여전히 차단되므로 그것으로 FORBIDDEN_KEYWORD 경로 검증.
+  it('POST /posts 400 FORBIDDEN_KEYWORD — 금지 단어(욕설) 본문', async () => {
     const { token } = issueTestToken(identityMock.state);
-    const res = await createPost(token, { body: '진단을 받아야 합니다' });
+    const res = await createPost(token, { body: '시발 어쩌고' });
     expect(res.status).toBe(400);
     const data = (await res.json()) as { error: { code: string } };
     expect(data.error.code).toBe('FORBIDDEN_KEYWORD');
+  });
+
+  it('POST /posts 200 — 의료 표현(진단·치료)은 더 이상 차단되지 않음', async () => {
+    const { token } = issueTestToken(identityMock.state);
+    const res = await createPost(token, { body: '정확한 진단과 치료는 의료기관에서 받으세요.' });
+    expect(res.status).toBe(200);
   });
 
   it('POST /posts 400 INVALID_INPUT — title 너무 짧음', async () => {
@@ -178,11 +185,11 @@ describe('Community API', () => {
     expect(data.comments.length).toBe(2);
   });
 
-  it('POST /posts/:id/comments 400 FORBIDDEN_KEYWORD', async () => {
+  it('POST /posts/:id/comments 400 FORBIDDEN_KEYWORD — 욕설 차단', async () => {
     const { token } = issueTestToken(identityMock.state);
     const r = await createPost(token);
     const { post } = (await r.json()) as { post: PostWire };
-    const res = await addComment(token, post.id, '치료법을 알려주세요');
+    const res = await addComment(token, post.id, '시발 진짜');
     expect(res.status).toBe(400);
   });
 

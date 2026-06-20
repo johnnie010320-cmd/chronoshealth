@@ -184,7 +184,7 @@ describe('R9 메시징', () => {
     const convId = ((await open.json()) as { conversation: { id: string } }).conversation.id;
     const r = await req(`/api/v1/messages/conversations/${convId}/messages`, aliceToken, {
       method: 'POST',
-      body: JSON.stringify({ body: '이건 진단입니다' }),
+      body: JSON.stringify({ body: '시발 어쩌고' }),
     });
     expect(r.status).toBe(400);
     const data = (await r.json()) as { error: { code: string } };
