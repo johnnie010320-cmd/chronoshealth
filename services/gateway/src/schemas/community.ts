@@ -47,6 +47,10 @@ export const CreatePostRequest = z
   .strict();
 export type CreatePostRequest = z.infer<typeof CreatePostRequest>;
 
+// 작성자 본문 수정 — communityId 제외(소속 변경 불가), 나머지 콘텐츠 필드 동일.
+export const UpdatePostRequest = CreatePostRequest.omit({ communityId: true });
+export type UpdatePostRequest = z.infer<typeof UpdatePostRequest>;
+
 export const CreateCommentRequest = z
   .object({
     body: z.string().min(1).max(500),

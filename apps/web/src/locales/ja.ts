@@ -405,6 +405,7 @@ export const ja: Dictionary = {
     emptyBody: '最初の投稿をしてみましょう。',
     new: {
       pageTitle: '新規投稿',
+      editTitle: '投稿を編集',
       titleField: { label: 'タイトル', placeholder: '例: 今日の30分ジョギング' },
       bodyField: { label: '本文', placeholder: '運動・食事・睡眠の一言' },
       videoUrlField: {
@@ -448,6 +449,12 @@ export const ja: Dictionary = {
     detail: {
       authorLabel: '投稿者',
       snsLinkLabel: 'SNSリンクを開く',
+      editCta: '編集',
+      deleteCta: '削除',
+      saveCta: '保存',
+      cancelCta: 'キャンセル',
+      deletePostConfirm: 'この投稿を削除しますか？',
+      deleteCommentConfirm: 'このコメントを削除しますか？',
       commentSectionTitle: 'コメント',
       commentField: { label: 'コメント', placeholder: '感想を共有しましょう' },
       commentSubmit: '送信',

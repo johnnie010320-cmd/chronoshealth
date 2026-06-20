@@ -408,6 +408,7 @@ export const en: Dictionary = {
     emptyBody: 'Be the first to post.',
     new: {
       pageTitle: 'New post',
+      editTitle: 'Edit post',
       titleField: { label: 'Title', placeholder: 'e.g. 30-min jog today' },
       bodyField: { label: 'Body', placeholder: 'Quick note on exercise / meals / sleep' },
       videoUrlField: {
@@ -451,6 +452,12 @@ export const en: Dictionary = {
     detail: {
       authorLabel: 'Author',
       snsLinkLabel: 'Open SNS link',
+      editCta: 'Edit',
+      deleteCta: 'Delete',
+      saveCta: 'Save',
+      cancelCta: 'Cancel',
+      deletePostConfirm: 'Delete this post?',
+      deleteCommentConfirm: 'Delete this comment?',
       commentSectionTitle: 'Comments',
       commentField: { label: 'Add a comment', placeholder: 'Share your thoughts' },
       commentSubmit: 'Post',

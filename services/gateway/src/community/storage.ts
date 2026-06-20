@@ -104,6 +104,87 @@ export async function softDeletePost(
   return (res.meta?.changes ?? 0) > 0;
 }
 
+// 작성자 본문 수정 — 본인 글만(user_pseudonym_id 일치).
+export async function updatePost(
+  db: D1Database,
+  postId: string,
+  userPseudonymId: string,
+  fields: {
+    title: string;
+    body: string;
+    videoUrl: string | null;
+    snsUrl: string | null;
+    videoUrls: string[];
+    snsUrls: string[];
+    imageData: string | null;
+    imageMime: string | null;
+    imagePosition: 'top' | 'middle' | 'bottom';
+    bodyRich: RichBodySegment[] | null;
+    allowLikes: boolean;
+    allowComments: boolean;
+  },
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE community_posts SET
+         title = ?, body = ?, video_url = ?, sns_url = ?, image_data = ?, image_mime = ?,
+         allow_likes = ?, allow_comments = ?, body_rich = ?, image_position = ?, video_urls = ?, sns_urls = ?
+       WHERE id = ? AND user_pseudonym_id = ? AND deleted_at IS NULL`,
+    )
+    .bind(
+      fields.title,
+      fields.body,
+      fields.videoUrl,
+      fields.snsUrl,
+      fields.imageData,
+      fields.imageMime,
+      fields.allowLikes ? 1 : 0,
+      fields.allowComments ? 1 : 0,
+      fields.bodyRich ? JSON.stringify(fields.bodyRich) : null,
+      fields.imagePosition,
+      fields.videoUrls.length ? JSON.stringify(fields.videoUrls) : null,
+      fields.snsUrls.length ? JSON.stringify(fields.snsUrls) : null,
+      postId,
+      userPseudonymId,
+    )
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// 작성자 댓글 수정 — 본인 댓글만.
+export async function updateComment(
+  db: D1Database,
+  commentId: string,
+  userPseudonymId: string,
+  body: string,
+  acceptsDm: boolean,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE community_comments SET body = ?, accepts_dm = ?
+        WHERE id = ? AND user_pseudonym_id = ? AND deleted_at IS NULL`,
+    )
+    .bind(body, acceptsDm ? 1 : 0, commentId, userPseudonymId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// 작성자 댓글 삭제 — 본인 댓글만.
+export async function softDeleteComment(
+  db: D1Database,
+  commentId: string,
+  userPseudonymId: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE community_comments SET deleted_at = datetime('now')
+        WHERE id = ? AND user_pseudonym_id = ? AND deleted_at IS NULL`,
+    )
+    .bind(commentId, userPseudonymId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
 type PostRawRow = {
   id: string;
   community_id: string;

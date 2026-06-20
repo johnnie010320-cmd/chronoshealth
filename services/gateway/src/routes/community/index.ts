@@ -8,6 +8,7 @@ import {
   CreatePostRequest,
   ListPostsQuery,
   UpdateCommunityRequest,
+  UpdatePostRequest,
 } from '../../schemas/community.js';
 import {
   insertComment,
@@ -20,8 +21,11 @@ import {
   moderatorDeletePost,
   readCommentCommunity,
   readPost,
+  softDeleteComment,
   softDeletePost,
   toggleLike,
+  updateComment,
+  updatePost,
 } from '../../community/storage.js';
 import {
   addCommunityAdmin,
@@ -193,7 +197,72 @@ communityRoute.get('/posts/:id', authMiddleware, rateLimit(200), async (c) => {
     authorNickname: nicks.get(cm.userPseudonymId) ?? null,
     isSelf: cm.userPseudonymId === me,
   }));
-  return c.json({ post, comments: enriched, modelVersion: MODEL_VERSION });
+  return c.json({
+    post,
+    isAuthor: post.userPseudonymId === me,
+    comments: enriched,
+    modelVersion: MODEL_VERSION,
+  });
+});
+
+// 작성자 본문 수정 — 본인 글만.
+communityRoute.patch('/posts/:id', authMiddleware, rateLimit(50), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const postId = c.req.param('id');
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+  }
+  const parsed = UpdatePostRequest.safeParse(raw);
+  if (!parsed.success) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const textCheck = moderateText(`${parsed.data.title}\n${parsed.data.body}`);
+  if (!textCheck.allowed) {
+    return c.json({ error: { code: textCheck.reason } }, 400);
+  }
+  const videoUrls =
+    parsed.data.videoUrls.length > 0
+      ? parsed.data.videoUrls
+      : parsed.data.videoUrl
+      ? [parsed.data.videoUrl]
+      : [];
+  for (const v of videoUrls) {
+    const urlCheck = moderateVideoUrl(v);
+    if (!urlCheck.allowed) {
+      return c.json({ error: { code: urlCheck.reason } }, 400);
+    }
+  }
+  const snsUrls =
+    parsed.data.snsUrls.length > 0
+      ? parsed.data.snsUrls
+      : parsed.data.snsUrl
+      ? [parsed.data.snsUrl]
+      : [];
+  if ((parsed.data.imageB64 === null) !== (parsed.data.imageMime === null)) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const ok = await updatePost(c.env.DB, postId, pseudonymId, {
+    title: parsed.data.title,
+    body: parsed.data.body,
+    videoUrl: videoUrls[0] ?? null,
+    snsUrl: snsUrls[0] ?? null,
+    videoUrls,
+    snsUrls,
+    imageData: parsed.data.imageB64,
+    imageMime: parsed.data.imageMime,
+    imagePosition: parsed.data.imagePosition,
+    bodyRich: parsed.data.bodyRich,
+    allowLikes: parsed.data.allowLikes,
+    allowComments: parsed.data.allowComments,
+  });
+  if (!ok) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  const post = await readPost(c.env.DB, postId);
+  return c.json({ post, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async (c) => {
@@ -237,6 +306,42 @@ communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async
     console.error('appendLedger community_comment failed', err);
   }
   return c.json({ id, postId, body: parsed.data.body, modelVersion: MODEL_VERSION });
+});
+
+// 작성자 댓글 수정 — 본인 댓글만.
+communityRoute.patch('/posts/:id/comments/:commentId', authMiddleware, rateLimit(100), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const commentId = c.req.param('commentId');
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+  }
+  const parsed = CreateCommentRequest.safeParse(raw);
+  if (!parsed.success) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const check = moderateText(parsed.data.body);
+  if (!check.allowed) {
+    return c.json({ error: { code: check.reason } }, 400);
+  }
+  const ok = await updateComment(c.env.DB, commentId, pseudonymId, parsed.data.body, parsed.data.acceptsDm);
+  if (!ok) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  return c.json({ updated: true, modelVersion: MODEL_VERSION });
+});
+
+// 작성자 댓글 삭제 — 본인 댓글만.
+communityRoute.delete('/posts/:id/comments/:commentId', authMiddleware, rateLimit(100), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const commentId = c.req.param('commentId');
+  const ok = await softDeleteComment(c.env.DB, commentId, pseudonymId);
+  if (!ok) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  return c.json({ deleted: true });
 });
 
 communityRoute.post('/posts/:id/like', authMiddleware, rateLimit(200), async (c) => {

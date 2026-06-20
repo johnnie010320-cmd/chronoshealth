@@ -1050,7 +1050,53 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (trimmed.startsWith('UPDATE community_posts SET') && trimmed.includes('title = ?')) {
+      // 작성자 본문 수정. 바인딩: title, body, video_url, sns_url, image_data, image_mime,
+      //   allow_likes, allow_comments, body_rich, image_position, video_urls, sns_urls, postId, userPseudonymId
+      const a = args as unknown[];
+      const postId = a[12] as string;
+      const userPseudonymId = a[13] as string;
+      const post = state.posts.find(
+        (p) => p.id === postId && p.user_pseudonym_id === userPseudonymId && p.deleted_at === null,
+      );
+      if (!post) return { success: true, meta: { changes: 0 } };
+      post.title = a[0] as string;
+      post.body = a[1] as string;
+      post.video_url = (a[2] as string | null) ?? null;
+      post.sns_url = (a[3] as string | null) ?? null;
+      post.image_data = (a[4] as string | null) ?? null;
+      post.image_mime = (a[5] as string | null) ?? null;
+      post.allow_likes = a[6] as number;
+      post.allow_comments = a[7] as number;
+      post.body_rich = (a[8] as string | null) ?? null;
+      post.image_position = (a[9] as string | null) ?? 'top';
+      post.video_urls = (a[10] as string | null) ?? null;
+      post.sns_urls = (a[11] as string | null) ?? null;
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('UPDATE community_comments SET body')) {
+      const [body, accepts_dm, commentId, userPseudonymId] = args as [string, number, string, string];
+      const cmt = state.comments.find(
+        (cc) => cc.id === commentId && cc.user_pseudonym_id === userPseudonymId && cc.deleted_at === null,
+      );
+      if (!cmt) return { success: true, meta: { changes: 0 } };
+      cmt.body = body;
+      cmt.accepts_dm = accepts_dm === 1 ? 1 : 0;
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (trimmed.startsWith('UPDATE community_comments SET deleted_at')) {
+      // 작성자 삭제(user_pseudonym_id 포함) vs 모더레이터 삭제(id 만) 분기.
+      if (trimmed.includes('user_pseudonym_id = ?')) {
+        const [commentId, userPseudonymId] = args as [string, string];
+        const cmt = state.comments.find(
+          (cc) => cc.id === commentId && cc.user_pseudonym_id === userPseudonymId && cc.deleted_at === null,
+        );
+        if (!cmt) return { success: true, meta: { changes: 0 } };
+        cmt.deleted_at = new Date().toISOString();
+        return { success: true, meta: { changes: 1 } };
+      }
       const [commentId] = args as [string];
       const cmt = state.comments.find((cc) => cc.id === commentId && cc.deleted_at === null);
       if (!cmt) return { success: true, meta: { changes: 0 } };

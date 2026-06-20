@@ -158,10 +158,37 @@ export function serializeEditor(root: HTMLElement): RichBodyValue {
   return { plain: plain.replace(/\n{3,}/g, '\n\n').trim(), segments };
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function segmentsToHtml(segs: RichSegment[]): string {
+  return segs
+    .map((s) => {
+      let html = escapeHtml(s.t).replace(/\n/g, '<br>');
+      const styles: string[] = [];
+      if (s.c) styles.push(`color:${s.c}`);
+      if (s.s === 'sm') styles.push('font-size:small');
+      else if (s.s === 'lg') styles.push('font-size:x-large');
+      else if (s.s === 'xl') styles.push('font-size:xx-large');
+      if (styles.length) html = `<span style="${styles.join(';')}">${html}</span>`;
+      if (s.u) html = `<u>${html}</u>`;
+      if (s.i) html = `<i>${html}</i>`;
+      if (s.b) html = `<b>${html}</b>`;
+      return html;
+    })
+    .join('');
+}
+
 export function RichBodyEditor({
   onChange,
   placeholder,
   labels,
+  initialSegments,
+  initialPlain,
 }: {
   onChange: (value: RichBodyValue) => void;
   placeholder: string;
@@ -175,8 +202,11 @@ export function RichBodyEditor({
     underline: string;
     color: string;
   };
+  initialSegments?: RichSegment[] | null;
+  initialPlain?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const seeded = useRef(false);
 
   useEffect(() => {
     try {
@@ -185,6 +215,21 @@ export function RichBodyEditor({
       /* noop */
     }
   }, []);
+
+  // 편집 모드 — 기존 내용으로 1회 초기화.
+  useEffect(() => {
+    if (seeded.current || !ref.current) return;
+    if (initialSegments && initialSegments.length > 0) {
+      ref.current.innerHTML = segmentsToHtml(initialSegments);
+      seeded.current = true;
+      onChange(serializeEditor(ref.current));
+    } else if (initialPlain) {
+      ref.current.textContent = initialPlain;
+      seeded.current = true;
+      onChange(serializeEditor(ref.current));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSegments, initialPlain]);
 
   function emit() {
     if (ref.current) onChange(serializeEditor(ref.current));
@@ -206,7 +251,7 @@ export function RichBodyEditor({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1.5 rounded-t-2xl border border-b-0 border-stone-200 bg-stone-50 px-2 py-1.5 dark:border-stone-800 dark:bg-stone-800/40">
+      <div className="sticky top-16 z-[5] flex flex-wrap items-center gap-1.5 rounded-t-2xl border border-b-0 border-stone-200 bg-stone-50 px-2 py-1.5 shadow-sm dark:border-stone-800 dark:bg-stone-800">
         <ToolbarButton onClick={() => applySize('xl')} label={labels.sizeTitle} className="text-[15px] font-bold" />
         <ToolbarButton onClick={() => applySize('lg')} label={labels.sizeSubtitle} className="text-[13px] font-bold" />
         <ToolbarButton onClick={() => applySize('normal')} label={labels.sizeBody} className="text-[12px]" />

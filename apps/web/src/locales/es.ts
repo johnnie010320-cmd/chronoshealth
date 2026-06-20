@@ -408,6 +408,7 @@ export const es: Dictionary = {
     emptyBody: 'Sé el primero en publicar.',
     new: {
       pageTitle: 'Nueva publicación',
+      editTitle: 'Editar publicación',
       titleField: { label: 'Título', placeholder: 'ej. 30 min de jogging hoy' },
       bodyField: { label: 'Cuerpo', placeholder: 'Nota rápida sobre ejercicio · comidas · sueño' },
       videoUrlField: {
@@ -451,6 +452,12 @@ export const es: Dictionary = {
     detail: {
       authorLabel: 'Autor',
       snsLinkLabel: 'Abrir enlace SNS',
+      editCta: 'Editar',
+      deleteCta: 'Eliminar',
+      saveCta: 'Guardar',
+      cancelCta: 'Cancelar',
+      deletePostConfirm: '¿Eliminar esta publicación?',
+      deleteCommentConfirm: '¿Eliminar este comentario?',
       commentSectionTitle: 'Comentarios',
       commentField: { label: 'Añadir comentario', placeholder: 'Comparte tu opinión' },
       commentSubmit: 'Enviar',

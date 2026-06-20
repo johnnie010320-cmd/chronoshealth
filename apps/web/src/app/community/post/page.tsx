@@ -10,9 +10,12 @@ import { readSession } from '@/lib/session';
 import { RichBodyView } from '@/components/RichBodyEditor';
 import {
   addCommunityComment,
+  deleteCommunityComment,
+  deleteCommunityPost,
   fetchCommunityPost,
   openDm,
   toggleCommunityLike,
+  updateCommunityComment,
   type CommunityPost,
   type CommunityComment,
   type RichSegment,
@@ -42,6 +45,7 @@ function CommunityDetailPage() {
 
   const id = params?.get('id') ?? '';
   const [post, setPost] = useState<CommunityPost | null>(null);
+  const [isAuthor, setIsAuthor] = useState(false);
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [errCode, setErrCode] = useState<string | null>(null);
@@ -50,6 +54,9 @@ function CommunityDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
   const [dmBusyId, setDmBusyId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
 
   useEffect(() => {
     if (id === '') {
@@ -63,6 +70,7 @@ function CommunityDetailPage() {
     void fetchCommunityPost(id)
       .then((data) => {
         setPost(data.post);
+        setIsAuthor(data.isAuthor);
         setComments(data.comments);
       })
       .catch((e) => {
@@ -113,6 +121,54 @@ function CommunityDetailPage() {
     }
   }
 
+  async function handleDeletePost() {
+    if (typeof window !== 'undefined' && !window.confirm(Co.detail.deletePostConfirm)) return;
+    setBusy(true);
+    try {
+      await deleteCommunityPost(id);
+      router.replace(post && post.communityId !== '_lounge' ? `/community/view?id=${post.communityId}` : '/community');
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+      setBusy(false);
+    }
+  }
+
+  function startEditComment(c: CommunityComment) {
+    setEditingId(c.id);
+    setEditDraft(c.body);
+  }
+
+  async function saveEditComment(commentId: string) {
+    if (editDraft.trim() === '') return;
+    setBusy(true);
+    setErrCode(null);
+    try {
+      await updateCommunityComment(id, commentId, editDraft.trim());
+      const refreshed = await fetchCommunityPost(id);
+      setComments(refreshed.comments);
+      setEditingId(null);
+      setEditDraft('');
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    if (typeof window !== 'undefined' && !window.confirm(Co.detail.deleteCommentConfirm)) return;
+    setBusy(true);
+    try {
+      await deleteCommunityComment(id, commentId);
+      const refreshed = await fetchCommunityPost(id);
+      setComments(refreshed.comments);
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleStartDm(comment: CommunityComment) {
     if (!comment.authorNickname || dmBusyId) return;
     setDmBusyId(comment.id);
@@ -146,9 +202,29 @@ function CommunityDetailPage() {
     <AppShell title={Co.pageTitle} showBack backHref="/community" decoration="dots">
       <article className="mt-4 space-y-3">
         <header>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-            {Co.detail.authorLabel} · {author}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              {Co.detail.authorLabel} · {author}
+            </p>
+            {isAuthor && (
+              <div className="flex shrink-0 items-center gap-2">
+                <Link
+                  href={`/community/new?edit=${post.id}&cid=${post.communityId}`}
+                  className="text-[11px] font-semibold text-brand-700 dark:text-brand-300"
+                >
+                  {Co.detail.editCta}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleDeletePost()}
+                  disabled={busy}
+                  className="text-[11px] font-semibold text-rose-600 disabled:opacity-60 dark:text-rose-300"
+                >
+                  {Co.detail.deleteCta}
+                </button>
+              </div>
+            )}
+          </div>
           <h1 className="mt-1 text-xl font-bold leading-tight tracking-tight text-stone-900 dark:text-stone-100">
             {post.title}
           </h1>
@@ -255,9 +331,59 @@ function CommunityDetailPage() {
                     </button>
                   )}
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-stone-700 dark:text-stone-200">
-                  {c.body}
-                </p>
+                {editingId === c.id ? (
+                  <div className="mt-1 space-y-2">
+                    <textarea
+                      value={editDraft}
+                      maxLength={500}
+                      rows={3}
+                      onChange={(e) => setEditDraft(e.target.value)}
+                      className="block w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-[13px] text-stone-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void saveEditComment(c.id)}
+                        disabled={busy || editDraft.trim() === ''}
+                        className="rounded-xl bg-brand-600 px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-60"
+                      >
+                        {Co.detail.saveCta}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="rounded-xl border border-stone-300 px-3 py-1.5 text-[12px] font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-200"
+                      >
+                        {Co.detail.cancelCta}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-stone-700 dark:text-stone-200">
+                      {c.body}
+                    </p>
+                    {c.isSelf && (
+                      <div className="mt-1.5 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => startEditComment(c)}
+                          className="text-[11px] font-semibold text-brand-700 dark:text-brand-300"
+                        >
+                          {Co.detail.editCta}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteComment(c.id)}
+                          disabled={busy}
+                          className="text-[11px] font-semibold text-rose-600 disabled:opacity-60 dark:text-rose-300"
+                        >
+                          {Co.detail.deleteCta}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </li>
             );
           })}

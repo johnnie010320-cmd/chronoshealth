@@ -609,6 +609,7 @@ export type ListPostsResponse = {
 
 export type PostDetailResponse = {
   post: CommunityPost;
+  isAuthor: boolean;
   comments: CommunityComment[];
   modelVersion: string;
 };
@@ -737,6 +738,61 @@ export async function addCommunityComment(
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
     body: JSON.stringify({ body, acceptsDm }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 작성자 본문 수정.
+export async function updateCommunityPost(
+  postId: string,
+  body: Omit<CreatePostBody, 'communityId'>,
+): Promise<{ post: CommunityPost }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { post: CommunityPost };
+}
+
+// 작성자 본문 삭제.
+export async function deleteCommunityPost(postId: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 작성자 댓글 수정.
+export async function updateCommunityComment(
+  postId: string,
+  commentId: string,
+  body: string,
+  acceptsDm = false,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ body, acceptsDm }),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 작성자 댓글 삭제.
+export async function deleteCommunityComment(postId: string, commentId: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
 }

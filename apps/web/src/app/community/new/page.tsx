@@ -7,7 +7,13 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 import { RichBodyEditor, type RichBodyValue } from '@/components/RichBodyEditor';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
-import { createCommunityPost, type ImagePosition, type RichSegment } from '@/lib/api-client';
+import {
+  createCommunityPost,
+  fetchCommunityPost,
+  updateCommunityPost,
+  type ImagePosition,
+  type RichSegment,
+} from '@/lib/api-client';
 
 function NewCommunityPostInner() {
   const { t } = useI18n();
@@ -16,9 +22,12 @@ function NewCommunityPostInner() {
   const router = useRouter();
   const params = useSearchParams();
   const communityId = params?.get('cid') ?? '_lounge';
+  const editId = params?.get('edit') ?? null;
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [bodyRich, setBodyRich] = useState<RichSegment[]>([]);
+  const [initialSegments, setInitialSegments] = useState<RichSegment[] | null>(null);
+  const [initialPlain, setInitialPlain] = useState('');
   const [videoUrls, setVideoUrls] = useState<string[]>(['']);
   const [snsUrls, setSnsUrls] = useState<string[]>(['']);
   const [imageB64, setImageB64] = useState<string | null>(null);
@@ -33,8 +42,29 @@ function NewCommunityPostInner() {
   useEffect(() => {
     if (!readSession()) {
       router.replace('/signup');
+      return;
     }
-  }, [router]);
+    // 편집 모드 — 기존 글 불러와 프리필.
+    if (editId) {
+      void fetchCommunityPost(editId)
+        .then((data) => {
+          const p = data.post;
+          setTitle(p.title);
+          setInitialPlain(p.body);
+          setInitialSegments(p.bodyRich ?? null);
+          setVideoUrls(p.videoUrls.length > 0 ? p.videoUrls : ['']);
+          setSnsUrls(p.snsUrls.length > 0 ? p.snsUrls : ['']);
+          setImagePosition(p.imagePosition);
+          setAllowLikes(p.allowLikes);
+          setAllowComments(p.allowComments);
+          if (p.imageData) {
+            setImageB64(p.imageData);
+            setImagePreview(`data:${p.imageMime ?? 'image/jpeg'};base64,${p.imageData}`);
+          }
+        })
+        .catch((err) => setErrCode(err instanceof Error ? err.message : 'generic'));
+    }
+  }, [router, editId]);
 
   function onBodyChange(v: RichBodyValue) {
     setBody(v.plain);
@@ -69,19 +99,21 @@ function NewCommunityPostInner() {
       const cleanVideos = videoUrls.map((u) => u.trim()).filter((u) => u !== '');
       const cleanSns = snsUrls.map((u) => u.trim()).filter((u) => u !== '');
       const hasFmt = bodyRich.some((s) => s.b || s.i || s.u || s.c || s.s);
-      const res = await createCommunityPost({
-        communityId,
+      const payload = {
         title: title.trim(),
         body: body.trim(),
         bodyRich: hasFmt ? bodyRich : null,
         videoUrls: cleanVideos,
         snsUrls: cleanSns,
         imageB64,
-        imageMime: imageB64 ? 'image/jpeg' : null,
+        imageMime: imageB64 ? ('image/jpeg' as const) : null,
         imagePosition,
         allowLikes,
         allowComments,
-      });
+      };
+      const res = editId
+        ? await updateCommunityPost(editId, payload)
+        : await createCommunityPost({ communityId, ...payload });
       router.replace(`/community/post?id=${res.post.id}`);
     } catch (err) {
       const code = err instanceof Error ? err.message : 'generic';
@@ -96,7 +128,7 @@ function NewCommunityPostInner() {
   const positions: ImagePosition[] = ['top', 'middle', 'bottom'];
 
   return (
-    <AppShell title={Co.new.pageTitle} showBack backHref={backHref} decoration="dots">
+    <AppShell title={editId ? Co.new.editTitle : Co.new.pageTitle} showBack backHref={backHref} decoration="dots">
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <Field
           label={Co.new.titleField.label}
@@ -114,6 +146,8 @@ function NewCommunityPostInner() {
             <RichBodyEditor
               onChange={onBodyChange}
               placeholder={Co.new.bodyField.placeholder}
+              initialSegments={initialSegments}
+              initialPlain={initialPlain}
               labels={{
                 sizeTitle: Co.new.fmt.title,
                 sizeSubtitle: Co.new.fmt.subtitle,

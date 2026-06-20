@@ -402,6 +402,7 @@ export const ko = {
     emptyBody: '첫 번째 글을 작성해 보세요.',
     new: {
       pageTitle: '새 글 작성',
+      editTitle: '글 수정',
       titleField: { label: '제목', placeholder: '예: 오늘의 30분 조깅' },
       bodyField: { label: '본문', placeholder: '오늘의 운동·식사·수면 한 줄 후기' },
       videoUrlField: {
@@ -445,6 +446,12 @@ export const ko = {
     detail: {
       authorLabel: '작성자',
       snsLinkLabel: 'SNS 링크 열기',
+      editCta: '수정',
+      deleteCta: '삭제',
+      saveCta: '저장',
+      cancelCta: '취소',
+      deletePostConfirm: '이 글을 삭제할까요?',
+      deleteCommentConfirm: '이 댓글을 삭제할까요?',
       commentSectionTitle: '댓글',
       commentField: { label: '댓글 작성', placeholder: '의견을 남겨주세요' },
       commentSubmit: '등록',
