@@ -1,10 +1,10 @@
 export const ko = {
   meta: {
-    title: 'Chronos Health',
+    title: 'caremybody',
     description:
       '내 건강 데이터로 시작하는 예방의학. 생체 나이와 5년 위험 추정 리포트를 즉시 받아보세요.',
   },
-  brand: 'Chronos Health',
+  brand: 'caremybody',
   language: {
     label: '언어',
     ko: '한국어',
@@ -222,7 +222,7 @@ export const ko = {
     more: '공지사항 전체보기',
   },
   home: {
-    pageTitle: 'Chronos Health',
+    pageTitle: 'caremybody',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '나의 생명의 Twin 만들기를 시작해 볼까요?',
@@ -921,7 +921,7 @@ export const ko = {
     nav: '로드맵',
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
-      title: 'Chronos Health를 만들어 가는 길',
+      title: 'caremybody를 만들어 가는 길',
       body: 'AI 기반 건강 위험 예측 + 분산형 데이터 주권 + Health-to-Earn 토큰. 베타에서 정식 출시까지의 전체 그림.',
     },
     currentLive: {
@@ -976,7 +976,7 @@ export const ko = {
       cta: '베타 등록하기',
     },
     disclaimer:
-      'Chronos Health는 의료 행위를 제공하지 않습니다. 모든 예측은 신뢰구간과 함께 표시됩니다. 만 19세 미만 가입은 차단됩니다. 토큰 보상은 검토 중인 기능입니다.',
+      'caremybody는 의료 행위를 제공하지 않습니다. 모든 예측은 신뢰구간과 함께 표시됩니다. 만 19세 미만 가입은 차단됩니다. 토큰 보상은 검토 중인 기능입니다.',
     backHome: '홈으로',
   },
   avatar: {
@@ -1098,7 +1098,7 @@ export const ko = {
       medical: {
         label: '의료 면책 확인 (필수)',
         description:
-          'Chronos Health는 의료 행위를 제공하지 않으며, 예측 리포트는 의료 자문을 대체하지 않습니다.',
+          'caremybody는 의료 행위를 제공하지 않으며, 예측 리포트는 의료 자문을 대체하지 않습니다.',
       },
       token: {
         label: '토큰 보상 검토 중 확인 (필수)',

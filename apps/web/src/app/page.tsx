@@ -104,6 +104,16 @@ export default function HomePage() {
         </span>
       </section>
 
+      {/* caremybody 브랜드 히어로 — 앱 제목과 설문 메뉴 사이 (2026-06-20 리브랜딩) */}
+      <section className="card-shadow mt-3 overflow-hidden rounded-2xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/caremybody-hero.png"
+          alt="caremybody"
+          className="block w-full"
+        />
+      </section>
+
       {notice && (
         <Link
           href="/notices"

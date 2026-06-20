@@ -2,11 +2,11 @@ import type { Dictionary } from './ko';
 
 export const ja: Dictionary = {
   meta: {
-    title: 'Chronos Health',
+    title: 'caremybody',
     description:
       '健康データから始める予防医学。生体年齢と5年以内のリスク推定レポートを即時に発行。',
   },
-  brand: 'Chronos Health',
+  brand: 'caremybody',
   language: {
     label: '言語',
     ko: '한국어',
@@ -225,7 +225,7 @@ export const ja: Dictionary = {
     more: 'お知らせ一覧',
   },
   home: {
-    pageTitle: 'Chronos Health',
+    pageTitle: 'caremybody',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '生命のTwin作りを始めましょうか?',
@@ -975,7 +975,7 @@ export const ja: Dictionary = {
     nav: 'ロードマップ',
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
-      title: 'Chronos Health を作り上げる道のり',
+      title: 'caremybody を作り上げる道のり',
       body: 'AI 健康リスク予測 + 分散型データ主権 + Health-to-Earn トークン。ベータから本格リリースまでの全体像。',
     },
     currentLive: {
@@ -1030,7 +1030,7 @@ export const ja: Dictionary = {
       cta: 'ウェイティングリストに参加',
     },
     disclaimer:
-      'Chronos Health は医療行為を提供しません。すべての予測は信頼区間と共に表示されます。満 19 歳未満の登録はブロックされます。トークン報酬は検討中の機能です。',
+      'caremybody は医療行為を提供しません。すべての予測は信頼区間と共に表示されます。満 19 歳未満の登録はブロックされます。トークン報酬は検討中の機能です。',
     backHome: 'ホームへ',
   },
   avatar: {
@@ -1152,7 +1152,7 @@ export const ja: Dictionary = {
       medical: {
         label: '医療免責確認（必須）',
         description:
-          'Chronos Health は医療行為を提供せず、予測レポートは医療相談の代替ではありません。',
+          'caremybody は医療行為を提供せず、予測レポートは医療相談の代替ではありません。',
       },
       token: {
         label: 'トークン報酬は検討中の確認（必須）',

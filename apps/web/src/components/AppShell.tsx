@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { HeartPulseIcon, ArrowLeftIcon } from './HealthIcons';
+import { ArrowLeftIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu } from './UserMenu';
 import { BottomNav } from './BottomNav';
@@ -53,9 +53,12 @@ export function AppShell({
             className="inline-flex items-center gap-2 text-stone-900 dark:text-stone-100"
             aria-label={t.brand}
           >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-700 text-white dark:bg-brand-500">
-              <HeartPulseIcon className="h-5 w-5" />
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand-mark.png"
+              alt=""
+              className="h-9 w-9 rounded-full object-cover shadow-sm"
+            />
             <span className="text-sm font-semibold tracking-tight">
               {t.brand}
             </span>

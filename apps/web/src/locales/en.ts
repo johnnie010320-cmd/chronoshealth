@@ -2,11 +2,11 @@ import type { Dictionary } from './ko';
 
 export const en: Dictionary = {
   meta: {
-    title: 'Chronos Health',
+    title: 'caremybody',
     description:
       'Preventive medicine starting from your health data. Get an instant biological age and 5-year risk estimate report.',
   },
-  brand: 'Chronos Health',
+  brand: 'caremybody',
   language: {
     label: 'Language',
     ko: '한국어',
@@ -228,7 +228,7 @@ export const en: Dictionary = {
     more: 'View all notices',
   },
   home: {
-    pageTitle: 'Chronos Health',
+    pageTitle: 'caremybody',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: 'Shall we start building your life Twin?',
@@ -978,7 +978,7 @@ export const en: Dictionary = {
     nav: 'Roadmap',
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
-      title: 'Building Chronos Health',
+      title: 'Building caremybody',
       body: 'AI-based health risk prediction + decentralized data sovereignty + Health-to-Earn. The full picture from beta to launch.',
     },
     currentLive: {
@@ -1033,7 +1033,7 @@ export const en: Dictionary = {
       cta: 'Join the waitlist',
     },
     disclaimer:
-      'Chronos Health does not provide medical care. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
+      'caremybody does not provide medical care. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
     backHome: 'Back to home',
   },
   avatar: {
@@ -1155,7 +1155,7 @@ export const en: Dictionary = {
       medical: {
         label: 'Medical disclaimer (required)',
         description:
-          'I understand Chronos Health does not provide medical care, and prediction reports do not replace medical advice.',
+          'I understand caremybody does not provide medical care, and prediction reports do not replace medical advice.',
       },
       token: {
         label: 'Token rewards under review (required)',

@@ -2,11 +2,11 @@ import type { Dictionary } from './ko';
 
 export const es: Dictionary = {
   meta: {
-    title: 'Chronos Health',
+    title: 'caremybody',
     description:
       'Medicina preventiva con tus datos de salud. Recibe al instante una estimación de tu edad biológica y riesgos a 5 años.',
   },
-  brand: 'Chronos Health',
+  brand: 'caremybody',
   language: {
     label: 'Idioma',
     ko: '한국어',
@@ -228,7 +228,7 @@ export const es: Dictionary = {
     more: 'Ver todos los avisos',
   },
   home: {
-    pageTitle: 'Chronos Health',
+    pageTitle: 'caremybody',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '¿Empezamos a crear tu Twin de vida?',
@@ -981,7 +981,7 @@ export const es: Dictionary = {
     nav: 'Hoja de ruta',
     hero: {
       eyebrow: 'Roadmap · 11 módulos · 64 semanas',
-      title: 'Construyendo Chronos Health',
+      title: 'Construyendo caremybody',
       body: 'Predicción de riesgo de salud con IA + soberanía descentralizada de datos + Health-to-Earn. El panorama completo de la beta al lanzamiento.',
     },
     currentLive: {
@@ -1036,7 +1036,7 @@ export const es: Dictionary = {
       cta: 'Unirme a la lista',
     },
     disclaimer:
-      'Chronos Health no proporciona atención médica. Todas las predicciones se muestran con intervalos de confianza. El registro de menores de 19 está bloqueado. Las recompensas por tokens están en revisión.',
+      'caremybody no proporciona atención médica. Todas las predicciones se muestran con intervalos de confianza. El registro de menores de 19 está bloqueado. Las recompensas por tokens están en revisión.',
     backHome: 'Volver al inicio',
   },
   avatar: {
@@ -1158,7 +1158,7 @@ export const es: Dictionary = {
       medical: {
         label: 'Aviso médico (obligatorio)',
         description:
-          'Entiendo que Chronos Health no proporciona atención médica, y los reportes no reemplazan la consulta médica.',
+          'Entiendo que caremybody no proporciona atención médica, y los reportes no reemplazan la consulta médica.',
       },
       token: {
         label: 'Recompensas en revisión (obligatorio)',
