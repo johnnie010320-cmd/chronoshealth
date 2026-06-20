@@ -30,7 +30,7 @@ export function AppShell({
   const nickname = useTwinNickname();
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-hidden">
+    <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
       {decoration === 'dots' && (
         <div
           aria-hidden
