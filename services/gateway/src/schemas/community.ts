@@ -15,6 +15,11 @@ export const CreatePostRequest = z
     title: z.string().min(2).max(120),
     body: z.string().min(2).max(2000),
     videoUrl: z.string().url().max(500).nullable(),
+    // SNS 링크 — Instagram/X/Facebook/블로그 등 임의 http(s) URL.
+    snsUrl: z.string().url().max(500).nullable().default(null),
+    // 이미지 직접 업로드 — base64(데이터URL 접두 제외), 클라 압축 후 ≤ ~700KB. 동영상은 video_url 링크만.
+    imageB64: z.string().max(700 * 1024).nullable().default(null),
+    imageMime: z.enum(['image/jpeg', 'image/png', 'image/webp']).nullable().default(null),
     allowLikes: z.boolean().default(true),
     allowComments: z.boolean().default(true),
     tag: PostTag.nullable().default(null),

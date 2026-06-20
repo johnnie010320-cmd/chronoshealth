@@ -74,6 +74,10 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
   if (!urlCheck.allowed) {
     return c.json({ error: { code: urlCheck.reason } }, 400);
   }
+  // 이미지 업로드 시 데이터와 MIME 은 함께 있어야 함.
+  if ((parsed.data.imageB64 === null) !== (parsed.data.imageMime === null)) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
 
   const community = await readCommunity(c.env.DB, parsed.data.communityId);
   if (!community) {
@@ -95,6 +99,9 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
     title: parsed.data.title,
     body: parsed.data.body,
     videoUrl: parsed.data.videoUrl,
+    snsUrl: parsed.data.snsUrl,
+    imageData: parsed.data.imageB64,
+    imageMime: parsed.data.imageMime,
     allowLikes: parsed.data.allowLikes,
     allowComments: parsed.data.allowComments,
     tag: parsed.data.tag,

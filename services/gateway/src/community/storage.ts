@@ -5,6 +5,11 @@ export type PostRow = {
   title: string;
   body: string;
   videoUrl: string | null;
+  snsUrl: string | null;
+  imageMime: string | null;
+  hasImage: boolean;
+  // imageData 는 상세 조회(readPost)에서만 채워짐. 목록(listPosts)에서는 undefined.
+  imageData?: string | null;
   createdAt: string;
   likeCount: number;
   commentCount: number;
@@ -31,6 +36,9 @@ export async function insertPost(
     title: string;
     body: string;
     videoUrl: string | null;
+    snsUrl: string | null;
+    imageData: string | null;
+    imageMime: string | null;
     allowLikes: boolean;
     allowComments: boolean;
     tag: string | null;
@@ -39,8 +47,8 @@ export async function insertPost(
   await db
     .prepare(
       `INSERT INTO community_posts
-         (id, community_id, user_pseudonym_id, title, body, video_url, allow_likes, allow_comments, tag)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, community_id, user_pseudonym_id, title, body, video_url, sns_url, image_data, image_mime, allow_likes, allow_comments, tag)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -49,6 +57,9 @@ export async function insertPost(
       row.title,
       row.body,
       row.videoUrl,
+      row.snsUrl,
+      row.imageData,
+      row.imageMime,
       row.allowLikes ? 1 : 0,
       row.allowComments ? 1 : 0,
       row.tag,
@@ -78,6 +89,10 @@ type PostRawRow = {
   title: string;
   body: string;
   video_url: string | null;
+  sns_url: string | null;
+  image_mime: string | null;
+  has_image: number;
+  image_data?: string | null;
   created_at: string;
   like_count: number;
   comment_count: number;
@@ -87,13 +102,16 @@ type PostRawRow = {
 };
 
 function mapPost(row: PostRawRow): PostRow {
-  return {
+  const post: PostRow = {
     id: row.id,
     communityId: row.community_id,
     userPseudonymId: row.user_pseudonym_id,
     title: row.title,
     body: row.body,
     videoUrl: row.video_url,
+    snsUrl: row.sns_url,
+    imageMime: row.image_mime,
+    hasImage: row.has_image === 1,
     createdAt: row.created_at,
     likeCount: row.like_count,
     commentCount: row.comment_count,
@@ -101,10 +119,16 @@ function mapPost(row: PostRawRow): PostRow {
     allowComments: row.allow_comments === 1,
     tag: row.tag,
   };
+  // image_data 는 상세 조회 시에만 SELECT 됨.
+  if (row.image_data !== undefined) post.imageData = row.image_data;
+  return post;
 }
 
+// 목록/피드용 — image_data 본문은 제외(피드 경량화), 존재 여부(has_image)만.
 const POST_SELECT = `
   SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
+         p.sns_url, p.image_mime,
+         CASE WHEN p.image_data IS NOT NULL THEN 1 ELSE 0 END AS has_image,
          p.created_at, p.allow_likes, p.allow_comments, p.tag,
          (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
          (SELECT COUNT(*) FROM community_comments c
@@ -113,8 +137,19 @@ const POST_SELECT = `
 `;
 
 export async function readPost(db: D1Database, postId: string): Promise<PostRow | null> {
+  // 상세 조회는 image_data(base64) 본문까지 포함.
   const row = await db
-    .prepare(`${POST_SELECT} WHERE p.id = ? AND p.deleted_at IS NULL`)
+    .prepare(
+      `SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
+              p.sns_url, p.image_mime, p.image_data,
+              CASE WHEN p.image_data IS NOT NULL THEN 1 ELSE 0 END AS has_image,
+              p.created_at, p.allow_likes, p.allow_comments, p.tag,
+              (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
+              (SELECT COUNT(*) FROM community_comments c
+                 WHERE c.post_id = p.id AND c.deleted_at IS NULL) AS comment_count
+         FROM community_posts p
+        WHERE p.id = ? AND p.deleted_at IS NULL`,
+    )
     .bind(postId)
     .first<PostRawRow>();
   return row ? mapPost(row) : null;

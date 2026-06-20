@@ -180,9 +180,38 @@ function CommunityDetailPage() {
           </a>
         )}
 
+        {post.imageData && (
+          <div className="card-shadow overflow-hidden rounded-2xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`data:${post.imageMime ?? 'image/jpeg'};base64,${post.imageData}`}
+              alt=""
+              className="w-full"
+            />
+          </div>
+        )}
+
         <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-stone-800 dark:text-stone-200">
           {post.body}
         </p>
+
+        {post.snsUrl && (
+          <a
+            href={post.snsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="card-shadow flex items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
+          >
+            <span className="inline-flex items-center gap-2 truncate text-[12px] font-semibold text-brand-700 dark:text-brand-300">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              <span className="truncate">{Co.detail.snsLinkLabel}</span>
+            </span>
+            <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400" />
+          </a>
+        )}
 
         <div className="flex items-center gap-3">
           <button

@@ -566,6 +566,10 @@ export type CommunityPost = {
   title: string;
   body: string;
   videoUrl: string | null;
+  snsUrl: string | null;
+  imageMime: string | null;
+  hasImage: boolean;
+  imageData?: string | null;
   createdAt: string;
   likeCount: number;
   commentCount: number;
@@ -600,6 +604,9 @@ export type CreatePostBody = {
   title: string;
   body: string;
   videoUrl: string | null;
+  snsUrl?: string | null;
+  imageB64?: string | null;
+  imageMime?: 'image/jpeg' | 'image/png' | 'image/webp' | null;
   allowLikes?: boolean;
   allowComments?: boolean;
 };
