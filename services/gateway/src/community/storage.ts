@@ -1,3 +1,12 @@
+export type RichBodySegment = {
+  t: string;
+  b?: true;
+  i?: true;
+  u?: true;
+  c?: string;
+  s?: 'sm' | 'lg' | 'xl';
+};
+
 export type PostRow = {
   id: string;
   communityId: string;
@@ -6,10 +15,15 @@ export type PostRow = {
   body: string;
   videoUrl: string | null;
   snsUrl: string | null;
+  videoUrls: string[];
+  snsUrls: string[];
   imageMime: string | null;
   hasImage: boolean;
+  imagePosition: 'top' | 'middle' | 'bottom';
   // imageData 는 상세 조회(readPost)에서만 채워짐. 목록(listPosts)에서는 undefined.
   imageData?: string | null;
+  // bodyRich(세그먼트 배열)는 상세 조회에서만 파싱되어 채워짐.
+  bodyRich?: RichBodySegment[] | null;
   createdAt: string;
   likeCount: number;
   commentCount: number;
@@ -37,8 +51,12 @@ export async function insertPost(
     body: string;
     videoUrl: string | null;
     snsUrl: string | null;
+    videoUrls: string[];
+    snsUrls: string[];
     imageData: string | null;
     imageMime: string | null;
+    imagePosition: 'top' | 'middle' | 'bottom';
+    bodyRich: RichBodySegment[] | null;
     allowLikes: boolean;
     allowComments: boolean;
     tag: string | null;
@@ -47,8 +65,8 @@ export async function insertPost(
   await db
     .prepare(
       `INSERT INTO community_posts
-         (id, community_id, user_pseudonym_id, title, body, video_url, sns_url, image_data, image_mime, allow_likes, allow_comments, tag)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, community_id, user_pseudonym_id, title, body, video_url, sns_url, image_data, image_mime, allow_likes, allow_comments, tag, body_rich, image_position, video_urls, sns_urls)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -63,6 +81,10 @@ export async function insertPost(
       row.allowLikes ? 1 : 0,
       row.allowComments ? 1 : 0,
       row.tag,
+      row.bodyRich ? JSON.stringify(row.bodyRich) : null,
+      row.imagePosition,
+      row.videoUrls.length ? JSON.stringify(row.videoUrls) : null,
+      row.snsUrls.length ? JSON.stringify(row.snsUrls) : null,
     )
     .run();
 }
@@ -90,9 +112,13 @@ type PostRawRow = {
   body: string;
   video_url: string | null;
   sns_url: string | null;
+  video_urls?: string | null;
+  sns_urls?: string | null;
   image_mime: string | null;
   has_image: number;
+  image_position: string | null;
   image_data?: string | null;
+  body_rich?: string | null;
   created_at: string;
   like_count: number;
   comment_count: number;
@@ -100,6 +126,18 @@ type PostRawRow = {
   allow_comments: number;
   tag: string | null;
 };
+
+function parseStringArray(raw: string | null | undefined, fallbackSingle: string | null): string[] {
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string');
+    } catch {
+      /* fall through */
+    }
+  }
+  return fallbackSingle ? [fallbackSingle] : [];
+}
 
 function mapPost(row: PostRawRow): PostRow {
   const post: PostRow = {
@@ -110,8 +148,14 @@ function mapPost(row: PostRawRow): PostRow {
     body: row.body,
     videoUrl: row.video_url,
     snsUrl: row.sns_url,
+    videoUrls: parseStringArray(row.video_urls, row.video_url),
+    snsUrls: parseStringArray(row.sns_urls, row.sns_url),
     imageMime: row.image_mime,
     hasImage: row.has_image === 1,
+    imagePosition:
+      row.image_position === 'middle' || row.image_position === 'bottom'
+        ? row.image_position
+        : 'top',
     createdAt: row.created_at,
     likeCount: row.like_count,
     commentCount: row.comment_count,
@@ -121,13 +165,30 @@ function mapPost(row: PostRawRow): PostRow {
   };
   // image_data 는 상세 조회 시에만 SELECT 됨.
   if (row.image_data !== undefined) post.imageData = row.image_data;
+  // body_rich 도 상세 조회 시에만 SELECT.
+  if (row.body_rich !== undefined) {
+    post.bodyRich = parseRichBody(row.body_rich);
+  }
   return post;
+}
+
+function parseRichBody(raw: string | null): RichBodySegment[] | null {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed
+      .filter((s): s is RichBodySegment => !!s && typeof (s as { t?: unknown }).t === 'string')
+      .slice(0, 400);
+  } catch {
+    return null;
+  }
 }
 
 // 목록/피드용 — image_data 본문은 제외(피드 경량화), 존재 여부(has_image)만.
 const POST_SELECT = `
   SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
-         p.sns_url, p.image_mime,
+         p.sns_url, p.video_urls, p.sns_urls, p.image_mime, p.image_position,
          CASE WHEN p.image_data IS NOT NULL THEN 1 ELSE 0 END AS has_image,
          p.created_at, p.allow_likes, p.allow_comments, p.tag,
          (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,
@@ -137,11 +198,11 @@ const POST_SELECT = `
 `;
 
 export async function readPost(db: D1Database, postId: string): Promise<PostRow | null> {
-  // 상세 조회는 image_data(base64) 본문까지 포함.
+  // 상세 조회는 image_data(base64) 본문 + body_rich(서식 세그먼트)까지 포함.
   const row = await db
     .prepare(
       `SELECT p.id, p.community_id, p.user_pseudonym_id, p.title, p.body, p.video_url,
-              p.sns_url, p.image_mime, p.image_data,
+              p.sns_url, p.video_urls, p.sns_urls, p.image_mime, p.image_position, p.image_data, p.body_rich,
               CASE WHEN p.image_data IS NOT NULL THEN 1 ELSE 0 END AS has_image,
               p.created_at, p.allow_likes, p.allow_comments, p.tag,
               (SELECT COUNT(*) FROM community_likes l WHERE l.post_id = p.id) AS like_count,

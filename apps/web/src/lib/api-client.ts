@@ -559,6 +559,16 @@ export async function submitRewardsSpend(slug: string): Promise<SpendResponse> {
 }
 
 // R7a Community
+export type RichSegment = {
+  t: string;
+  b?: true;
+  i?: true;
+  u?: true;
+  c?: string;
+  s?: 'sm' | 'lg' | 'xl';
+};
+export type ImagePosition = 'top' | 'middle' | 'bottom';
+
 export type CommunityPost = {
   id: string;
   communityId: string;
@@ -567,9 +577,13 @@ export type CommunityPost = {
   body: string;
   videoUrl: string | null;
   snsUrl: string | null;
+  videoUrls: string[];
+  snsUrls: string[];
   imageMime: string | null;
   hasImage: boolean;
+  imagePosition: ImagePosition;
   imageData?: string | null;
+  bodyRich?: RichSegment[] | null;
   createdAt: string;
   likeCount: number;
   commentCount: number;
@@ -603,10 +617,14 @@ export type CreatePostBody = {
   communityId?: string;
   title: string;
   body: string;
-  videoUrl: string | null;
+  videoUrl?: string | null;
+  videoUrls?: string[];
   snsUrl?: string | null;
+  snsUrls?: string[];
   imageB64?: string | null;
   imageMime?: 'image/jpeg' | 'image/png' | 'image/webp' | null;
+  imagePosition?: ImagePosition;
+  bodyRich?: RichSegment[] | null;
   allowLikes?: boolean;
   allowComments?: boolean;
 };

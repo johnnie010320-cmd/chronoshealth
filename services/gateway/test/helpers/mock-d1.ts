@@ -578,8 +578,12 @@ type CommunityPostRow = {
   body: string;
   video_url: string | null;
   sns_url: string | null;
+  video_urls: string | null;
+  sns_urls: string | null;
   image_data: string | null;
   image_mime: string | null;
+  image_position: string;
+  body_rich: string | null;
   created_at: string;
   deleted_at: string | null;
   allow_likes: number;
@@ -900,23 +904,27 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('INSERT INTO community_posts')) {
-      const [id, community_id, user_pseudonym_id, title, body, video_url, sns_url, image_data, image_mime, allow_likes, allow_comments] = args as [
-        string, string, string, string, string, string | null, string | null, string | null, string | null, number, number,
-      ];
+      // 컬럼 순서: id, community_id, user_pseudonym_id, title, body, video_url, sns_url,
+      //   image_data, image_mime, allow_likes, allow_comments, tag, body_rich, image_position, video_urls, sns_urls
+      const a = args as unknown[];
       state.posts.push({
-        id,
-        community_id,
-        user_pseudonym_id,
-        title,
-        body,
-        video_url,
-        sns_url: sns_url ?? null,
-        image_data: image_data ?? null,
-        image_mime: image_mime ?? null,
+        id: a[0] as string,
+        community_id: a[1] as string,
+        user_pseudonym_id: a[2] as string,
+        title: a[3] as string,
+        body: a[4] as string,
+        video_url: (a[5] as string | null) ?? null,
+        sns_url: (a[6] as string | null) ?? null,
+        image_data: (a[7] as string | null) ?? null,
+        image_mime: (a[8] as string | null) ?? null,
+        body_rich: (a[12] as string | null) ?? null,
+        image_position: (a[13] as string | null) ?? 'top',
+        video_urls: (a[14] as string | null) ?? null,
+        sns_urls: (a[15] as string | null) ?? null,
         created_at: new Date().toISOString(),
         deleted_at: null,
-        allow_likes,
-        allow_comments,
+        allow_likes: a[9] as number,
+        allow_comments: a[10] as number,
       });
       return { success: true, meta: {} };
     }
@@ -1396,6 +1404,7 @@ export function makeMockAnalysisDb(): {
         (c) => c.post_id === postId && c.deleted_at === null,
       ).length;
       const includeImageData = trimmed.includes('p.image_data');
+      const includeBodyRich = trimmed.includes('p.body_rich');
       return {
         id: post.id,
         community_id: post.community_id,
@@ -1404,9 +1413,13 @@ export function makeMockAnalysisDb(): {
         body: post.body,
         video_url: post.video_url,
         sns_url: post.sns_url ?? null,
+        video_urls: post.video_urls ?? null,
+        sns_urls: post.sns_urls ?? null,
         image_mime: post.image_mime ?? null,
+        image_position: post.image_position ?? 'top',
         has_image: post.image_data ? 1 : 0,
         ...(includeImageData ? { image_data: post.image_data ?? null } : {}),
+        ...(includeBodyRich ? { body_rich: post.body_rich ?? null } : {}),
         created_at: post.created_at,
         like_count: likeCount,
         comment_count: commentCount,
@@ -1562,7 +1575,10 @@ export function makeMockAnalysisDb(): {
         body: post.body,
         video_url: post.video_url,
         sns_url: post.sns_url ?? null,
+        video_urls: post.video_urls ?? null,
+        sns_urls: post.sns_urls ?? null,
         image_mime: post.image_mime ?? null,
+        image_position: post.image_position ?? 'top',
         has_image: post.image_data ? 1 : 0,
         created_at: post.created_at,
         allow_likes: post.allow_likes,

@@ -4,9 +4,10 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon } from '@/components/HealthIcons';
+import { RichBodyEditor, type RichBodyValue } from '@/components/RichBodyEditor';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
-import { createCommunityPost } from '@/lib/api-client';
+import { createCommunityPost, type ImagePosition, type RichSegment } from '@/lib/api-client';
 
 function NewCommunityPostInner() {
   const { t } = useI18n();
@@ -17,11 +18,13 @@ function NewCommunityPostInner() {
   const communityId = params?.get('cid') ?? '_lounge';
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [snsUrl, setSnsUrl] = useState('');
+  const [bodyRich, setBodyRich] = useState<RichSegment[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>(['']);
+  const [snsUrls, setSnsUrls] = useState<string[]>(['']);
   const [imageB64, setImageB64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
+  const [imagePosition, setImagePosition] = useState<ImagePosition>('top');
   const [allowLikes, setAllowLikes] = useState(true);
   const [allowComments, setAllowComments] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -32,6 +35,11 @@ function NewCommunityPostInner() {
       router.replace('/signup');
     }
   }, [router]);
+
+  function onBodyChange(v: RichBodyValue) {
+    setBody(v.plain);
+    setBodyRich(v.segments);
+  }
 
   async function handleImage(file: File | null) {
     if (!file) return;
@@ -58,14 +66,19 @@ function NewCommunityPostInner() {
     setSubmitting(true);
     setErrCode(null);
     try {
+      const cleanVideos = videoUrls.map((u) => u.trim()).filter((u) => u !== '');
+      const cleanSns = snsUrls.map((u) => u.trim()).filter((u) => u !== '');
+      const hasFmt = bodyRich.some((s) => s.b || s.i || s.u || s.c || s.s);
       const res = await createCommunityPost({
         communityId,
         title: title.trim(),
         body: body.trim(),
-        videoUrl: videoUrl.trim() === '' ? null : videoUrl.trim(),
-        snsUrl: snsUrl.trim() === '' ? null : snsUrl.trim(),
+        bodyRich: hasFmt ? bodyRich : null,
+        videoUrls: cleanVideos,
+        snsUrls: cleanSns,
         imageB64,
         imageMime: imageB64 ? 'image/jpeg' : null,
+        imagePosition,
         allowLikes,
         allowComments,
       });
@@ -80,6 +93,8 @@ function NewCommunityPostInner() {
   const backHref =
     communityId === '_lounge' ? '/community' : `/community/view?id=${communityId}`;
 
+  const positions: ImagePosition[] = ['top', 'middle', 'bottom'];
+
   return (
     <AppShell title={Co.new.pageTitle} showBack backHref={backHref} decoration="dots">
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -90,31 +105,51 @@ function NewCommunityPostInner() {
           maxLength={120}
           onChange={setTitle}
         />
-        <TextArea
-          label={Co.new.bodyField.label}
-          placeholder={Co.new.bodyField.placeholder}
-          value={body}
-          maxLength={2000}
-          rows={6}
-          onChange={setBody}
-        />
-        <Field
+
+        <div className="block">
+          <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
+            {Co.new.bodyField.label}
+          </span>
+          <div className="mt-1">
+            <RichBodyEditor
+              onChange={onBodyChange}
+              placeholder={Co.new.bodyField.placeholder}
+              labels={{
+                sizeTitle: Co.new.fmt.title,
+                sizeSubtitle: Co.new.fmt.subtitle,
+                sizeBody: Co.new.fmt.body,
+                sizeSmall: Co.new.fmt.small,
+                bold: Co.new.fmt.bold,
+                italic: Co.new.fmt.italic,
+                underline: Co.new.fmt.underline,
+                color: Co.new.fmt.color,
+              }}
+            />
+          </div>
+          <p className="mt-1 px-1 text-[11px] text-stone-500 dark:text-stone-400">
+            {Co.new.fmt.hint}
+          </p>
+        </div>
+
+        <MultiUrl
           label={Co.new.videoUrlField.label}
           placeholder={Co.new.videoUrlField.placeholder}
-          value={videoUrl}
-          maxLength={500}
-          onChange={setVideoUrl}
+          values={videoUrls}
+          onChange={setVideoUrls}
+          addLabel={Co.new.addVideo}
+          removeLabel={Co.new.removeLink}
         />
         <p className="px-1 text-[11px] text-stone-500 dark:text-stone-400">
           {Co.new.videoHint}
         </p>
 
-        <Field
+        <MultiUrl
           label={Co.new.snsUrlField.label}
           placeholder={Co.new.snsUrlField.placeholder}
-          value={snsUrl}
-          maxLength={500}
-          onChange={setSnsUrl}
+          values={snsUrls}
+          onChange={setSnsUrls}
+          addLabel={Co.new.addSns}
+          removeLabel={Co.new.removeLink}
         />
 
         <div className="block">
@@ -136,6 +171,28 @@ function NewCommunityPostInner() {
               >
                 {Co.new.imageRemove}
               </button>
+
+              <div className="rounded-2xl border border-stone-200 bg-white px-3 py-2.5 dark:border-stone-800 dark:bg-stone-900">
+                <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300">
+                  {Co.new.imagePosition.label}
+                </span>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {positions.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setImagePosition(p)}
+                      className={`rounded-xl px-2 py-2 text-[12px] font-semibold transition active:scale-[0.97] ${
+                        imagePosition === p
+                          ? 'bg-brand-600 text-white'
+                          : 'border border-stone-300 bg-white text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200'
+                      }`}
+                    >
+                      {Co.new.imagePosition[p]}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <label
@@ -170,16 +227,8 @@ function NewCommunityPostInner() {
           <legend className="px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {PO.sectionTitle}
           </legend>
-          <Toggle
-            label={PO.allowLikes}
-            checked={allowLikes}
-            onChange={setAllowLikes}
-          />
-          <Toggle
-            label={PO.allowComments}
-            checked={allowComments}
-            onChange={setAllowComments}
-          />
+          <Toggle label={PO.allowLikes} checked={allowLikes} onChange={setAllowLikes} />
+          <Toggle label={PO.allowComments} checked={allowComments} onChange={setAllowComments} />
         </fieldset>
 
         {errCode && (
@@ -198,6 +247,62 @@ function NewCommunityPostInner() {
         </button>
       </form>
     </AppShell>
+  );
+}
+
+function MultiUrl({
+  label,
+  placeholder,
+  values,
+  onChange,
+  addLabel,
+  removeLabel,
+}: {
+  label: string;
+  placeholder: string;
+  values: string[];
+  onChange: (v: string[]) => void;
+  addLabel: string;
+  removeLabel: string;
+}) {
+  return (
+    <div className="block">
+      <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
+        {label}
+      </span>
+      <div className="mt-1 space-y-2">
+        {values.map((val, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            <input
+              type="url"
+              value={val}
+              placeholder={placeholder}
+              maxLength={500}
+              onChange={(e) => onChange(values.map((v, i) => (i === idx ? e.target.value : v)))}
+              className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+            />
+            {values.length > 1 && (
+              <button
+                type="button"
+                aria-label={removeLabel}
+                onClick={() => onChange(values.filter((_, i) => i !== idx))}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 dark:hover:bg-stone-800"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => (values.length >= 10 ? null : onChange([...values, '']))}
+        disabled={values.length >= 10}
+        className="mt-1.5 rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-stone-700 transition active:scale-[0.97] disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+      >
+        {addLabel}
+      </button>
+    </div>
   );
 }
 
@@ -263,38 +368,6 @@ function Field({
         maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 block w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
-      />
-    </label>
-  );
-}
-
-function TextArea({
-  label,
-  placeholder,
-  value,
-  onChange,
-  maxLength,
-  rows,
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  maxLength: number;
-  rows: number;
-}) {
-  return (
-    <label className="block">
-      <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
-        {label}
-      </span>
-      <textarea
-        value={value}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        rows={rows}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 block w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
       />
     </label>
   );

@@ -103,3 +103,13 @@ button {
       0 4px 16px -4px rgba(0, 0, 0, 0.6);
   }
 }
+
+/* 커뮤니티 본문 리치 에디터 — 빈 상태 placeholder */
+.rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #a8a29e;
+  pointer-events: none;
+}
+.rich-editor:focus {
+  outline: none;
+}

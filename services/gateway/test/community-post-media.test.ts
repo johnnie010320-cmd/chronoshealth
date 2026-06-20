@@ -101,4 +101,69 @@ describe('커뮤니티 게시글 미디어(SNS 링크 + 이미지 업로드)', (
     const res = await createPost(token, { snsUrl: 'not-a-url' });
     expect(res.status).toBe(400);
   });
+
+  // ── 2026-06-20 추가: 본문 서식 + 이미지 위치 + 멀티 링크 ──
+  type FullPost = PostWire & {
+    bodyRich?: Array<{ t: string; s?: string; c?: string; b?: boolean }>;
+    imagePosition?: string;
+    videoUrls?: string[];
+    snsUrls?: string[];
+    videoUrl?: string | null;
+  };
+
+  it('본문 서식 세그먼트(bodyRich) 저장·조회', async () => {
+    const { token } = issueTestToken(identity.state);
+    const bodyRich = [
+      { t: '큰 제목', s: 'xl', c: '#1a73e8' },
+      { t: '\n작은 본문', s: 'sm' },
+    ];
+    const res = await createPost(token, { body: '큰 제목\n작은 본문', bodyRich });
+    expect(res.status).toBe(200);
+    const { post } = (await res.json()) as { post: FullPost };
+    const detail = await getPost(token, post.id);
+    const data = (await detail.json()) as { post: FullPost };
+    expect(data.post.bodyRich).toHaveLength(2);
+    expect(data.post.bodyRich?.[0]).toMatchObject({ t: '큰 제목', s: 'xl', c: '#1a73e8' });
+  });
+
+  it('이미지 위치 middle 저장·조회', async () => {
+    const { token } = issueTestToken(identity.state);
+    const res = await createPost(token, { imageB64: IMG, imageMime: 'image/png', imagePosition: 'middle' });
+    const { post } = (await res.json()) as { post: FullPost };
+    const detail = await getPost(token, post.id);
+    const data = (await detail.json()) as { post: FullPost };
+    expect(data.post.imagePosition).toBe('middle');
+    expect(data.post.hasImage).toBe(true);
+  });
+
+  it('유튜브·SNS 링크 멀티 저장·조회', async () => {
+    const { token } = issueTestToken(identity.state);
+    const res = await createPost(token, {
+      videoUrls: ['https://youtu.be/aaa', 'https://www.youtube.com/watch?v=bbb'],
+      snsUrls: ['https://instagram.com/x', 'https://twitter.com/y'],
+    });
+    expect(res.status).toBe(200);
+    const { post } = (await res.json()) as { post: FullPost };
+    const detail = await getPost(token, post.id);
+    const data = (await detail.json()) as { post: FullPost };
+    expect(data.post.videoUrls).toHaveLength(2);
+    expect(data.post.snsUrls).toHaveLength(2);
+  });
+
+  it('멀티 동영상 중 허용 안 된 호스트 → 400', async () => {
+    const { token } = issueTestToken(identity.state);
+    const res = await createPost(token, {
+      videoUrls: ['https://youtu.be/ok', 'https://evil.com/x'],
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('레거시 단일 videoUrl → videoUrls 배열로 노출', async () => {
+    const { token } = issueTestToken(identity.state);
+    const res = await createPost(token, { videoUrl: 'https://youtu.be/legacy' });
+    const { post } = (await res.json()) as { post: FullPost };
+    const detail = await getPost(token, post.id);
+    const data = (await detail.json()) as { post: FullPost };
+    expect(data.post.videoUrls).toEqual(['https://youtu.be/legacy']);
+  });
 });

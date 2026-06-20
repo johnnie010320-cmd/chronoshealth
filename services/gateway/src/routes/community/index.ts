@@ -70,10 +70,26 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
   if (!textCheck.allowed) {
     return c.json({ error: { code: textCheck.reason } }, 400);
   }
-  const urlCheck = moderateVideoUrl(parsed.data.videoUrl);
-  if (!urlCheck.allowed) {
-    return c.json({ error: { code: urlCheck.reason } }, 400);
+  // 동영상 링크 — 단일 videoUrl(역호환) + videoUrls 배열 병합. 각 링크는 허용 호스트 검증.
+  const videoUrls =
+    parsed.data.videoUrls.length > 0
+      ? parsed.data.videoUrls
+      : parsed.data.videoUrl
+      ? [parsed.data.videoUrl]
+      : [];
+  for (const v of videoUrls) {
+    const urlCheck = moderateVideoUrl(v);
+    if (!urlCheck.allowed) {
+      return c.json({ error: { code: urlCheck.reason } }, 400);
+    }
   }
+  // SNS 링크 — 단일 snsUrl(역호환) + snsUrls 배열 병합(zod 가 URL 형식 검증).
+  const snsUrls =
+    parsed.data.snsUrls.length > 0
+      ? parsed.data.snsUrls
+      : parsed.data.snsUrl
+      ? [parsed.data.snsUrl]
+      : [];
   // 이미지 업로드 시 데이터와 MIME 은 함께 있어야 함.
   if ((parsed.data.imageB64 === null) !== (parsed.data.imageMime === null)) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
@@ -98,10 +114,14 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
     userPseudonymId: pseudonymId,
     title: parsed.data.title,
     body: parsed.data.body,
-    videoUrl: parsed.data.videoUrl,
-    snsUrl: parsed.data.snsUrl,
+    videoUrl: videoUrls[0] ?? null,
+    snsUrl: snsUrls[0] ?? null,
+    videoUrls,
+    snsUrls,
     imageData: parsed.data.imageB64,
     imageMime: parsed.data.imageMime,
+    imagePosition: parsed.data.imagePosition,
+    bodyRich: parsed.data.bodyRich,
     allowLikes: parsed.data.allowLikes,
     allowComments: parsed.data.allowComments,
     tag: parsed.data.tag,

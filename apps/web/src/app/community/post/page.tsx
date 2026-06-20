@@ -7,6 +7,7 @@ import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon, HeartPulseIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
+import { RichBodyView } from '@/components/RichBodyEditor';
 import {
   addCommunityComment,
   fetchCommunityPost,
@@ -14,6 +15,7 @@ import {
   toggleCommunityLike,
   type CommunityPost,
   type CommunityComment,
+  type RichSegment,
 } from '@/lib/api-client';
 
 export default function CommunityDetailPageRoot() {
@@ -91,7 +93,6 @@ function CommunityDetailPage() {
   }
 
   const author = `${Co.pseudonymPrefix}·${post.userPseudonymId.slice(0, 6)}`;
-  const youtubeEmbed = parseYouTubeEmbed(post.videoUrl);
 
   async function handleAddComment(e: React.FormEvent) {
     e.preventDefault();
@@ -153,51 +154,40 @@ function CommunityDetailPage() {
           </h1>
         </header>
 
-        {youtubeEmbed && (
-          <div className="card-shadow overflow-hidden rounded-2xl">
-            <iframe
-              src={youtubeEmbed}
-              title={post.title}
-              className="aspect-video w-full"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allow="encrypted-media; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        )}
-        {!youtubeEmbed && post.videoUrl && (
+        {post.videoUrls.map((v, i) => {
+          const emb = parseYouTubeEmbed(v);
+          return emb ? (
+            <div key={`v${i}`} className="card-shadow overflow-hidden rounded-2xl">
+              <iframe
+                src={emb}
+                title={post.title}
+                className="aspect-video w-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allow="encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <a
+              key={`v${i}`}
+              href={v}
+              target="_blank"
+              rel="noreferrer"
+              className="card-shadow flex items-center justify-between rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
+            >
+              <span className="truncate text-[12px] text-brand-700 dark:text-brand-300">{v}</span>
+              <ChevronRightIcon className="h-4 w-4 text-stone-400" />
+            </a>
+          );
+        })}
+
+        <PostBody post={post} />
+
+        {post.snsUrls.map((s, i) => (
           <a
-            href={post.videoUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="card-shadow flex items-center justify-between rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
-          >
-            <span className="truncate text-[12px] text-brand-700 dark:text-brand-300">
-              {post.videoUrl}
-            </span>
-            <ChevronRightIcon className="h-4 w-4 text-stone-400" />
-          </a>
-        )}
-
-        {post.imageData && (
-          <div className="card-shadow overflow-hidden rounded-2xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`data:${post.imageMime ?? 'image/jpeg'};base64,${post.imageData}`}
-              alt=""
-              className="w-full"
-            />
-          </div>
-        )}
-
-        <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-stone-800 dark:text-stone-200">
-          {post.body}
-        </p>
-
-        {post.snsUrl && (
-          <a
-            href={post.snsUrl}
+            key={`s${i}`}
+            href={s}
             target="_blank"
             rel="noreferrer"
             className="card-shadow flex items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
@@ -207,11 +197,11 @@ function CommunityDetailPage() {
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
-              <span className="truncate">{Co.detail.snsLinkLabel}</span>
+              <span className="truncate">{s}</span>
             </span>
             <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400" />
           </a>
-        )}
+        ))}
 
         <div className="flex items-center gap-3">
           <button
@@ -331,6 +321,77 @@ function CommunityDetailPage() {
       </div>
     </AppShell>
   );
+}
+
+const BODY_CLASS =
+  'whitespace-pre-wrap text-[14px] leading-relaxed text-stone-800 dark:text-stone-200';
+
+// 본문 + 첨부 이미지를 위치(top/middle/bottom)에 맞게 배치. 서식 세그먼트가 있으면 RichBodyView 로 렌더.
+function PostBody({ post }: { post: CommunityPost }) {
+  const imageEl = post.imageData ? (
+    <div className="card-shadow overflow-hidden rounded-2xl">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`data:${post.imageMime ?? 'image/jpeg'};base64,${post.imageData}`}
+        alt=""
+        className="w-full"
+      />
+    </div>
+  ) : null;
+
+  const segs = post.bodyRich ?? null;
+
+  if (imageEl && post.imagePosition === 'middle') {
+    if (segs && segs.length > 0) {
+      const [a, b] = splitSegments(segs);
+      return (
+        <>
+          <RichBodyView segments={a} fallback={post.body} className={BODY_CLASS} />
+          {imageEl}
+          {b.length > 0 && <RichBodyView segments={b} fallback="" className={BODY_CLASS} />}
+        </>
+      );
+    }
+    const [a, b] = splitPlain(post.body);
+    return (
+      <>
+        <p className={BODY_CLASS}>{a}</p>
+        {imageEl}
+        {b.trim() !== '' && <p className={BODY_CLASS}>{b}</p>}
+      </>
+    );
+  }
+
+  const bodyEl = <RichBodyView segments={segs} fallback={post.body} className={BODY_CLASS} />;
+  return (
+    <>
+      {imageEl && post.imagePosition === 'top' && imageEl}
+      {bodyEl}
+      {imageEl && post.imagePosition === 'bottom' && imageEl}
+    </>
+  );
+}
+
+function splitSegments(segs: RichSegment[]): [RichSegment[], RichSegment[]] {
+  const total = segs.reduce((n, s) => n + s.t.length, 0);
+  let acc = 0;
+  let idx = segs.length;
+  for (let i = 0; i < segs.length; i += 1) {
+    acc += segs[i]?.t.length ?? 0;
+    if (acc >= total / 2) {
+      idx = i + 1;
+      break;
+    }
+  }
+  return [segs.slice(0, idx), segs.slice(idx)];
+}
+
+function splitPlain(text: string): [string, string] {
+  if (text.length < 2) return [text, ''];
+  const mid = Math.floor(text.length / 2);
+  const nl = text.indexOf('\n', mid);
+  const cut = nl >= 0 ? nl : mid;
+  return [text.slice(0, cut), text.slice(cut)];
 }
 
 function parseYouTubeEmbed(rawUrl: string | null): string | null {
