@@ -10,6 +10,7 @@ import {
 } from '../../schemas/messaging.js';
 import {
   addMember,
+  deleteConversation,
   dmConversationId,
   getMessageAttachment,
   insertConversation,
@@ -314,7 +315,9 @@ messagingRoute.post('/conversations/:id/files', authMiddleware, rateLimit(30), a
   const expiresAt = new Date(Date.now() + ATTACHMENT_TTL_DAYS * 86400_000).toISOString();
   const name = safeFileName(file.name);
   try {
-    await c.env.ATTACHMENTS.put(key, file.stream(), {
+    // 고정 길이 ArrayBuffer 로 업로드 — R2 는 길이 불명 스트림을 거부할 수 있음.
+    const bytes = await file.arrayBuffer();
+    await c.env.ATTACHMENTS.put(key, bytes, {
       httpMetadata: { contentType: type },
     });
   } catch (err) {
@@ -403,4 +406,18 @@ messagingRoute.post('/conversations/:id/leave', authMiddleware, rateLimit(50), a
   const ok = await leaveConversation(c.env.DB, id, me);
   if (!ok) return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
   return c.json({ ok: true, modelVersion: MODEL_VERSION });
+});
+
+// ── 대화방 삭제(생성자 전용) ──────────────────────────────────────────────
+messagingRoute.delete('/conversations/:id', authMiddleware, rateLimit(50), async (c) => {
+  const me = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  const conv = await readConversation(c.env.DB, id);
+  if (!conv) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  // 대화방(room) 생성자만 삭제. DM 은 삭제 불가(나가기만).
+  if (conv.kind !== 'room' || conv.ownerPseudonymId !== me) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  await deleteConversation(c.env.DB, id);
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });

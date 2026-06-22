@@ -7,6 +7,7 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
+  deleteConversation,
   downloadMessageFile,
   fetchConversation,
   fetchMessages,
@@ -128,6 +129,18 @@ function ThreadInner() {
     router.replace('/messages');
   }
 
+  async function handleDeleteRoom() {
+    if (typeof window !== 'undefined' && !window.confirm(M.deleteRoomConfirm)) return;
+    try {
+      await deleteConversation(id);
+    } catch {
+      /* noop */
+    }
+    router.replace('/messages');
+  }
+
+  const isRoomOwner = conv?.kind === 'room' && conv.isOwner;
+
   const title = conv?.displayName ?? M.unknownUser;
 
   return (
@@ -140,13 +153,23 @@ function ThreadInner() {
         <div className="flex h-[calc(100vh-8rem)] flex-col">
           {conv && (
             <div className="flex items-center justify-end pb-1">
-              <button
-                type="button"
-                onClick={handleLeave}
-                className="text-[11px] font-medium text-stone-400 underline-offset-2 hover:underline"
-              >
-                {M.leave}
-              </button>
+              {isRoomOwner ? (
+                <button
+                  type="button"
+                  onClick={handleDeleteRoom}
+                  className="text-[11px] font-medium text-rose-500 underline-offset-2 hover:underline"
+                >
+                  {M.deleteRoom}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleLeave}
+                  className="text-[11px] font-medium text-stone-400 underline-offset-2 hover:underline"
+                >
+                  {M.leave}
+                </button>
+              )}
             </div>
           )}
 

@@ -1208,6 +1208,13 @@ export function makeMockAnalysisDb(): {
       return { success: true, meta: {} };
     }
 
+    if (trimmed.startsWith('UPDATE conversations SET deleted_at')) {
+      const [id] = args as [string];
+      const conv = state.conversations.find((x) => x.id === id);
+      if (conv) conv.deleted_at = nextTs();
+      return { success: true, meta: { changes: conv ? 1 : 0 } };
+    }
+
     if (trimmed.startsWith('INSERT OR IGNORE INTO conversation_members')) {
       const [conversation_id, member_pseudonym_id, role] = args as [
         string, string, string,

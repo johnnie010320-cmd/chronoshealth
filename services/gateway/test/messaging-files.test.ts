@@ -129,6 +129,51 @@ describe('R9 대화 파일 공유', () => {
     expect(data.total).toBeGreaterThanOrEqual(1);
   });
 
+  async function createRoom(token: string): Promise<string> {
+    const res = await app.request(
+      '/api/v1/messages/rooms',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: '테스트 방', inviteNicknames: ['bob'] }),
+      },
+      env(),
+    );
+    return ((await res.json()) as { conversation: { id: string } }).conversation.id;
+  }
+
+  it('대화방 생성자만 삭제 → 멤버 목록에서 사라짐, 타인 삭제 403', async () => {
+    const room = await createRoom(aliceToken);
+    // 비생성자(bob) 삭제 시도 → 403
+    const forbidden = await app.request(
+      `/api/v1/messages/conversations/${room}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${bobToken}` } },
+      env(),
+    );
+    expect(forbidden.status).toBe(403);
+    // 생성자(alice) 삭제 → 200
+    const ok = await app.request(
+      `/api/v1/messages/conversations/${room}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${aliceToken}` } },
+      env(),
+    );
+    expect(ok.status).toBe(200);
+    // 목록에서 사라짐
+    const list = await app.request('/api/v1/messages/conversations', { headers: { Authorization: `Bearer ${aliceToken}` } }, env());
+    const data = (await list.json()) as { conversations: Array<{ id: string }> };
+    expect(data.conversations.some((c) => c.id === room)).toBe(false);
+  });
+
+  it('DM 은 삭제 불가(나가기만) → DELETE 403', async () => {
+    const conv = await openDm(aliceToken, 'bob');
+    const res = await app.request(
+      `/api/v1/messages/conversations/${conv}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${aliceToken}` } },
+      env(),
+    );
+    expect(res.status).toBe(403);
+  });
+
   it('7일 경과 첨부 → cron 정리로 삭제(다운로드 404 + R2 제거)', async () => {
     const conv = await openDm(aliceToken, 'bob');
     const up = await upload(aliceToken, conv, uploadForm('old.pdf', 'application/pdf'));

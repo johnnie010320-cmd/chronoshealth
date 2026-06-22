@@ -390,3 +390,11 @@ export async function leaveConversation(
     .run();
   return (res.meta?.changes ?? 0) > 0;
 }
+
+// 대화방 삭제 — 생성자(owner) 전용. soft delete(모든 참여자 목록에서 사라짐).
+export async function deleteConversation(db: D1Database, conversationId: string): Promise<void> {
+  await db
+    .prepare(`UPDATE conversations SET deleted_at = datetime('now') WHERE id = ?`)
+    .bind(conversationId)
+    .run();
+}

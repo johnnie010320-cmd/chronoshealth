@@ -1645,6 +1645,17 @@ export async function leaveConversation(id: string): Promise<void> {
   if (!res.ok) await throwOnError(res);
 }
 
+// 대화방 삭제 — 생성자 전용(모든 참여자에서 사라짐).
+export async function deleteConversation(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
 // 닉네임 자동검색 — 기존 회원 선택용(DM/대화방 초대/커뮤니티 관리자 지정). 닉네임만 반환.
 export async function searchMembers(q: string): Promise<string[]> {
   const session = readSession();
