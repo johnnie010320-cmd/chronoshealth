@@ -1251,7 +1251,16 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('UPDATE messages')) {
-      // expireAttachment — soft delete + 키 제거.
+      if (trimmed.includes('sender_pseudonym_id = ?')) {
+        // softDeleteMessage — 발신자 본인만.
+        const [messageId, sender] = args as [string, string];
+        const m = state.messages.find(
+          (x) => x.id === messageId && x.sender_pseudonym_id === sender && x.deleted_at === null,
+        );
+        if (m) m.deleted_at = nextTs();
+        return { success: true, meta: { changes: m ? 1 : 0 } };
+      }
+      // expireAttachment — soft delete + 키 제거(id 만).
       const [messageId] = args as [string];
       const m = state.messages.find((x) => x.id === messageId);
       if (m) {

@@ -8,6 +8,7 @@ import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
   deleteConversation,
+  deleteMessage,
   downloadMessageFile,
   fetchConversation,
   fetchMessages,
@@ -86,6 +87,26 @@ function ThreadInner() {
       UPLOAD_FAILED: M.errorGeneric,
     };
     return map[code] ?? M.errorGeneric;
+  }
+
+  async function handleDeleteMessage(messageId: string) {
+    if (typeof window !== 'undefined' && !window.confirm(M.deleteMessageConfirm)) return;
+    try {
+      await deleteMessage(id, messageId);
+      await loadMessages();
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    }
+  }
+
+  async function handleDownload(messageId: string, fileName: string) {
+    // 다운로드 전 사용자 의사 확인.
+    if (typeof window !== 'undefined' && !window.confirm(`${M.downloadConfirm}\n${fileName}`)) return;
+    try {
+      await downloadMessageFile(messageId, fileName);
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    }
   }
 
   async function handleFile(file: File | null) {
@@ -204,9 +225,7 @@ function ThreadInner() {
                   {m.attachment && (
                     <button
                       type="button"
-                      onClick={() =>
-                        void downloadMessageFile(m.id, m.attachment?.name ?? 'file')
-                      }
+                      onClick={() => void handleDownload(m.id, m.attachment?.name ?? 'file')}
                       className={`mt-0.5 flex max-w-[78%] items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
                         m.isMine
                           ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/30'
@@ -222,6 +241,15 @@ function ThreadInner() {
                           {formatSize(m.attachment.size)} · {M.download}
                         </span>
                       </span>
+                    </button>
+                  )}
+                  {m.isMine && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteMessage(m.id)}
+                      className="mt-0.5 px-1 text-[10px] font-medium text-stone-400 underline-offset-2 hover:underline"
+                    >
+                      {M.deleteMessage}
                     </button>
                   )}
                 </div>

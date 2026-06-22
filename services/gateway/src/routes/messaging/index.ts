@@ -23,6 +23,7 @@ import {
   listMessages,
   markRead,
   readConversation,
+  softDeleteMessage,
   unreadCount,
   unreadTotal,
   type ConversationRow,
@@ -366,6 +367,24 @@ messagingRoute.get('/unread-total', authMiddleware, rateLimit(300), async (c) =>
   const me = c.get('userPseudonymId');
   const total = await unreadTotal(c.env.DB, me);
   return c.json({ total, modelVersion: MODEL_VERSION });
+});
+
+// ── 메시지 삭제(발신자 본인) ──────────────────────────────────────────────
+messagingRoute.delete('/conversations/:id/messages/:messageId', authMiddleware, rateLimit(100), async (c) => {
+  const me = c.get('userPseudonymId');
+  const messageId = c.req.param('messageId');
+  // 첨부가 있으면 R2 객체도 함께 제거(soft delete 전에 키 확보).
+  const att = await getMessageAttachment(c.env.DB, messageId);
+  const ok = await softDeleteMessage(c.env.DB, messageId, me);
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (att) {
+    try {
+      await c.env.ATTACHMENTS.delete(att.key);
+    } catch (err) {
+      console.error('R2 delete on message delete failed', err);
+    }
+  }
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });
 
 // ── 읽음 처리 ─────────────────────────────────────────────────────────────

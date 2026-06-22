@@ -1614,6 +1614,17 @@ export async function downloadMessageFile(messageId: string, fileName: string): 
   URL.revokeObjectURL(url);
 }
 
+// 본인이 보낸 메시지 삭제.
+export async function deleteMessage(conversationId: string, messageId: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/messages/conversations/${conversationId}/messages/${messageId}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+}
+
 export async function fetchUnreadTotal(): Promise<number> {
   const session = readSession();
   if (!session) return 0;

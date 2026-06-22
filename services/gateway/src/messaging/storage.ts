@@ -391,6 +391,22 @@ export async function leaveConversation(
   return (res.meta?.changes ?? 0) > 0;
 }
 
+// 본인이 보낸 메시지 삭제 — 발신자 본인만(sender 일치). soft delete.
+export async function softDeleteMessage(
+  db: D1Database,
+  messageId: string,
+  senderPseudonymId: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE messages SET deleted_at = datetime('now')
+        WHERE id = ? AND sender_pseudonym_id = ? AND deleted_at IS NULL`,
+    )
+    .bind(messageId, senderPseudonymId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
 // 대화방 삭제 — 생성자(owner) 전용. soft delete(모든 참여자 목록에서 사라짐).
 export async function deleteConversation(db: D1Database, conversationId: string): Promise<void> {
   await db

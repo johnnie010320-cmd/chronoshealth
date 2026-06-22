@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -29,9 +29,11 @@ export function AppShell({
 }: Props) {
   const { t } = useI18n();
   const nickname = useTwinNickname();
+  const unread = useUnreadMessages();
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
+      <MessageToast arrivedAt={unread.arrivedAt} count={unread.count} />
       {decoration === 'dots' && (
         <div
           aria-hidden
@@ -77,7 +79,7 @@ export function AppShell({
               {nickname}
             </span>
           )}
-          <MessageBell />
+          <MessageBell count={unread.count} />
           <LanguageSwitcher />
           <UserMenu />
         </div>
@@ -93,10 +95,9 @@ export function AppShell({
   );
 }
 
-// 신규 메시지 알림 배지 — 미읽음>0 일 때 빨간 점+숫자. 로그인 시에만 폴링.
-function MessageBell() {
+// 신규 메시지 알림 배지 — 미읽음>0 일 때 빨간 점+숫자.
+function MessageBell({ count }: { count: number }) {
   const { t } = useI18n();
-  const unread = useUnreadMessages();
   return (
     <Link
       href="/messages"
@@ -106,9 +107,50 @@ function MessageBell() {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
-      {unread > 0 && (
+      {count > 0 && (
         <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white">
-          {unread > 99 ? '99+' : unread}
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+// 새 메시지 도착 토스트 — 미읽음 증가 시 상단에 잠깐 표시(어느 화면에서든). 탭하면 메시지함.
+function MessageToast({ arrivedAt, count }: { arrivedAt: number | null; count: number }) {
+  const { t } = useI18n();
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (arrivedAt === null) return;
+    setShow(true);
+    const timer = setTimeout(() => setShow(false), 5000);
+    return () => clearTimeout(timer);
+  }, [arrivedAt]);
+
+  if (!show) return null;
+  return (
+    <Link
+      href="/messages"
+      onClick={() => setShow(false)}
+      className="fixed inset-x-3 top-[max(env(safe-area-inset-top),0.75rem)] z-50 mx-auto flex max-w-md items-center gap-2.5 rounded-2xl border border-brand-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur dark:border-brand-900 dark:bg-stone-900/95"
+    >
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-200">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-semibold text-stone-900 dark:text-stone-100">
+          {t.messaging.newMessageTitle}
+        </span>
+        <span className="block truncate text-[11px] text-stone-500 dark:text-stone-400">
+          {t.messaging.newMessageBody}
+        </span>
+      </span>
+      {count > 0 && (
+        <span className="shrink-0 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+          {count > 99 ? '99+' : count}
         </span>
       )}
     </Link>

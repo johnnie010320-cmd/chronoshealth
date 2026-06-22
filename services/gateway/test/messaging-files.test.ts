@@ -164,6 +164,43 @@ describe('R9 대화 파일 공유', () => {
     expect(data.conversations.some((c) => c.id === room)).toBe(false);
   });
 
+  it('본인 메시지 삭제 → 목록에서 사라짐, 타인 메시지 삭제 404', async () => {
+    const conv = await openDm(aliceToken, 'bob');
+    // alice 가 텍스트 메시지 전송
+    const send = await app.request(
+      `/api/v1/messages/conversations/${conv}/messages`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${aliceToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: '지울 메시지' }),
+      },
+      env(),
+    );
+    const mid = ((await send.json()) as { message: { id: string } }).message.id;
+    // bob(타인)이 삭제 시도 → 404(발신자 아님)
+    const byOther = await app.request(
+      `/api/v1/messages/conversations/${conv}/messages/${mid}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${bobToken}` } },
+      env(),
+    );
+    expect(byOther.status).toBe(404);
+    // alice(본인) 삭제 → 200
+    const byMine = await app.request(
+      `/api/v1/messages/conversations/${conv}/messages/${mid}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${aliceToken}` } },
+      env(),
+    );
+    expect(byMine.status).toBe(200);
+    // 목록에서 사라짐
+    const list = await app.request(
+      `/api/v1/messages/conversations/${conv}/messages`,
+      { headers: { Authorization: `Bearer ${aliceToken}` } },
+      env(),
+    );
+    const data = (await list.json()) as { messages: Array<{ id: string }> };
+    expect(data.messages.some((m) => m.id === mid)).toBe(false);
+  });
+
   it('DM 은 삭제 불가(나가기만) → DELETE 403', async () => {
     const conv = await openDm(aliceToken, 'bob');
     const res = await app.request(
