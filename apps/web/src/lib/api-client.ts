@@ -1469,12 +1469,19 @@ export type ConversationMember = {
   isMe: boolean;
 };
 
+export type ChatAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  expiresAt: string | null;
+};
 export type ChatMessage = {
   id: string;
   body: string;
   createdAt: string;
   senderNickname: string | null;
   isMine: boolean;
+  attachment: ChatAttachment | null;
 };
 
 function authHeaders(token: string): Record<string, string> {
@@ -1568,6 +1575,53 @@ export async function markConversationRead(id: string): Promise<void> {
     method: 'POST',
     headers: authHeaders(session.sessionToken),
   });
+}
+
+// 파일 첨부 업로드(jpg/pdf/ppt). FormData 멀티파트.
+export async function uploadMessageFile(
+  id: string,
+  file: File,
+): Promise<{ message: ChatMessage }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/files`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+    body: form,
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { message: ChatMessage };
+}
+
+// 첨부 다운로드 — 인증 헤더로 blob 받아 저장 트리거(비공개라 직접 링크 불가).
+export async function downloadMessageFile(messageId: string, fileName: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/files/${messageId}`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName || 'file';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function fetchUnreadTotal(): Promise<number> {
+  const session = readSession();
+  if (!session) return 0;
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/unread-total`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) return 0;
+  return ((await res.json()) as { total: number }).total;
 }
 
 export async function inviteToRoom(id: string, nickname: string): Promise<void> {

@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { cleanupExpiredAttachments } from './messaging/cleanup.js';
+import type { Bindings } from './bindings.js';
 import { riskEstimateRoute } from './routes/risk-estimate.js';
 import { signupRoute } from './routes/auth/signup.js';
 import { betaSignupRoute } from './routes/beta/signup.js';
@@ -83,4 +85,14 @@ app.onError((err, c) => {
   return c.json({ error: { code: 'INTERNAL_ERROR' } }, 500);
 });
 
-export default app;
+// fetch + scheduled(cron) 핸들러. cron 은 wrangler.toml [triggers] 에 정의(매일 03:00 UTC).
+// request 는 테스트(app.request) 호환용 위임.
+const worker = {
+  fetch: (req: Request, env: Bindings, ctx: ExecutionContext) => app.fetch(req, env, ctx),
+  request: (...args: Parameters<typeof app.request>) => app.request(...args),
+  async scheduled(_event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(cleanupExpiredAttachments(env));
+  },
+};
+
+export default worker;

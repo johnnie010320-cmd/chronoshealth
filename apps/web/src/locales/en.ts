@@ -218,6 +218,11 @@ export const en: Dictionary = {
     errorCannotDmSelf: 'You cannot message yourself.',
     errorForbiddenKeyword: 'Your message contains a disallowed expression.',
     errorNotMember: 'You are not part of this conversation.',
+    attach: 'Attach file (jpg·pdf·ppt)',
+    download: 'Download',
+    fileExpireNote: 'Shared files are auto-deleted after 7 days.',
+    errorUnsupportedFile: 'Unsupported type. Only jpg·pdf·ppt are allowed.',
+    errorFileTooLarge: 'File is too large (max 20MB).',
   },
   notices: {
     nav: 'Notices',

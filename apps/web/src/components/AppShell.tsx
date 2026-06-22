@@ -8,6 +8,7 @@ import { UserMenu } from './UserMenu';
 import { BottomNav } from './BottomNav';
 import { useI18n } from '@/lib/i18n';
 import { useTwinNickname } from '@/lib/profile-state';
+import { useUnreadMessages } from '@/lib/messages-state';
 
 type Props = {
   children: ReactNode;
@@ -76,6 +77,7 @@ export function AppShell({
               {nickname}
             </span>
           )}
+          <MessageBell />
           <LanguageSwitcher />
           <UserMenu />
         </div>
@@ -88,5 +90,27 @@ export function AppShell({
       {!hideBottomNav && <BottomNav />}
       <div className="safe-bottom" />
     </div>
+  );
+}
+
+// 신규 메시지 알림 배지 — 미읽음>0 일 때 빨간 점+숫자. 로그인 시에만 폴링.
+function MessageBell() {
+  const { t } = useI18n();
+  const unread = useUnreadMessages();
+  return (
+    <Link
+      href="/messages"
+      aria-label={t.messaging.nav}
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-600 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800/60"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      {unread > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white">
+          {unread > 99 ? '99+' : unread}
+        </span>
+      )}
+    </Link>
   );
 }

@@ -18,11 +18,20 @@ export type MemberRow = {
   lastReadAt: string;
 };
 
+export type MessageAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  expiresAt: string | null;
+};
+
 export type MessageRow = {
   id: string;
   senderPseudonymId: string;
   body: string;
   createdAt: string;
+  // 파일 첨부(있으면). R2 키는 내부 전용이라 노출하지 않음 — 다운로드는 messageId 로.
+  attachment: MessageAttachment | null;
 };
 
 // DM 대화의 결정적 id — 두 pseudonym 을 정렬·조합. 중복 생성 방지(INSERT OR IGNORE).
@@ -151,14 +160,146 @@ export async function listConversationsForMember(
 
 export async function insertMessage(
   db: D1Database,
-  row: { id: string; conversationId: string; senderPseudonymId: string; body: string },
+  row: {
+    id: string;
+    conversationId: string;
+    senderPseudonymId: string;
+    body: string;
+    attachment?: {
+      key: string;
+      name: string;
+      type: string;
+      size: number;
+      expiresAt: string;
+    } | null;
+  },
 ): Promise<void> {
+  const a = row.attachment ?? null;
   await db
     .prepare(
-      `INSERT INTO messages (id, conversation_id, sender_pseudonym_id, body)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO messages
+         (id, conversation_id, sender_pseudonym_id, body,
+          attachment_key, attachment_name, attachment_type, attachment_size, attachment_expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(row.id, row.conversationId, row.senderPseudonymId, row.body)
+    .bind(
+      row.id,
+      row.conversationId,
+      row.senderPseudonymId,
+      row.body,
+      a?.key ?? null,
+      a?.name ?? null,
+      a?.type ?? null,
+      a?.size ?? null,
+      a?.expiresAt ?? null,
+    )
+    .run();
+}
+
+type MessageRawRow = {
+  id: string;
+  sender_pseudonym_id: string;
+  body: string;
+  created_at: string;
+  attachment_name: string | null;
+  attachment_type: string | null;
+  attachment_size: number | null;
+  attachment_expires_at: string | null;
+};
+
+function mapMessage(r: MessageRawRow): MessageRow {
+  return {
+    id: r.id,
+    senderPseudonymId: r.sender_pseudonym_id,
+    body: r.body,
+    createdAt: r.created_at,
+    attachment:
+      r.attachment_name && r.attachment_type
+        ? {
+            name: r.attachment_name,
+            type: r.attachment_type,
+            size: r.attachment_size ?? 0,
+            expiresAt: r.attachment_expires_at,
+          }
+        : null,
+  };
+}
+
+// 다운로드용 — 첨부 메타 + R2 키(내부). 멤버십 검사는 호출측.
+export async function getMessageAttachment(
+  db: D1Database,
+  messageId: string,
+): Promise<{ conversationId: string; key: string; name: string; type: string } | null> {
+  const r = await db
+    .prepare(
+      `SELECT conversation_id, attachment_key, attachment_name, attachment_type
+         FROM messages
+        WHERE id = ? AND deleted_at IS NULL AND attachment_key IS NOT NULL`,
+    )
+    .bind(messageId)
+    .first<{
+      conversation_id: string;
+      attachment_key: string;
+      attachment_name: string | null;
+      attachment_type: string | null;
+    }>();
+  if (!r) return null;
+  return {
+    conversationId: r.conversation_id,
+    key: r.attachment_key,
+    name: r.attachment_name ?? 'file',
+    type: r.attachment_type ?? 'application/octet-stream',
+  };
+}
+
+// 전체 미읽음 합계(알림용) — 내가 참여한 모든 대화에서 last_read_at 이후 타인 메시지 수.
+export async function unreadTotal(db: D1Database, pseudonymId: string): Promise<number> {
+  const r = await db
+    .prepare(
+      `SELECT COUNT(*) AS c
+         FROM messages m
+         JOIN conversation_members cm
+           ON cm.conversation_id = m.conversation_id
+          AND cm.member_pseudonym_id = ?
+        WHERE m.deleted_at IS NULL
+          AND m.created_at > cm.last_read_at
+          AND m.sender_pseudonym_id != ?`,
+    )
+    .bind(pseudonymId, pseudonymId)
+    .first<{ c: number }>();
+  return r?.c ?? 0;
+}
+
+// 만료(7일 경과) 첨부 목록 — cron 정리용.
+export async function listExpiredAttachments(
+  db: D1Database,
+  nowIso: string,
+  limit: number,
+): Promise<{ id: string; key: string }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, attachment_key
+         FROM messages
+        WHERE attachment_key IS NOT NULL
+          AND attachment_expires_at IS NOT NULL
+          AND attachment_expires_at < ?
+          AND deleted_at IS NULL
+        LIMIT ?`,
+    )
+    .bind(nowIso, limit)
+    .all<{ id: string; attachment_key: string }>();
+  return (results ?? []).map((r) => ({ id: r.id, key: r.attachment_key }));
+}
+
+// 만료 첨부 정리 — 메시지 soft delete + 키 제거(다운로드 404).
+export async function expireAttachment(db: D1Database, messageId: string): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE messages
+          SET deleted_at = datetime('now'), attachment_key = NULL
+        WHERE id = ?`,
+    )
+    .bind(messageId)
     .run();
 }
 
@@ -168,12 +309,14 @@ export async function listMessages(
   conversationId: string,
   opts: { limit: number; before: string | null },
 ): Promise<MessageRow[]> {
+  const cols = `id, sender_pseudonym_id, body, created_at,
+                attachment_name, attachment_type, attachment_size, attachment_expires_at`;
   const sql = opts.before
-    ? `SELECT id, sender_pseudonym_id, body, created_at
+    ? `SELECT ${cols}
          FROM messages
         WHERE conversation_id = ? AND deleted_at IS NULL AND created_at < ?
         ORDER BY created_at DESC LIMIT ?`
-    : `SELECT id, sender_pseudonym_id, body, created_at
+    : `SELECT ${cols}
          FROM messages
         WHERE conversation_id = ? AND deleted_at IS NULL
         ORDER BY created_at DESC LIMIT ?`;
@@ -181,18 +324,8 @@ export async function listMessages(
   const bound = opts.before
     ? stmt.bind(conversationId, opts.before, opts.limit)
     : stmt.bind(conversationId, opts.limit);
-  const { results } = await bound.all<{
-    id: string;
-    sender_pseudonym_id: string;
-    body: string;
-    created_at: string;
-  }>();
-  return results.map((r) => ({
-    id: r.id,
-    senderPseudonymId: r.sender_pseudonym_id,
-    body: r.body,
-    createdAt: r.created_at,
-  }));
+  const { results } = await bound.all<MessageRawRow>();
+  return results.map(mapMessage);
 }
 
 export async function lastMessage(
@@ -201,16 +334,15 @@ export async function lastMessage(
 ): Promise<MessageRow | null> {
   const r = await db
     .prepare(
-      `SELECT id, sender_pseudonym_id, body, created_at
+      `SELECT id, sender_pseudonym_id, body, created_at,
+              attachment_name, attachment_type, attachment_size, attachment_expires_at
          FROM messages
         WHERE conversation_id = ? AND deleted_at IS NULL
         ORDER BY created_at DESC LIMIT 1`,
     )
     .bind(conversationId)
-    .first<{ id: string; sender_pseudonym_id: string; body: string; created_at: string }>();
-  return r
-    ? { id: r.id, senderPseudonymId: r.sender_pseudonym_id, body: r.body, createdAt: r.created_at }
-    : null;
+    .first<MessageRawRow>();
+  return r ? mapMessage(r) : null;
 }
 
 export async function unreadCount(

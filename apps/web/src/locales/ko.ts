@@ -212,6 +212,11 @@ export const ko = {
     errorCannotDmSelf: '자기 자신에게는 보낼 수 없어요.',
     errorForbiddenKeyword: '사용할 수 없는 표현이 포함되어 있어요.',
     errorNotMember: '이 대화에 참여하고 있지 않아요.',
+    attach: '파일 첨부 (jpg·pdf·ppt)',
+    download: '다운로드',
+    fileExpireNote: '공유 파일은 7일 후 자동 삭제됩니다.',
+    errorUnsupportedFile: '지원하지 않는 형식입니다. jpg·pdf·ppt만 가능해요.',
+    errorFileTooLarge: '파일이 너무 큽니다 (최대 20MB).',
   },
   notices: {
     nav: '공지사항',

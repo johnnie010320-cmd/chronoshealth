@@ -215,6 +215,11 @@ export const ja: Dictionary = {
     errorCannotDmSelf: '自分には送信できません。',
     errorForbiddenKeyword: '使用できない表現が含まれています。',
     errorNotMember: 'この会話に参加していません。',
+    attach: 'ファイル添付 (jpg·pdf·ppt)',
+    download: 'ダウンロード',
+    fileExpireNote: '共有ファイルは7日後に自動削除されます。',
+    errorUnsupportedFile: '対応していない形式です。jpg·pdf·pptのみ可能です。',
+    errorFileTooLarge: 'ファイルが大きすぎます (最大20MB)。',
   },
   notices: {
     nav: 'お知らせ',

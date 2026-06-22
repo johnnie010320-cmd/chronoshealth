@@ -14,6 +14,8 @@ export type Bindings = {
   DB: D1Database;
   // Cloudflare Workers AI — wrangler.toml `[ai]` 바인딩.
   AI: WorkersAiBinding;
+  // R2 — 대화 파일 첨부(jpg/pdf/ppt) 저장. wrangler.toml `[[r2_buckets]]` 바인딩.
+  ATTACHMENTS: R2Bucket;
   // ADR 0011 — HMAC-SHA256 키 (베타 등록 이메일 가명화). wrangler secret 으로 주입.
   BETA_SIGNUP_HMAC_SALT: string;
   // R-Admin-1 — 관리자 화이트리스트.

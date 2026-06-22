@@ -665,6 +665,11 @@ type MessageMockRow = {
   body: string;
   created_at: string;
   deleted_at: string | null;
+  attachment_key: string | null;
+  attachment_name: string | null;
+  attachment_type: string | null;
+  attachment_size: number | null;
+  attachment_expires_at: string | null;
 };
 
 type NoticeMockRow = {
@@ -1221,15 +1226,32 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('INSERT INTO messages')) {
-      const [id, conversation_id, sender_pseudonym_id, body] = args as [
-        string, string, string, string,
-      ];
+      const a = args as unknown[];
       state.messages.push({
-        id, conversation_id, sender_pseudonym_id, body,
+        id: a[0] as string,
+        conversation_id: a[1] as string,
+        sender_pseudonym_id: a[2] as string,
+        body: a[3] as string,
+        attachment_key: (a[4] as string | null) ?? null,
+        attachment_name: (a[5] as string | null) ?? null,
+        attachment_type: (a[6] as string | null) ?? null,
+        attachment_size: (a[7] as number | null) ?? null,
+        attachment_expires_at: (a[8] as string | null) ?? null,
         created_at: nextTs(),
         deleted_at: null,
       });
       return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('UPDATE messages')) {
+      // expireAttachment — soft delete + 키 제거.
+      const [messageId] = args as [string];
+      const m = state.messages.find((x) => x.id === messageId);
+      if (m) {
+        m.deleted_at = nextTs();
+        m.attachment_key = null;
+      }
+      return { success: true, meta: { changes: m ? 1 : 0 } };
     }
 
     if (trimmed.startsWith('UPDATE conversation_members SET last_read_at')) {
@@ -1329,6 +1351,26 @@ export function makeMockAnalysisDb(): {
       );
       return exists ? { '1': 1 } : null;
     }
+    // 전체 미읽음 합계(알림) — JOIN conversation_members.
+    if (
+      trimmed.includes('FROM messages m') &&
+      trimmed.includes('JOIN conversation_members')
+    ) {
+      const [pseudonymId] = args as [string];
+      const myConvs = new Map(
+        state.conversationMembers
+          .filter((cm) => cm.member_pseudonym_id === pseudonymId)
+          .map((cm) => [cm.conversation_id, cm.last_read_at]),
+      );
+      const count = state.messages.filter(
+        (m) =>
+          m.deleted_at === null &&
+          myConvs.has(m.conversation_id) &&
+          m.created_at > (myConvs.get(m.conversation_id) as string) &&
+          m.sender_pseudonym_id !== pseudonymId,
+      ).length;
+      return { c: count };
+    }
     if (trimmed.startsWith('SELECT COUNT(*) AS c FROM messages')) {
       const [conversationId, lastReadAt, senderExcl] = args as [string, string, string];
       const count = state.messages.filter(
@@ -1339,6 +1381,41 @@ export function makeMockAnalysisDb(): {
           m.sender_pseudonym_id !== senderExcl,
       ).length;
       return { c: count };
+    }
+    // 만료 첨부 목록 — cron 정리용.
+    if (trimmed.includes('FROM messages') && trimmed.includes('attachment_expires_at < ?')) {
+      const nowIso = args[0] as string;
+      const limit = args[args.length - 1] as number;
+      const rows = state.messages
+        .filter(
+          (m) =>
+            m.attachment_key !== null &&
+            m.attachment_expires_at !== null &&
+            m.attachment_expires_at < nowIso &&
+            m.deleted_at === null,
+        )
+        .slice(0, limit)
+        .map((m) => ({ id: m.id, attachment_key: m.attachment_key }));
+      return { results: rows };
+    }
+    // 첨부 다운로드 메타 — WHERE id AND attachment_key IS NOT NULL.
+    if (
+      trimmed.includes('FROM messages') &&
+      trimmed.includes('attachment_key IS NOT NULL') &&
+      trimmed.includes('WHERE id = ?')
+    ) {
+      const [messageId] = args as [string];
+      const m = state.messages.find(
+        (x) => x.id === messageId && x.deleted_at === null && x.attachment_key !== null,
+      );
+      return m
+        ? {
+            conversation_id: m.conversation_id,
+            attachment_key: m.attachment_key,
+            attachment_name: m.attachment_name,
+            attachment_type: m.attachment_type,
+          }
+        : null;
     }
     if (trimmed.includes('FROM messages') && trimmed.includes('LIMIT 1')) {
       const [conversationId] = args as [string];
@@ -1352,6 +1429,10 @@ export function makeMockAnalysisDb(): {
             sender_pseudonym_id: last.sender_pseudonym_id,
             body: last.body,
             created_at: last.created_at,
+            attachment_name: last.attachment_name,
+            attachment_type: last.attachment_type,
+            attachment_size: last.attachment_size,
+            attachment_expires_at: last.attachment_expires_at,
           }
         : null;
     }
@@ -1700,6 +1781,22 @@ export function makeMockAnalysisDb(): {
         }));
       return { results: rows };
     }
+    // 만료 첨부 목록(cron 정리) — .all() 경로.
+    if (trimmed.includes('FROM messages') && trimmed.includes('attachment_expires_at < ?')) {
+      const nowIso = args[0] as string;
+      const limit = args[args.length - 1] as number;
+      const rows = state.messages
+        .filter(
+          (m) =>
+            m.attachment_key !== null &&
+            m.attachment_expires_at !== null &&
+            m.attachment_expires_at < nowIso &&
+            m.deleted_at === null,
+        )
+        .slice(0, limit)
+        .map((m) => ({ id: m.id, attachment_key: m.attachment_key }));
+      return { results: rows };
+    }
     if (trimmed.includes('FROM messages') && trimmed.includes('ORDER BY created_at DESC')) {
       const limit = args[args.length - 1] as number;
       const conversationId = args[0] as string;
@@ -1718,6 +1815,10 @@ export function makeMockAnalysisDb(): {
           sender_pseudonym_id: m.sender_pseudonym_id,
           body: m.body,
           created_at: m.created_at,
+          attachment_name: m.attachment_name,
+          attachment_type: m.attachment_type,
+          attachment_size: m.attachment_size,
+          attachment_expires_at: m.attachment_expires_at,
         }));
       return { results: rows };
     }

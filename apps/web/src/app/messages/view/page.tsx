@@ -7,11 +7,13 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
+  downloadMessageFile,
   fetchConversation,
   fetchMessages,
   markConversationRead,
   sendMessage,
   leaveConversation,
+  uploadMessageFile,
   type ChatMessage,
   type ConversationDetail,
 } from '@/lib/api-client';
@@ -31,6 +33,7 @@ function ThreadInner() {
   const [forbidden, setForbidden] = useState(false);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [fileBusy, setFileBusy] = useState(false);
   const [errCode, setErrCode] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -77,8 +80,25 @@ function ThreadInner() {
     const map: Record<string, string> = {
       FORBIDDEN_KEYWORD: M.errorForbiddenKeyword,
       NOT_A_MEMBER: M.errorNotMember,
+      UNSUPPORTED_FILE_TYPE: M.errorUnsupportedFile,
+      FILE_TOO_LARGE: M.errorFileTooLarge,
+      UPLOAD_FAILED: M.errorGeneric,
     };
     return map[code] ?? M.errorGeneric;
+  }
+
+  async function handleFile(file: File | null) {
+    if (!file || fileBusy) return;
+    setFileBusy(true);
+    setErrCode(null);
+    try {
+      await uploadMessageFile(id, file);
+      await loadMessages();
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    } finally {
+      setFileBusy(false);
+    }
   }
 
   async function handleSend(e: React.FormEvent) {
@@ -147,15 +167,40 @@ function ThreadInner() {
                       {m.senderNickname ?? M.unknownUser}
                     </span>
                   )}
-                  <div
-                    className={`max-w-[78%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] ${
-                      m.isMine
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
-                    }`}
-                  >
-                    {m.body}
-                  </div>
+                  {m.body && (
+                    <div
+                      className={`max-w-[78%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] ${
+                        m.isMine
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                      }`}
+                    >
+                      {m.body}
+                    </div>
+                  )}
+                  {m.attachment && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void downloadMessageFile(m.id, m.attachment?.name ?? 'file')
+                      }
+                      className={`mt-0.5 flex max-w-[78%] items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
+                        m.isMine
+                          ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/30'
+                          : 'border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900'
+                      }`}
+                    >
+                      <FileIcon type={m.attachment.type} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-semibold text-stone-800 dark:text-stone-100">
+                          {m.attachment.name}
+                        </span>
+                        <span className="block text-[10px] text-stone-500 dark:text-stone-400">
+                          {formatSize(m.attachment.size)} · {M.download}
+                        </span>
+                      </span>
+                    </button>
+                  )}
                 </div>
               ))}
             <div ref={bottomRef} />
@@ -168,6 +213,31 @@ function ThreadInner() {
           )}
 
           <form onSubmit={handleSend} className="flex items-end gap-2 pt-2">
+            <label
+              aria-label={M.attach}
+              title={M.attach}
+              className={`inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-stone-300 text-stone-600 transition active:scale-95 dark:border-stone-700 dark:text-stone-300 ${
+                fileBusy ? 'pointer-events-none opacity-60' : ''
+              }`}
+            >
+              {fileBusy ? (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-brand-600" />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                </svg>
+              )}
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.pdf,.ppt,.pptx,image/jpeg,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                className="hidden"
+                disabled={fileBusy}
+                onChange={(e) => {
+                  void handleFile(e.target.files?.[0] ?? null);
+                  e.target.value = '';
+                }}
+              />
+            </label>
             <textarea
               value={body}
               placeholder={M.inputPlaceholder}
@@ -188,6 +258,32 @@ function ThreadInner() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FileIcon({ type }: { type: string }) {
+  const isImg = type.startsWith('image/');
+  return (
+    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-200">
+      {isImg ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <path d="M21 15l-5-5L5 21" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+        </svg>
+      )}
+    </span>
   );
 }
 

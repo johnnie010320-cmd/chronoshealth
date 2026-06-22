@@ -218,6 +218,11 @@ export const es: Dictionary = {
     errorCannotDmSelf: 'No puedes enviarte mensajes a ti mismo.',
     errorForbiddenKeyword: 'Tu mensaje contiene una expresión no permitida.',
     errorNotMember: 'No formas parte de esta conversación.',
+    attach: 'Adjuntar archivo (jpg·pdf·ppt)',
+    download: 'Descargar',
+    fileExpireNote: 'Los archivos compartidos se eliminan tras 7 días.',
+    errorUnsupportedFile: 'Tipo no admitido. Solo jpg·pdf·ppt.',
+    errorFileTooLarge: 'El archivo es demasiado grande (máx 20MB).',
   },
   notices: {
     nav: 'Avisos',

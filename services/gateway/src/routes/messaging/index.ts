@@ -11,6 +11,7 @@ import {
 import {
   addMember,
   dmConversationId,
+  getMessageAttachment,
   insertConversation,
   insertMessage,
   isMember,
@@ -22,6 +23,7 @@ import {
   markRead,
   readConversation,
   unreadCount,
+  unreadTotal,
   type ConversationRow,
   type MemberRow,
 } from '../../messaging/storage.js';
@@ -29,6 +31,13 @@ import {
   findPseudonymByNickname,
   resolveNicknames,
 } from '../../messaging/nickname.js';
+import {
+  ATTACHMENT_TTL_DAYS,
+  MAX_ATTACHMENT_BYTES,
+  attachmentKey,
+  resolveAttachmentType,
+  safeFileName,
+} from '../../messaging/files.js';
 import { moderateText } from '../../community/moderation.js';
 import type { Bindings } from '../../bindings.js';
 
@@ -164,7 +173,8 @@ messagingRoute.get('/conversations', authMiddleware, rateLimit(200), async (c) =
     unreadCount: it.unread,
     lastMessage: it.last
       ? {
-          body: it.last.body,
+          // 파일 메시지(본문 비어있음)는 첨부 파일명을 미리보기로.
+          body: it.last.body || (it.last.attachment ? `📎 ${it.last.attachment.name}` : ''),
           createdAt: it.last.createdAt,
           senderNickname: nicks.get(it.last.senderPseudonymId) ?? null,
         }
@@ -237,6 +247,7 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(600)
       createdAt: r.createdAt,
       senderNickname: nicks.get(r.senderPseudonymId) ?? null,
       isMine: r.senderPseudonymId === me,
+      attachment: r.attachment,
     }));
   return c.json({
     messages,
@@ -272,6 +283,86 @@ messagingRoute.post('/conversations/:id/messages', authMiddleware, rateLimit(120
     message: { id: msgId, body: parsed.data.body, isMine: true },
     modelVersion: MODEL_VERSION,
   });
+});
+
+// ── 파일 첨부 업로드(jpg/pdf/ppt) → R2 + 메시지 생성 ──────────────────────
+messagingRoute.post('/conversations/:id/files', authMiddleware, rateLimit(30), async (c) => {
+  const me = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  if (!(await isMember(c.env.DB, id, me))) {
+    return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
+  }
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const file = form.get('file');
+  if (!(file instanceof File)) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const type = resolveAttachmentType(file.name, file.type);
+  if (!type) {
+    return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
+  }
+  if (file.size <= 0 || file.size > MAX_ATTACHMENT_BYTES) {
+    return c.json({ error: { code: 'FILE_TOO_LARGE' } }, 400);
+  }
+  const msgId = crypto.randomUUID();
+  const key = attachmentKey(id, msgId, file.name);
+  const expiresAt = new Date(Date.now() + ATTACHMENT_TTL_DAYS * 86400_000).toISOString();
+  const name = safeFileName(file.name);
+  try {
+    await c.env.ATTACHMENTS.put(key, file.stream(), {
+      httpMetadata: { contentType: type },
+    });
+  } catch (err) {
+    console.error('R2 put failed', err);
+    return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
+  }
+  await insertMessage(c.env.DB, {
+    id: msgId,
+    conversationId: id,
+    senderPseudonymId: me,
+    body: '',
+    attachment: { key, name, type, size: file.size, expiresAt },
+  });
+  await markRead(c.env.DB, id, me);
+  return c.json({
+    message: {
+      id: msgId,
+      body: '',
+      isMine: true,
+      attachment: { name, type, size: file.size, expiresAt },
+    },
+    modelVersion: MODEL_VERSION,
+  });
+});
+
+// ── 파일 다운로드 — 대화 참여자만, R2 스트림 ───────────────────────────────
+messagingRoute.get('/files/:messageId', authMiddleware, rateLimit(120), async (c) => {
+  const me = c.get('userPseudonymId');
+  const messageId = c.req.param('messageId');
+  const att = await getMessageAttachment(c.env.DB, messageId);
+  if (!att) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (!(await isMember(c.env.DB, att.conversationId, me))) {
+    return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
+  }
+  const obj = await c.env.ATTACHMENTS.get(att.key);
+  if (!obj) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  const headers = new Headers();
+  headers.set('Content-Type', att.type);
+  headers.set('Content-Disposition', `attachment; filename="${safeFileName(att.name)}"`);
+  headers.set('Cache-Control', 'private, max-age=300');
+  return new Response(obj.body, { headers });
+});
+
+// ── 전체 미읽음 합계(알림 배지) ────────────────────────────────────────────
+messagingRoute.get('/unread-total', authMiddleware, rateLimit(300), async (c) => {
+  const me = c.get('userPseudonymId');
+  const total = await unreadTotal(c.env.DB, me);
+  return c.json({ total, modelVersion: MODEL_VERSION });
 });
 
 // ── 읽음 처리 ─────────────────────────────────────────────────────────────
