@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
-import { rateLimit } from '../../middleware/rate-limit.js';
+import { rateLimit, MINUTE_MS } from '../../middleware/rate-limit.js';
 import {
   CreateRoomRequest,
   InviteMemberRequest,
@@ -145,7 +145,7 @@ messagingRoute.post('/rooms', authMiddleware, rateLimit(20), async (c) => {
 });
 
 // ── 내 대화 목록 ──────────────────────────────────────────────────────────
-messagingRoute.get('/conversations', authMiddleware, rateLimit(200), async (c) => {
+messagingRoute.get('/conversations', authMiddleware, rateLimit(60, MINUTE_MS), async (c) => {
   const me = c.get('userPseudonymId');
   const convs = await listConversationsForMember(c.env.DB, me);
 
@@ -187,7 +187,7 @@ messagingRoute.get('/conversations', authMiddleware, rateLimit(200), async (c) =
 });
 
 // ── 대화 상세(멤버) ───────────────────────────────────────────────────────
-messagingRoute.get('/conversations/:id', authMiddleware, rateLimit(200), async (c) => {
+messagingRoute.get('/conversations/:id', authMiddleware, rateLimit(120, MINUTE_MS), async (c) => {
   const me = c.get('userPseudonymId');
   const id = c.req.param('id');
   const conv = await readConversation(c.env.DB, id);
@@ -219,7 +219,7 @@ messagingRoute.get('/conversations/:id', authMiddleware, rateLimit(200), async (
 });
 
 // ── 메시지 목록 ───────────────────────────────────────────────────────────
-messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(600), async (c) => {
+messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(120, MINUTE_MS), async (c) => {
   const me = c.get('userPseudonymId');
   const id = c.req.param('id');
   if (!(await isMember(c.env.DB, id, me))) {
@@ -259,7 +259,7 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(600)
 });
 
 // ── 메시지 전송 ───────────────────────────────────────────────────────────
-messagingRoute.post('/conversations/:id/messages', authMiddleware, rateLimit(120), async (c) => {
+messagingRoute.post('/conversations/:id/messages', authMiddleware, rateLimit(60, MINUTE_MS), async (c) => {
   const me = c.get('userPseudonymId');
   const id = c.req.param('id');
   if (!(await isMember(c.env.DB, id, me))) {
@@ -363,7 +363,7 @@ messagingRoute.get('/files/:messageId', authMiddleware, rateLimit(120), async (c
 });
 
 // ── 전체 미읽음 합계(알림 배지) ────────────────────────────────────────────
-messagingRoute.get('/unread-total', authMiddleware, rateLimit(300), async (c) => {
+messagingRoute.get('/unread-total', authMiddleware, rateLimit(120, MINUTE_MS), async (c) => {
   const me = c.get('userPseudonymId');
   const total = await unreadTotal(c.env.DB, me);
   return c.json({ total, modelVersion: MODEL_VERSION });
@@ -388,7 +388,7 @@ messagingRoute.delete('/conversations/:id/messages/:messageId', authMiddleware, 
 });
 
 // ── 읽음 처리 ─────────────────────────────────────────────────────────────
-messagingRoute.post('/conversations/:id/read', authMiddleware, rateLimit(200), async (c) => {
+messagingRoute.post('/conversations/:id/read', authMiddleware, rateLimit(120, MINUTE_MS), async (c) => {
   const me = c.get('userPseudonymId');
   const id = c.req.param('id');
   if (!(await isMember(c.env.DB, id, me))) {
