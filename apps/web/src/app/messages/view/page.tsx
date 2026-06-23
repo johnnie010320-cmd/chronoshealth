@@ -219,7 +219,7 @@ function ThreadInner() {
                           : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
                       }`}
                     >
-                      {m.body}
+                      <MessageBody body={m.body} mine={m.isMine} />
                     </div>
                   )}
                   {m.attachment && (
@@ -309,6 +309,50 @@ function ThreadInner() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+// 메시지 본문 중 URL을 감지해 클릭 가능한 링크(새 탭)로 렌더링.
+// http(s):// 절대 URL과 www. 로 시작하는 도메인을 모두 인식.
+const URL_RE = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+
+function MessageBody({ body, mine }: { body: string; mine: boolean }) {
+  const parts: Array<{ text: string; href: string | null }> = [];
+  let last = 0;
+  for (const match of body.matchAll(URL_RE)) {
+    const raw = match[0];
+    const start = match.index ?? 0;
+    if (start > last) parts.push({ text: body.slice(last, start), href: null });
+    // 문장 끝 구두점은 링크에서 제외.
+    const trimmed = raw.replace(/[.,!?)\]}"'»]+$/, '');
+    const trailing = raw.slice(trimmed.length);
+    const href = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    parts.push({ text: trimmed, href });
+    if (trailing) parts.push({ text: trailing, href: null });
+    last = start + raw.length;
+  }
+  if (last < body.length) parts.push({ text: body.slice(last), href: null });
+
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.href ? (
+          <a
+            key={i}
+            href={p.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`underline underline-offset-2 break-all ${
+              mine ? 'text-white decoration-white/70' : 'text-brand-700 dark:text-brand-300'
+            }`}
+          >
+            {p.text}
+          </a>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      )}
+    </>
   );
 }
 
