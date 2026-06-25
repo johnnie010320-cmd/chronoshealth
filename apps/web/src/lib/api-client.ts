@@ -1350,11 +1350,21 @@ export async function fetchMyComments(): Promise<MyComment[]> {
 }
 
 // Phase 1.4 — AI 건강 처방
+export type FormcoachSport =
+  | 'running'
+  | 'swimming'
+  | 'yoga'
+  | 'pilates'
+  | 'crossfit'
+  | 'hiking';
+
 export type AiPrescription = {
   summary: string;
   diet: string[];
   exercise: string[];
   rest: string[];
+  // 운동 처방과 연계된 FormCoach 자세교정 종목(딥링크용). 0~3개.
+  formcoachSports: FormcoachSport[];
 };
 export async function fetchAiPrescription(body: {
   bioAge?: number;
@@ -1475,6 +1485,18 @@ export type ChatAttachment = {
   size: number;
   expiresAt: string | null;
 };
+// 카카오톡식 고정 반응 6종 — 게이트웨이 schemas/messaging.ts 의 REACTION_EMOJIS 와 동일.
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+
+export type ChatReaction = { emoji: string; count: number; mine: boolean };
+
+export type ChatReplyPreview = {
+  id: string;
+  senderNickname: string | null;
+  bodyPreview: string;
+};
+
 export type ChatMessage = {
   id: string;
   body: string;
@@ -1482,6 +1504,10 @@ export type ChatMessage = {
   senderNickname: string | null;
   isMine: boolean;
   attachment: ChatAttachment | null;
+  // 답장 대상 미리보기(있으면).
+  replyTo: ChatReplyPreview | null;
+  // 이모티콘 반응 집계.
+  reactions: ChatReaction[];
 };
 
 function authHeaders(token: string): Record<string, string> {
@@ -1557,14 +1583,51 @@ export async function fetchMessages(
   return (await res.json()) as { messages: ChatMessage[]; hasMore: boolean };
 }
 
-export async function sendMessage(id: string, body: string): Promise<void> {
+export async function sendMessage(
+  id: string,
+  body: string,
+  replyToMessageId?: string | null,
+): Promise<void> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const res = await fetch(`${GATEWAY_URL}/api/v1/messages/conversations/${id}/messages`, {
     method: 'POST',
     headers: authHeaders(session.sessionToken),
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, replyToMessageId: replyToMessageId ?? null }),
   });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 이모티콘 반응 추가/제거(토글). 같은 이모지를 이미 달았으면 제거.
+export async function addMessageReaction(
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/messages/conversations/${conversationId}/messages/${messageId}/reactions`,
+    {
+      method: 'POST',
+      headers: authHeaders(session.sessionToken),
+      body: JSON.stringify({ emoji }),
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function removeMessageReaction(
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/messages/conversations/${conversationId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+    { method: 'DELETE', headers: authHeaders(session.sessionToken) },
+  );
   if (!res.ok) await throwOnError(res);
 }
 

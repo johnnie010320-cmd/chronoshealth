@@ -10,7 +10,23 @@ import { listConditions } from '../../medical/storage.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
-const MODEL_VERSION = `ai-prescription-v0.1.0:${MODEL}`;
+const MODEL_VERSION = `ai-prescription-v0.2.0:${MODEL}`;
+
+// FormCoach(www.ever-day.com) 연동 가능한 건강 운동 종목 슬러그.
+// 운동 처방 → 해당 종목 자세 교정 화면으로 딥링크(웹 클라이언트가 URL 구성).
+const FORMCOACH_SPORTS = ['running', 'swimming', 'yoga', 'pilates', 'crossfit', 'hiking'] as const;
+type FormcoachSport = (typeof FORMCOACH_SPORTS)[number];
+
+// 운동 텍스트(요약+운동 팁)에서 종목을 추론하기 위한 다국어 키워드.
+// LLM 이 formcoachSports 를 누락해도 결정적으로 딥링크를 채워 넣는 보강 장치.
+const SPORT_KEYWORDS: Record<FormcoachSport, string[]> = {
+  running: ['러닝', '달리기', '조깅', 'run', 'jog', 'correr', 'ランニング', 'ジョギング'],
+  swimming: ['수영', 'swim', 'natación', 'natacion', '水泳'],
+  yoga: ['요가', 'yoga', 'ヨガ'],
+  pilates: ['필라테스', 'pilates', 'ピラティス'],
+  crossfit: ['크로스핏', 'crossfit', 'cross-fit', 'クロスフィット'],
+  hiking: ['등산', '하이킹', 'hik', 'trek', 'senderismo', 'ハイキング', '登山'],
+};
 
 const PrescriptionRequest = z
   .object({
@@ -42,6 +58,8 @@ type Prescription = {
   diet: string[];
   exercise: string[];
   rest: string[];
+  // 운동 처방과 연계된 FormCoach 자세교정 종목(딥링크용). 0~3개.
+  formcoachSports: FormcoachSport[];
 };
 
 export const aiPrescriptionRoute = new Hono<{
@@ -76,13 +94,18 @@ aiPrescriptionRoute.post(
 );
 
 const SYSTEM_PROMPT = `You are a wellness coach (NOT a doctor). Given health predictions and routines,
-produce specific, concrete habit nudges. Reply with STRICT JSON only, no prose, no markdown fence.
+produce specific, concrete habit nudges. PRIORITIZE the diet plan and the exercise plan — these
+are the two most important sections; make them the most detailed and actionable. Keep rest brief.
+Reply with STRICT JSON only, no prose, no markdown fence.
 Schema:
 {"summary":"<1-2 sentence overview>",
- "diet":["<concrete tip>","..."],
- "exercise":["<concrete tip>","..."],
- "rest":["<concrete tip>","..."]}
-Each list has 2-4 items, each item under 80 characters.
+ "diet":["<concrete meal/eating tip>","..."],
+ "exercise":["<concrete workout tip>","..."],
+ "rest":["<short recovery tip>"],
+ "formcoachSports":["<0-3 of: running, swimming, yoga, pilates, crossfit, hiking>"]}
+diet and exercise have 3-4 items each; rest has 1-2 items. Each item under 80 characters.
+For formcoachSports, pick only sports that match your exercise advice (e.g. suggest running/jogging -> "running");
+use an empty array if none clearly apply. Only use slugs from the allowed list.
 Never use the words "diagnose", "prescribe", "cure", "treat", "death" or their translations.
 Always frame advice as suggestion, not prescription.
 Match the locale provided.`;
@@ -133,15 +156,41 @@ function parseJson(raw: string): Prescription | null {
     ) {
       return null;
     }
+    const summary = parsed.summary.slice(0, 400);
+    const exercise = cleanList(parsed.exercise);
     return {
-      summary: parsed.summary.slice(0, 400),
+      summary,
       diet: cleanList(parsed.diet),
-      exercise: cleanList(parsed.exercise),
+      exercise,
       rest: cleanList(parsed.rest),
+      formcoachSports: resolveFormcoachSports(parsed.formcoachSports, [summary, ...exercise]),
     };
   } catch {
     return null;
   }
+}
+
+// LLM 이 준 종목(허용 목록 검증) + 운동 텍스트 키워드 추론을 합쳐 0~3개로 정리.
+function resolveFormcoachSports(
+  raw: unknown,
+  exerciseText: string[],
+): FormcoachSport[] {
+  const out: FormcoachSport[] = [];
+  const add = (s: FormcoachSport) => {
+    if (!out.includes(s)) out.push(s);
+  };
+  if (Array.isArray(raw)) {
+    for (const v of raw) {
+      if (typeof v === 'string' && (FORMCOACH_SPORTS as readonly string[]).includes(v)) {
+        add(v as FormcoachSport);
+      }
+    }
+  }
+  const hay = exerciseText.join(' ').toLowerCase();
+  for (const sport of FORMCOACH_SPORTS) {
+    if (SPORT_KEYWORDS[sport].some((kw) => hay.includes(kw.toLowerCase()))) add(sport);
+  }
+  return out.slice(0, 3);
 }
 
 function cleanList(items: unknown[]): string[] {

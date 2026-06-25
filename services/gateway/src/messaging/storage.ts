@@ -32,6 +32,22 @@ export type MessageRow = {
   createdAt: string;
   // 파일 첨부(있으면). R2 키는 내부 전용이라 노출하지 않음 — 다운로드는 messageId 로.
   attachment: MessageAttachment | null;
+  // 답장 대상 메시지 id(같은 대화 내). 미리보기는 route 가 별도 해석.
+  replyToMessageId: string | null;
+};
+
+// 답장 인용 미리보기(대상 메시지 발신자 + 본문 스냅샷).
+export type MessagePreview = {
+  id: string;
+  senderPseudonymId: string;
+  body: string;
+};
+
+// 메시지별 반응 집계(원시 행 — mine 판정은 route 에서).
+export type ReactionRow = {
+  messageId: string;
+  emoji: string;
+  userPseudonymId: string;
 };
 
 // DM 대화의 결정적 id — 두 pseudonym 을 정렬·조합. 중복 생성 방지(INSERT OR IGNORE).
@@ -165,6 +181,7 @@ export async function insertMessage(
     conversationId: string;
     senderPseudonymId: string;
     body: string;
+    replyToMessageId?: string | null;
     attachment?: {
       key: string;
       name: string;
@@ -178,15 +195,16 @@ export async function insertMessage(
   await db
     .prepare(
       `INSERT INTO messages
-         (id, conversation_id, sender_pseudonym_id, body,
+         (id, conversation_id, sender_pseudonym_id, body, reply_to_message_id,
           attachment_key, attachment_name, attachment_type, attachment_size, attachment_expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
       row.conversationId,
       row.senderPseudonymId,
       row.body,
+      row.replyToMessageId ?? null,
       a?.key ?? null,
       a?.name ?? null,
       a?.type ?? null,
@@ -196,11 +214,106 @@ export async function insertMessage(
     .run();
 }
 
+// 답장 대상 메시지가 같은 대화에 존재하고 삭제되지 않았는지 확인(전송 전 검증).
+export async function messageExistsInConversation(
+  db: D1Database,
+  messageId: string,
+  conversationId: string,
+): Promise<boolean> {
+  const r = await db
+    .prepare(
+      `SELECT 1 FROM messages
+        WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(messageId, conversationId)
+    .first<{ '1': number }>();
+  return r !== null;
+}
+
+// 답장 인용 미리보기 — 대상 id 집합의 발신자 + 본문 일괄 조회(삭제분 제외).
+export async function getMessagePreviews(
+  db: D1Database,
+  ids: string[],
+): Promise<Map<string, MessagePreview>> {
+  const map = new Map<string, MessagePreview>();
+  if (ids.length === 0) return map;
+  const placeholders = ids.map(() => '?').join(',');
+  const { results } = await db
+    .prepare(
+      `SELECT id, sender_pseudonym_id, body
+         FROM messages
+        WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+    )
+    .bind(...ids)
+    .all<{ id: string; sender_pseudonym_id: string; body: string }>();
+  for (const r of results ?? []) {
+    map.set(r.id, {
+      id: r.id,
+      senderPseudonymId: r.sender_pseudonym_id,
+      body: r.body,
+    });
+  }
+  return map;
+}
+
+// ── 이모티콘 반응 ──────────────────────────────────────────────────────────
+export async function addReaction(
+  db: D1Database,
+  args: { messageId: string; conversationId: string; pseudonymId: string; emoji: string },
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO message_reactions
+         (message_id, conversation_id, user_pseudonym_id, emoji)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(args.messageId, args.conversationId, args.pseudonymId, args.emoji)
+    .run();
+}
+
+export async function removeReaction(
+  db: D1Database,
+  messageId: string,
+  pseudonymId: string,
+  emoji: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `DELETE FROM message_reactions
+        WHERE message_id = ? AND user_pseudonym_id = ? AND emoji = ?`,
+    )
+    .bind(messageId, pseudonymId, emoji)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function listReactionsForMessages(
+  db: D1Database,
+  messageIds: string[],
+): Promise<ReactionRow[]> {
+  if (messageIds.length === 0) return [];
+  const placeholders = messageIds.map(() => '?').join(',');
+  const { results } = await db
+    .prepare(
+      `SELECT message_id, emoji, user_pseudonym_id
+         FROM message_reactions
+        WHERE message_id IN (${placeholders})`,
+    )
+    .bind(...messageIds)
+    .all<{ message_id: string; emoji: string; user_pseudonym_id: string }>();
+  return (results ?? []).map((r) => ({
+    messageId: r.message_id,
+    emoji: r.emoji,
+    userPseudonymId: r.user_pseudonym_id,
+  }));
+}
+
 type MessageRawRow = {
   id: string;
   sender_pseudonym_id: string;
   body: string;
   created_at: string;
+  reply_to_message_id: string | null;
   attachment_name: string | null;
   attachment_type: string | null;
   attachment_size: number | null;
@@ -213,6 +326,7 @@ function mapMessage(r: MessageRawRow): MessageRow {
     senderPseudonymId: r.sender_pseudonym_id,
     body: r.body,
     createdAt: r.created_at,
+    replyToMessageId: r.reply_to_message_id ?? null,
     attachment:
       r.attachment_name && r.attachment_type
         ? {
@@ -309,7 +423,7 @@ export async function listMessages(
   conversationId: string,
   opts: { limit: number; before: string | null },
 ): Promise<MessageRow[]> {
-  const cols = `id, sender_pseudonym_id, body, created_at,
+  const cols = `id, sender_pseudonym_id, body, created_at, reply_to_message_id,
                 attachment_name, attachment_type, attachment_size, attachment_expires_at`;
   const sql = opts.before
     ? `SELECT ${cols}
@@ -334,7 +448,7 @@ export async function lastMessage(
 ): Promise<MessageRow | null> {
   const r = await db
     .prepare(
-      `SELECT id, sender_pseudonym_id, body, created_at,
+      `SELECT id, sender_pseudonym_id, body, created_at, reply_to_message_id,
               attachment_name, attachment_type, attachment_size, attachment_expires_at
          FROM messages
         WHERE conversation_id = ? AND deleted_at IS NULL

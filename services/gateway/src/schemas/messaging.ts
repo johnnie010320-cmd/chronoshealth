@@ -26,13 +26,23 @@ export const CreateRoomRequest = z
   .strict();
 export type CreateRoomRequest = z.infer<typeof CreateRoomRequest>;
 
-// 메시지 전송.
+// 메시지 전송. replyToMessageId 가 있으면 해당 메시지에 대한 답장.
 export const SendMessageRequest = z
   .object({
     body: z.string().trim().min(1).max(2000),
+    replyToMessageId: z.string().min(1).max(64).nullable().default(null),
   })
   .strict();
 export type SendMessageRequest = z.infer<typeof SendMessageRequest>;
+
+// 이모티콘 반응 — 카카오톡식 고정 6종(클라이언트·서버 동일 집합).
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
+export const ReactionRequest = z
+  .object({
+    emoji: z.enum(REACTION_EMOJIS),
+  })
+  .strict();
+export type ReactionRequest = z.infer<typeof ReactionRequest>;
 
 // 대화방 초대(추가 멤버).
 export const InviteMemberRequest = z

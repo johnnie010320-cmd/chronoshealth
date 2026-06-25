@@ -20,7 +20,11 @@ import {
   type CareResponse,
   type CareRule,
   type CareAffiliate,
+  type FormcoachSport,
 } from '@/lib/api-client';
+
+// FormCoach(www.ever-day.com) 자세교정 종목 딥링크 베이스 — 운동 처방 연계(Phase 1).
+const FORMCOACH_BASE = 'https://www.ever-day.com/sport';
 
 type LoadState =
   | { status: 'loading' }
@@ -299,6 +303,10 @@ function PrescriptionCard({
     restTitle: string;
     note: string;
     errGeneric: string;
+    formcoachTitle: string;
+    formcoachHint: string;
+    formcoachCta: string;
+    sportNames: Record<FormcoachSport, string>;
   };
 }) {
   return (
@@ -336,11 +344,59 @@ function PrescriptionCard({
           </p>
           <RxList title={labels.dietTitle} items={rx.diet} />
           <RxList title={labels.exerciseTitle} items={rx.exercise} />
+          {rx.formcoachSports.length > 0 && (
+            <FormcoachLinks
+              sports={rx.formcoachSports}
+              title={labels.formcoachTitle}
+              hint={labels.formcoachHint}
+              cta={labels.formcoachCta}
+              names={labels.sportNames}
+            />
+          )}
           <RxList title={labels.restTitle} items={rx.rest} />
           <p className="text-[10px] text-stone-500 dark:text-stone-400">{labels.note}</p>
         </div>
       )}
     </section>
+  );
+}
+
+function FormcoachLinks({
+  sports,
+  title,
+  hint,
+  cta,
+  names,
+}: {
+  sports: FormcoachSport[];
+  title: string;
+  hint: string;
+  cta: string;
+  names: Record<FormcoachSport, string>;
+}) {
+  return (
+    <div className="rounded-xl border border-brand-200/70 bg-white/70 p-3 dark:border-brand-900/50 dark:bg-stone-900/50">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-300">
+        {title}
+      </p>
+      <p className="mt-0.5 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+        {hint}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {sports.map((s) => (
+          <a
+            key={s}
+            href={`${FORMCOACH_BASE}/${s}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97] hover:bg-brand-700"
+          >
+            <span>{names[s]}</span>
+            <span aria-hidden>· {cta}</span>
+          </a>
+        ))}
+      </div>
+    </div>
   );
 }
 

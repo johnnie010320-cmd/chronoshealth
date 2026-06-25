@@ -669,11 +669,19 @@ type MessageMockRow = {
   body: string;
   created_at: string;
   deleted_at: string | null;
+  reply_to_message_id: string | null;
   attachment_key: string | null;
   attachment_name: string | null;
   attachment_type: string | null;
   attachment_size: number | null;
   attachment_expires_at: string | null;
+};
+
+type ReactionMockRow = {
+  message_id: string;
+  conversation_id: string;
+  user_pseudonym_id: string;
+  emoji: string;
 };
 
 type NoticeMockRow = {
@@ -713,6 +721,7 @@ export type MockAnalysisState = {
   conversations: ConversationMockRow[];
   conversationMembers: ConversationMemberMockRow[];
   messages: MessageMockRow[];
+  messageReactions: ReactionMockRow[];
   notices: NoticeMockRow[];
   releases: ReleaseMockRow[];
 };
@@ -750,6 +759,7 @@ export function makeMockAnalysisDb(): {
     conversations: [],
     conversationMembers: [],
     messages: [],
+    messageReactions: [],
     notices: [],
     releases: [],
   };
@@ -1237,17 +1247,20 @@ export function makeMockAnalysisDb(): {
     }
 
     if (trimmed.startsWith('INSERT INTO messages')) {
+      // 컬럼: id, conversation_id, sender_pseudonym_id, body, reply_to_message_id,
+      //   attachment_key, attachment_name, attachment_type, attachment_size, attachment_expires_at
       const a = args as unknown[];
       state.messages.push({
         id: a[0] as string,
         conversation_id: a[1] as string,
         sender_pseudonym_id: a[2] as string,
         body: a[3] as string,
-        attachment_key: (a[4] as string | null) ?? null,
-        attachment_name: (a[5] as string | null) ?? null,
-        attachment_type: (a[6] as string | null) ?? null,
-        attachment_size: (a[7] as number | null) ?? null,
-        attachment_expires_at: (a[8] as string | null) ?? null,
+        reply_to_message_id: (a[4] as string | null) ?? null,
+        attachment_key: (a[5] as string | null) ?? null,
+        attachment_name: (a[6] as string | null) ?? null,
+        attachment_type: (a[7] as string | null) ?? null,
+        attachment_size: (a[8] as number | null) ?? null,
+        attachment_expires_at: (a[9] as string | null) ?? null,
         created_at: nextTs(),
         deleted_at: null,
       });
@@ -1291,6 +1304,36 @@ export function makeMockAnalysisDb(): {
       if (idx < 0) return { success: true, meta: { changes: 0 } };
       state.conversationMembers.splice(idx, 1);
       return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('INSERT OR IGNORE INTO message_reactions')) {
+      const [message_id, conversation_id, user_pseudonym_id, emoji] = args as [
+        string, string, string, string,
+      ];
+      const exists = state.messageReactions.some(
+        (r) =>
+          r.message_id === message_id &&
+          r.user_pseudonym_id === user_pseudonym_id &&
+          r.emoji === emoji,
+      );
+      if (!exists) {
+        state.messageReactions.push({ message_id, conversation_id, user_pseudonym_id, emoji });
+      }
+      return { success: true, meta: {} };
+    }
+
+    if (trimmed.startsWith('DELETE FROM message_reactions')) {
+      const [message_id, user_pseudonym_id, emoji] = args as [string, string, string];
+      const before = state.messageReactions.length;
+      state.messageReactions = state.messageReactions.filter(
+        (r) =>
+          !(
+            r.message_id === message_id &&
+            r.user_pseudonym_id === user_pseudonym_id &&
+            r.emoji === emoji
+          ),
+      );
+      return { success: true, meta: { changes: before - state.messageReactions.length } };
     }
 
     if (trimmed.startsWith('INSERT INTO notices')) {
@@ -1436,6 +1479,14 @@ export function makeMockAnalysisDb(): {
             attachment_type: m.attachment_type,
           }
         : null;
+    }
+    // 답장 대상 존재 확인 — SELECT 1 FROM messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL
+    if (trimmed.startsWith('SELECT 1 FROM messages')) {
+      const [messageId, conversationId] = args as [string, string];
+      const hit = state.messages.some(
+        (m) => m.id === messageId && m.conversation_id === conversationId && m.deleted_at === null,
+      );
+      return hit ? { '1': 1 } : null;
     }
     if (trimmed.includes('FROM messages') && trimmed.includes('LIMIT 1')) {
       const [conversationId] = args as [string];
@@ -1835,10 +1886,41 @@ export function makeMockAnalysisDb(): {
           sender_pseudonym_id: m.sender_pseudonym_id,
           body: m.body,
           created_at: m.created_at,
+          reply_to_message_id: m.reply_to_message_id,
           attachment_name: m.attachment_name,
           attachment_type: m.attachment_type,
           attachment_size: m.attachment_size,
           attachment_expires_at: m.attachment_expires_at,
+        }));
+      return { results: rows };
+    }
+
+    // 답장 인용 미리보기 — SELECT id, sender_pseudonym_id, body FROM messages WHERE id IN (...) AND deleted_at IS NULL
+    if (
+      trimmed.includes('FROM messages') &&
+      trimmed.includes('IN (') &&
+      trimmed.includes('sender_pseudonym_id, body')
+    ) {
+      const ids = args as string[];
+      const rows = state.messages
+        .filter((m) => ids.includes(m.id) && m.deleted_at === null)
+        .map((m) => ({
+          id: m.id,
+          sender_pseudonym_id: m.sender_pseudonym_id,
+          body: m.body,
+        }));
+      return { results: rows };
+    }
+
+    // 메시지 반응 일괄 조회 — SELECT message_id, emoji, user_pseudonym_id FROM message_reactions WHERE message_id IN (...)
+    if (trimmed.includes('FROM message_reactions')) {
+      const ids = args as string[];
+      const rows = state.messageReactions
+        .filter((r) => ids.includes(r.message_id))
+        .map((r) => ({
+          message_id: r.message_id,
+          emoji: r.emoji,
+          user_pseudonym_id: r.user_pseudonym_id,
         }));
       return { results: rows };
     }

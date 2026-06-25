@@ -7,15 +7,18 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
+  addMessageReaction,
   deleteConversation,
   deleteMessage,
   downloadMessageFile,
   fetchConversation,
   fetchMessages,
   markConversationRead,
+  removeMessageReaction,
   sendMessage,
   leaveConversation,
   uploadMessageFile,
+  REACTION_EMOJIS,
   type ChatMessage,
   type ConversationDetail,
 } from '@/lib/api-client';
@@ -37,7 +40,12 @@ function ThreadInner() {
   const [sending, setSending] = useState(false);
   const [fileBusy, setFileBusy] = useState(false);
   const [errCode, setErrCode] = useState<string | null>(null);
+  // 답장 대상 + 컨텍스트 메뉴(우클릭/롱프레스로 연 메시지 id).
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadMessages = useCallback(async () => {
     if (!id) return;
@@ -130,14 +138,47 @@ function ThreadInner() {
     setSending(true);
     setErrCode(null);
     try {
-      await sendMessage(id, text);
+      await sendMessage(id, text, replyTarget?.id ?? null);
       setBody('');
+      setReplyTarget(null);
       await loadMessages();
     } catch (err) {
       setErrCode(err instanceof Error ? err.message : 'generic');
     } finally {
       setSending(false);
     }
+  }
+
+  // 메시지에 이모티콘 반응 토글(이미 내가 단 이모지면 제거, 아니면 추가).
+  async function toggleReaction(m: ChatMessage, emoji: string) {
+    setMenuFor(null);
+    const mine = m.reactions.find((r) => r.emoji === emoji)?.mine ?? false;
+    try {
+      if (mine) await removeMessageReaction(id, m.id, emoji);
+      else await addMessageReaction(id, m.id, emoji);
+      await loadMessages();
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    }
+  }
+
+  // 답장 시작 — 입력창에 인용 배너 표시 + 포커스.
+  function startReply(m: ChatMessage) {
+    setMenuFor(null);
+    setReplyTarget(m);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  // 우클릭/롱프레스로 메시지 컨텍스트 메뉴 열기.
+  function openMenu(messageId: string) {
+    setMenuFor((cur) => (cur === messageId ? null : messageId));
+  }
+  function onPressStart(messageId: string) {
+    pressTimer.current = setTimeout(() => setMenuFor(messageId), 480);
+  }
+  function onPressEnd() {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
   }
 
   async function handleLeave() {
@@ -204,53 +245,148 @@ function ThreadInner() {
               messages.map((m) => (
                 <div
                   key={m.id}
-                  className={`flex flex-col ${m.isMine ? 'items-end' : 'items-start'}`}
+                  className={`relative flex flex-col ${m.isMine ? 'items-end' : 'items-start'}`}
                 >
                   {!m.isMine && conv?.kind === 'room' && (
                     <span className="mb-0.5 px-1 text-[10px] font-medium text-stone-400">
                       {m.senderNickname ?? M.unknownUser}
                     </span>
                   )}
-                  {m.body && (
+
+                  {/* 답장 인용 미리보기 */}
+                  {m.replyTo && (
                     <div
-                      className={`max-w-[78%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] ${
+                      className={`max-w-[78%] truncate border-l-2 px-2.5 py-1 text-[11px] ${
                         m.isMine
-                          ? 'bg-brand-600 text-white'
-                          : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                          ? 'border-brand-300 bg-brand-50 text-stone-600 dark:border-brand-700 dark:bg-brand-900/30 dark:text-stone-300'
+                          : 'border-stone-300 bg-stone-50 text-stone-500 dark:border-stone-600 dark:bg-stone-800/60 dark:text-stone-400'
                       }`}
                     >
-                      <MessageBody body={m.body} mine={m.isMine} />
+                      <span className="font-semibold">
+                        {m.replyTo.senderNickname ?? M.unknownUser}
+                      </span>
+                      {' · '}
+                      {m.replyTo.bodyPreview ? m.replyTo.bodyPreview.slice(0, 40) : '📎'}
                     </div>
                   )}
-                  {m.attachment && (
-                    <button
-                      type="button"
-                      onClick={() => void handleDownload(m.id, m.attachment?.name ?? 'file')}
-                      className={`mt-0.5 flex max-w-[78%] items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
-                        m.isMine
-                          ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/30'
-                          : 'border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900'
-                      }`}
-                    >
-                      <FileIcon type={m.attachment.type} />
-                      <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-semibold text-stone-800 dark:text-stone-100">
-                          {m.attachment.name}
+
+                  {/* 본문 + 첨부 — 우클릭/롱프레스로 답장·반응·삭제 메뉴 */}
+                  <div
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      openMenu(m.id);
+                    }}
+                    onTouchStart={() => onPressStart(m.id)}
+                    onTouchEnd={onPressEnd}
+                    onTouchMove={onPressEnd}
+                    className={`flex w-full flex-col ${m.isMine ? 'items-end' : 'items-start'}`}
+                  >
+                    {m.body && (
+                      <div
+                        className={`max-w-[78%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] ${
+                          m.isMine
+                            ? 'bg-brand-600 text-white'
+                            : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                        }`}
+                      >
+                        <MessageBody body={m.body} mine={m.isMine} />
+                      </div>
+                    )}
+                    {m.attachment && (
+                      <button
+                        type="button"
+                        onClick={() => void handleDownload(m.id, m.attachment?.name ?? 'file')}
+                        className={`mt-0.5 flex max-w-[78%] items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
+                          m.isMine
+                            ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/30'
+                            : 'border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900'
+                        }`}
+                      >
+                        <FileIcon type={m.attachment.type} />
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13px] font-semibold text-stone-800 dark:text-stone-100">
+                            {m.attachment.name}
+                          </span>
+                          <span className="block text-[10px] text-stone-500 dark:text-stone-400">
+                            {formatSize(m.attachment.size)} · {M.download}
+                          </span>
                         </span>
-                        <span className="block text-[10px] text-stone-500 dark:text-stone-400">
-                          {formatSize(m.attachment.size)} · {M.download}
-                        </span>
-                      </span>
-                    </button>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 반응 칩 */}
+                  {m.reactions.length > 0 && (
+                    <div className="mt-0.5 flex flex-wrap gap-1">
+                      {m.reactions.map((r) => (
+                        <button
+                          key={r.emoji}
+                          type="button"
+                          onClick={() => void toggleReaction(m, r.emoji)}
+                          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] transition active:scale-95 ${
+                            r.mine
+                              ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200'
+                              : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+                          }`}
+                        >
+                          <span>{r.emoji}</span>
+                          <span className="tabular-nums">{r.count}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                  {m.isMine && (
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteMessage(m.id)}
-                      className="mt-0.5 px-1 text-[10px] font-medium text-stone-400 underline-offset-2 hover:underline"
-                    >
-                      {M.deleteMessage}
-                    </button>
+
+                  {/* 컨텍스트 메뉴(답장 / 반응 / 삭제) */}
+                  {menuFor === m.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setMenuFor(null)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setMenuFor(null);
+                        }}
+                      />
+                      <div
+                        className={`absolute bottom-full z-30 mb-1 flex flex-col gap-1 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-lg dark:border-stone-700 dark:bg-stone-900 ${
+                          m.isMine ? 'right-0' : 'left-0'
+                        }`}
+                      >
+                        <div className="flex gap-0.5">
+                          {REACTION_EMOJIS.map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => void toggleReaction(m, e)}
+                              className="rounded-full px-1.5 py-1 text-lg leading-none transition hover:bg-stone-100 dark:hover:bg-stone-800"
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-1 border-t border-stone-100 pt-1 dark:border-stone-800">
+                          <button
+                            type="button"
+                            onClick={() => startReply(m)}
+                            className="flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-medium text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800"
+                          >
+                            {M.reply}
+                          </button>
+                          {m.isMine && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuFor(null);
+                                void handleDeleteMessage(m.id);
+                              }}
+                              className="flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                            >
+                              {M.deleteMessage}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -261,6 +397,28 @@ function ThreadInner() {
             <p className="px-1 pb-1 text-[12px] text-rose-600 dark:text-rose-300">
               {errText(errCode)}
             </p>
+          )}
+
+          {/* 답장 인용 배너 — 전송 시 해당 메시지에 대한 답장으로 발송 */}
+          {replyTarget && (
+            <div className="mb-1 flex items-center gap-2 rounded-xl border-l-2 border-brand-400 bg-stone-50 px-3 py-1.5 dark:bg-stone-800/60">
+              <div className="min-w-0 flex-1">
+                <span className="block text-[10px] font-semibold text-brand-700 dark:text-brand-300">
+                  {M.reply} · {replyTarget.senderNickname ?? M.unknownUser}
+                </span>
+                <span className="block truncate text-[11px] text-stone-500 dark:text-stone-400">
+                  {replyTarget.body ? replyTarget.body.slice(0, 50) : '📎'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyTarget(null)}
+                aria-label={M.cancelReply}
+                className="shrink-0 rounded-full px-2 py-1 text-[11px] font-medium text-stone-500 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-700"
+              >
+                {M.cancelReply}
+              </button>
+            </div>
           )}
 
           <form onSubmit={handleSend} className="flex items-end gap-2 pt-2">
@@ -290,6 +448,7 @@ function ThreadInner() {
               />
             </label>
             <textarea
+              ref={inputRef}
               value={body}
               placeholder={M.inputPlaceholder}
               maxLength={2000}

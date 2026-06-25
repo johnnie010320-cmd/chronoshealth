@@ -6,13 +6,16 @@ import {
   InviteMemberRequest,
   ListMessagesQuery,
   OpenDmRequest,
+  ReactionRequest,
   SendMessageRequest,
 } from '../../schemas/messaging.js';
 import {
   addMember,
+  addReaction,
   deleteConversation,
   dmConversationId,
   getMessageAttachment,
+  getMessagePreviews,
   insertConversation,
   insertMessage,
   isMember,
@@ -21,8 +24,11 @@ import {
   listConversationsForMember,
   listMembers,
   listMessages,
+  listReactionsForMessages,
   markRead,
+  messageExistsInConversation,
   readConversation,
+  removeReaction,
   softDeleteMessage,
   unreadCount,
   unreadTotal,
@@ -235,22 +241,65 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(120,
     limit: parsed.data.limit,
     before: parsed.data.before,
   });
-  const nicks = await resolveNicknames(
-    c.env.IDENTITY_DB,
-    rows.map((r) => r.senderPseudonymId),
+
+  // 답장 대상 미리보기 + 반응 일괄 조회(N+1 회피).
+  const replyTargetIds = [
+    ...new Set(rows.map((r) => r.replyToMessageId).filter((x): x is string => !!x)),
+  ];
+  const previews = await getMessagePreviews(c.env.DB, replyTargetIds);
+  const reactionRows = await listReactionsForMessages(
+    c.env.DB,
+    rows.map((r) => r.id),
   );
+
+  // 닉네임 — 메시지 발신자 + 답장 대상 발신자 모두.
+  const nickIds = rows.map((r) => r.senderPseudonymId);
+  for (const p of previews.values()) nickIds.push(p.senderPseudonymId);
+  const nicks = await resolveNicknames(c.env.IDENTITY_DB, nickIds);
+
+  // 메시지별 반응 집계: emoji → { count, mine }.
+  const reactionsByMsg = new Map<string, Map<string, { count: number; mine: boolean }>>();
+  for (const rr of reactionRows) {
+    let m = reactionsByMsg.get(rr.messageId);
+    if (!m) {
+      m = new Map();
+      reactionsByMsg.set(rr.messageId, m);
+    }
+    const cur = m.get(rr.emoji) ?? { count: 0, mine: false };
+    cur.count += 1;
+    if (rr.userPseudonymId === me) cur.mine = true;
+    m.set(rr.emoji, cur);
+  }
+
   // 최신순으로 조회 → 화면 표시는 오래된→최신이 자연스러우므로 reverse.
   const messages = rows
     .slice()
     .reverse()
-    .map((r) => ({
-      id: r.id,
-      body: r.body,
-      createdAt: r.createdAt,
-      senderNickname: nicks.get(r.senderPseudonymId) ?? null,
-      isMine: r.senderPseudonymId === me,
-      attachment: r.attachment,
-    }));
+    .map((r) => {
+      const preview = r.replyToMessageId ? previews.get(r.replyToMessageId) : undefined;
+      const reMap = reactionsByMsg.get(r.id);
+      const reactions = reMap
+        ? [...reMap.entries()].map(([emoji, v]) => ({ emoji, count: v.count, mine: v.mine }))
+        : [];
+      return {
+        id: r.id,
+        body: r.body,
+        createdAt: r.createdAt,
+        senderNickname: nicks.get(r.senderPseudonymId) ?? null,
+        isMine: r.senderPseudonymId === me,
+        attachment: r.attachment,
+        replyTo: preview
+          ? {
+              id: preview.id,
+              senderNickname: nicks.get(preview.senderPseudonymId) ?? null,
+              bodyPreview: preview.body,
+            }
+          : r.replyToMessageId
+            ? { id: r.replyToMessageId, senderNickname: null, bodyPreview: '' }
+            : null,
+        reactions,
+      };
+    });
   return c.json({
     messages,
     hasMore: rows.length === parsed.data.limit,
@@ -273,19 +322,75 @@ messagingRoute.post('/conversations/:id/messages', authMiddleware, rateLimit(60,
   const check = moderateText(parsed.data.body);
   if (!check.allowed) return c.json({ error: { code: check.reason } }, 400);
 
+  // 답장 대상은 같은 대화에 존재하고 살아있어야 함.
+  const replyToMessageId = parsed.data.replyToMessageId;
+  if (replyToMessageId) {
+    const ok = await messageExistsInConversation(c.env.DB, replyToMessageId, id);
+    if (!ok) return c.json({ error: { code: 'REPLY_TARGET_NOT_FOUND' } }, 400);
+  }
+
   const msgId = crypto.randomUUID();
   await insertMessage(c.env.DB, {
     id: msgId,
     conversationId: id,
     senderPseudonymId: me,
     body: parsed.data.body,
+    replyToMessageId,
   });
   await markRead(c.env.DB, id, me);
   return c.json({
-    message: { id: msgId, body: parsed.data.body, isMine: true },
+    message: { id: msgId, body: parsed.data.body, isMine: true, replyToMessageId },
     modelVersion: MODEL_VERSION,
   });
 });
+
+// ── 이모티콘 반응 추가(토글의 ON) ─────────────────────────────────────────
+messagingRoute.post(
+  '/conversations/:id/messages/:messageId/reactions',
+  authMiddleware,
+  rateLimit(60, MINUTE_MS),
+  async (c) => {
+    const me = c.get('userPseudonymId');
+    const id = c.req.param('id');
+    const messageId = c.req.param('messageId');
+    if (!(await isMember(c.env.DB, id, me))) {
+      return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
+    }
+    const raw = await parseJson(c);
+    if (raw === null) return c.json({ error: { code: 'INVALID_JSON' } }, 400);
+    const parsed = ReactionRequest.safeParse(raw);
+    if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+
+    if (!(await messageExistsInConversation(c.env.DB, messageId, id))) {
+      return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    }
+    await addReaction(c.env.DB, {
+      messageId,
+      conversationId: id,
+      pseudonymId: me,
+      emoji: parsed.data.emoji,
+    });
+    return c.json({ ok: true, modelVersion: MODEL_VERSION });
+  },
+);
+
+// ── 이모티콘 반응 제거(토글의 OFF) ────────────────────────────────────────
+messagingRoute.delete(
+  '/conversations/:id/messages/:messageId/reactions/:emoji',
+  authMiddleware,
+  rateLimit(60, MINUTE_MS),
+  async (c) => {
+    const me = c.get('userPseudonymId');
+    const id = c.req.param('id');
+    const messageId = c.req.param('messageId');
+    const emoji = decodeURIComponent(c.req.param('emoji'));
+    if (!(await isMember(c.env.DB, id, me))) {
+      return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
+    }
+    await removeReaction(c.env.DB, messageId, me, emoji);
+    return c.json({ ok: true, modelVersion: MODEL_VERSION });
+  },
+);
 
 // ── 파일 첨부 업로드(jpg/pdf/ppt) → R2 + 메시지 생성 ──────────────────────
 messagingRoute.post('/conversations/:id/files', authMiddleware, rateLimit(30), async (c) => {
