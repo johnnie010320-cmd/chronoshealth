@@ -7,10 +7,12 @@ import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import { listConditions } from '../../medical/storage.js';
+import { aiText } from './ai-text.js';
 import type { Bindings } from '../../bindings.js';
 
-const MODEL = '@cf/meta/llama-3.1-8b-instruct';
-const MODEL_VERSION = `ai-prescription-v0.2.0:${MODEL}`;
+// @cf/meta/llama-3.1-8b-instruct 는 2026-05-30 Cloudflare 폐기(AiError 5028) → 현행 모델로 교체.
+const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const MODEL_VERSION = `ai-prescription-v0.2.1:${MODEL}`;
 
 // FormCoach(www.ever-day.com) 연동 가능한 건강 운동 종목 슬러그.
 // 운동 처방 → 해당 종목 자세 교정 화면으로 딥링크(웹 클라이언트가 URL 구성).
@@ -132,8 +134,7 @@ async function callAi(
     temperature: 0.3,
     max_tokens: 600,
   });
-  const text = typeof res.response === 'string' ? res.response : '';
-  return parseJson(text);
+  return parseJson(aiText(res));
 }
 
 function parseJson(raw: string): Prescription | null {

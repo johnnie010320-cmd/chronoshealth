@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
+import { aiText } from './ai-text.js';
 import type { Bindings } from '../../bindings.js';
 
-// Cloudflare Workers AI — llama-3.1-8b-instruct. 무료 quota 일 10k neurons.
-const MODEL = '@cf/meta/llama-3.1-8b-instruct';
-const MODEL_VERSION = `ai-calorie-v0.1.0:${MODEL}`;
+// Cloudflare Workers AI. 구 llama-3.1-8b-instruct 가 2026-05-30 폐기(AiError 5028) → 현행 모델로 교체.
+const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const MODEL_VERSION = `ai-calorie-v0.1.1:${MODEL}`;
 
 const FoodItem = z
   .object({
@@ -87,7 +88,7 @@ async function estimateWithAI(
     temperature: 0.1,
     max_tokens: 512,
   });
-  const text = typeof res.response === 'string' ? res.response : '';
+  const text = aiText(res);
   const parsed = parseAiJson(text);
   if (!parsed) return null;
 

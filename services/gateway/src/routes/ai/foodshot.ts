@@ -6,11 +6,13 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
+import { aiText } from './ai-text.js';
 import type { Bindings } from '../../bindings.js';
 
 const VISION_MODEL = '@cf/llava-hf/llava-1.5-7b-hf';
-const LLM_MODEL = '@cf/meta/llama-3.1-8b-instruct';
-const MODEL_VERSION = `ai-foodshot-v0.1.0:${VISION_MODEL}+${LLM_MODEL}`;
+// 구 llama-3.1-8b-instruct 가 2026-05-30 폐기(AiError 5028) → 현행 모델로 교체.
+const LLM_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const MODEL_VERSION = `ai-foodshot-v0.1.1:${VISION_MODEL}+${LLM_MODEL}`;
 
 const FoodshotRequest = z
   .object({
@@ -94,7 +96,7 @@ async function runFoodshot(
     temperature: 0.2,
     max_tokens: 400,
   });
-  const text = typeof llmRes.response === 'string' ? llmRes.response : '';
+  const text = aiText(llmRes);
   const parsed = parseJson(text);
   if (!parsed) return null;
   return {
