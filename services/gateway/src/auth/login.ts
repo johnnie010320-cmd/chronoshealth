@@ -4,6 +4,7 @@ import {
   sessionExpiresAt,
 } from './tokens.js';
 import { verifyPassword } from './password.js';
+import { normalizeEmail } from './email.js';
 
 export class LoginError extends Error {
   constructor(
@@ -27,12 +28,13 @@ export async function loginUser(
   db: D1Database,
   input: LoginRequest,
 ): Promise<LoginResponse> {
+  // 대소문자 무관 매칭 — 저장 케이스가 무엇이든(기존 혼합 케이스 행 포함) 일치.
   const row = await db
     .prepare(
       `SELECT user_pseudonym_id, password_hash, password_salt, password_algo
-         FROM users WHERE email = ? LIMIT 1`,
+         FROM users WHERE lower(email) = ? LIMIT 1`,
     )
-    .bind(input.email)
+    .bind(normalizeEmail(input.email))
     .first<UserRow>();
 
   if (!row) {

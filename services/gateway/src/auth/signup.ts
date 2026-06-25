@@ -5,6 +5,7 @@ import {
   sessionExpiresAt,
 } from './tokens.js';
 import { hashPassword, validatePasswordPolicy } from './password.js';
+import { normalizeEmail } from './email.js';
 
 export class SignupError extends Error {
   constructor(
@@ -37,10 +38,13 @@ export async function signupUser(
     throw new SignupError(policy.reason ?? 'PASSWORD_NOT_COMPLEX');
   }
 
+  // 저장·조회 모두 소문자 정규화 — 대소문자만 다른 중복 가입 차단 + 크로스 기기 로그인 일치.
+  const email = normalizeEmail(input.email);
+
   // 중복 확인 — email 일치 시 IDENTITY_EXISTS.
   const existing = await db
-    .prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1')
-    .bind(input.email)
+    .prepare('SELECT 1 FROM users WHERE lower(email) = ? LIMIT 1')
+    .bind(email)
     .first<{ '1': number } | null>();
 
   if (existing) {
@@ -65,7 +69,7 @@ export async function signupUser(
       )
       .bind(
         userPseudonymId,
-        input.email,
+        email,
         hashed.hash,
         hashed.salt,
         hashed.algo,

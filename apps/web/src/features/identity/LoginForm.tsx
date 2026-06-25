@@ -38,7 +38,7 @@ export function LoginForm() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await submitLogin({ email: email.trim(), password });
+      const res = await submitLogin({ email: email.trim().toLowerCase(), password });
       writeSession(res);
       // 본인정보 완료 여부 확인 — 미완료 시 /onboarding 이동
       try {
@@ -313,6 +313,9 @@ function FieldText({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         inputMode={type === 'email' ? 'email' : type === 'tel' ? 'tel' : undefined}
+        // 모바일 키보드 자동 대문자/오타보정 차단 — 이메일 케이스 변형으로 인한 로그인 실패 방지.
+        autoCapitalize={type === 'email' ? 'none' : undefined}
+        spellCheck={type === 'email' ? false : undefined}
         className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
       />
     </label>

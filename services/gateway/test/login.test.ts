@@ -73,6 +73,27 @@ describe('POST /api/v1/auth/login + set-password', () => {
     expect(data.sessionToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
   });
 
+  it('login 200 — 이메일 대소문자 무시 (모바일 키보드 자동 대문자 대응)', async () => {
+    // 소문자로 가입한 계정을 대문자 섞인 이메일로 로그인 → 성공해야 함.
+    const r = await signup(baseSignup); // login-test@example.com
+    expect(r.status).toBe(201);
+    const res = await login('Login-Test@Example.COM', baseSignup.password);
+    expect(res.status).toBe(200);
+  });
+
+  it('signup 이메일 소문자 정규화 — 대문자 입력 가입 후 소문자 로그인', async () => {
+    const r = await signup({ ...baseSignup, email: 'MixedCase@Example.com' });
+    expect(r.status).toBe(201);
+    const res = await login('mixedcase@example.com', baseSignup.password);
+    expect(res.status).toBe(200);
+  });
+
+  it('signup 409/중복 — 대소문자만 다른 이메일 재가입 차단', async () => {
+    await signup({ ...baseSignup, email: 'dup@example.com' });
+    const res = await signup({ ...baseSignup, email: 'DUP@example.com' });
+    expect(res.status).toBe(409);
+  });
+
   it('login 401 INVALID_CREDENTIALS — 잘못된 비밀번호', async () => {
     await signup(baseSignup);
     const res = await login(baseSignup.email, 'WrongPass456!');

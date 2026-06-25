@@ -48,7 +48,7 @@ export function SignupForm() {
 
   useEffect(() => {
     if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
-    const trimmed = email.trim();
+    const trimmed = email.trim().toLowerCase();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setEmailCheck({ status: 'idle' });
       return;
@@ -94,7 +94,7 @@ export function SignupForm() {
 
       const fd = new FormData(e.currentTarget);
       const raw = {
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         consentMedical: fd.has('consentMedical'),
         consentTerms: fd.has('consentTerms'),
@@ -215,6 +215,8 @@ export function SignupForm() {
             placeholder={F.email.placeholder}
             autoComplete="email"
             inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
             className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
           />
           {emailCheck.status === 'taken' && (

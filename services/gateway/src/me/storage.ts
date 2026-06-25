@@ -201,8 +201,8 @@ export async function existsEmail(
   email: string,
 ): Promise<boolean> {
   const row = await identityDb
-    .prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1')
-    .bind(email.toLowerCase())
+    .prepare('SELECT 1 FROM users WHERE lower(email) = ? LIMIT 1')
+    .bind(email.trim().toLowerCase())
     .first<{ '1': number }>();
   return row !== null;
 }

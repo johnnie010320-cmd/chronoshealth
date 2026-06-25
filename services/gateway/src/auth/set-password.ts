@@ -4,6 +4,7 @@ import {
   generateSessionToken,
   sessionExpiresAt,
 } from './tokens.js';
+import { normalizeEmail } from './email.js';
 
 export class SetPasswordError extends Error {
   constructor(
@@ -38,8 +39,8 @@ export async function setPasswordForLegacy(
   }
 
   const row = await db
-    .prepare('SELECT user_pseudonym_id, phone, password_hash FROM users WHERE email = ? LIMIT 1')
-    .bind(input.email)
+    .prepare('SELECT user_pseudonym_id, phone, password_hash FROM users WHERE lower(email) = ? LIMIT 1')
+    .bind(normalizeEmail(input.email))
     .first<Row>();
 
   if (!row || row.phone !== input.phone) {

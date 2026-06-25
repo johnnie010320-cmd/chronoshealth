@@ -271,11 +271,13 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     }
 
     if (
-      trimmed.startsWith('SELECT 1 FROM users WHERE email = ?') &&
+      (trimmed.startsWith('SELECT 1 FROM users WHERE lower(email) = ?') ||
+        trimmed.startsWith('SELECT 1 FROM users WHERE email = ?')) &&
       !trimmed.includes('OR phone')
     ) {
       const [email] = args as [string];
-      const hit = state.users.find((u) => u.email === email);
+      const needle = String(email).toLowerCase();
+      const hit = state.users.find((u) => u.email.toLowerCase() === needle);
       return hit ? { '1': 1 } : null;
     }
 
@@ -297,11 +299,13 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     }
 
     if (
-      trimmed.includes('FROM users WHERE email = ?') &&
+      (trimmed.includes('FROM users WHERE lower(email) = ?') ||
+        trimmed.includes('FROM users WHERE email = ?')) &&
       trimmed.includes('password_hash')
     ) {
       const [email] = args as [string];
-      const u = state.users.find((x) => x.email === email);
+      const needle = String(email).toLowerCase();
+      const u = state.users.find((x) => x.email.toLowerCase() === needle);
       if (!u) return null;
       if (trimmed.includes('phone, password_hash')) {
         return {
