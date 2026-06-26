@@ -10,9 +10,12 @@ import { listConditions } from '../../medical/storage.js';
 import { aiText } from './ai-text.js';
 import type { Bindings } from '../../bindings.js';
 
-// @cf/meta/llama-3.1-8b-instruct 는 2026-05-30 Cloudflare 폐기(AiError 5028) → 현행 모델로 교체.
-const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-const MODEL_VERSION = `ai-prescription-v0.2.1:${MODEL}`;
+// 모델 이력:
+//  - @cf/meta/llama-3.1-8b-instruct: 2026-05-30 폐기(AiError 5028).
+//  - @cf/meta/llama-3.3-70b-instruct-fp8-fast: 한국어 출력이 깨진 유니코드(서러게이트)+
+//    퇴화 반복으로 사용 불가 → Qwen3(다국어 강함)로 교체. 2026-06-25.
+const MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+const MODEL_VERSION = `ai-prescription-v0.3.0:${MODEL}`;
 
 // FormCoach(www.ever-day.com) 연동 가능한 건강 운동 종목 슬러그.
 // 운동 처방 → 해당 종목 자세 교정 화면으로 딥링크(웹 클라이언트가 URL 구성).
@@ -110,7 +113,7 @@ For formcoachSports, pick only sports that match your exercise advice (e.g. sugg
 use an empty array if none clearly apply. Only use slugs from the allowed list.
 Never use the words "diagnose", "prescribe", "cure", "treat", "death" or their translations.
 Always frame advice as suggestion, not prescription.
-Match the locale provided.`;
+Write every text field in fluent, natural language for the given locale (natural Korean for "ko", natural Japanese for "ja", Spanish for "es", English for "en"). Do not mix languages or output broken text.`;
 
 async function callAi(
   ai: Bindings['AI'],
@@ -129,10 +132,11 @@ async function callAi(
   const res = await ai.run(MODEL, {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: payload },
+      // Qwen3 추론(thinking) 비활성화 — 바로 JSON만 출력.
+      { role: 'user', content: `/no_think\n${payload}` },
     ],
     temperature: 0.3,
-    max_tokens: 600,
+    max_tokens: 800,
   });
   return parseJson(aiText(res));
 }
@@ -140,6 +144,10 @@ async function callAi(
 function parseJson(raw: string): Prescription | null {
   if (!raw) return null;
   const stripped = raw
+    .trim()
+    // 추론형 모델의 <think>...</think> 블록 제거 후 JSON 추출.
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '')
     .trim()
     .replace(/^```(?:json)?/i, '')
     .replace(/```$/i, '')
