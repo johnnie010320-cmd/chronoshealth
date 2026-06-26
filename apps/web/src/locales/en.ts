@@ -273,7 +273,7 @@ export const en: Dictionary = {
     selfCheck: {
       tabToday: "Today's routine",
       tabGraph: 'Health graph',
-      tabGuide: 'Guide',
+      tabGuide: 'Symptom check',
       moodLabel: "Today's condition",
       mood: { great: 'Great', good: 'Good', soso: 'Okay', tired: 'Tired', bad: 'Bad' },
       exerciseLabel: 'Exercise',
@@ -316,6 +316,18 @@ export const en: Dictionary = {
       ],
       careCta: 'Get AI care',
       surveyCta: "Today's survey",
+      symptom: {
+        placeholder: 'Describe your symptoms (e.g. headache and dizziness for 2 days)',
+        submit: 'Run self-check',
+        submitting: 'Analyzing…',
+        possibleCauses: 'Possible causes (reference)',
+        selfCare: 'Self-care',
+        seeDoctor: 'See a doctor if',
+        disclaimer: 'This self-check is general reference based on common data; for an accurate diagnosis and treatment, please see a doctor.',
+        emergency: 'For urgent signs (sudden chest pain, trouble breathing, fainting), call emergency services or go to the ER immediately. (Mental health crisis: 1393 · 1577-0199)',
+        error: 'Analysis failed. Please try again shortly.',
+        empty: 'Enter your symptoms to see a reference self-check opinion.',
+      },
     },
   },
   healthDiary: {

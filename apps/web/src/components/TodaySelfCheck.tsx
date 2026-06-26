@@ -15,10 +15,12 @@ import {
   fetchRoutineRange,
   submitRoutineDaily,
   addDiary,
+  symptomCheck,
   type RoutineEntry,
   type RoutineSummary,
   type DiaryMood,
   type ExerciseIntensity,
+  type SymptomAssessment,
 } from '@/lib/api-client';
 
 type TabKey = 'today' | 'graph' | 'guide';
@@ -95,7 +97,7 @@ export function TodaySelfCheck() {
       <div className="p-4">
         {tab === 'today' && <TodayTab signedIn={signedIn} S={S} />}
         {tab === 'graph' && <GraphTab signedIn={signedIn} S={S} />}
-        {tab === 'guide' && <GuideTab S={S} />}
+        {tab === 'guide' && <SymptomTab signedIn={signedIn} S={S} />}
       </div>
     </section>
   );
@@ -416,36 +418,101 @@ function Metric({ label, value, unit }: { label: string; value: string; unit: st
   );
 }
 
-// ── 탭3: 가이드 ─────────────────────────────────────────────────────────────
-function GuideTab({ S }: { S: SelfCheckLabels }) {
-  const tip = useMemo(() => {
-    if (S.tips.length === 0) return '';
-    const idx = new Date().getDate() % S.tips.length;
-    return S.tips[idx] ?? S.tips[0] ?? '';
-  }, [S.tips]);
+// ── 탭3: 자가 진단 ──────────────────────────────────────────────────────────
+// 네이버/구글 수준의 일반 건강 정보. 단정 진단 아님 + 필수 경고문 항상 노출.
+function SymptomTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
+  const { locale } = useI18n();
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(false);
+  const [result, setResult] = useState<SymptomAssessment | null>(null);
 
+  async function run() {
+    const q = text.trim();
+    if (q.length < 2) return;
+    setBusy(true);
+    setErr(false);
+    setResult(null);
+    try {
+      setResult(await symptomCheck(q, locale));
+    } catch {
+      setErr(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!signedIn) return <LoginPrompt S={S} />;
+
+  const Sy = S.symptom;
   return (
     <div className="space-y-3">
-      <div className="rounded-xl bg-gradient-to-br from-brand-50 to-teal-50 p-3 dark:from-brand-950/40 dark:to-teal-950/30">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-300">
-          {S.guideTitle}
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        maxLength={500}
+        rows={2}
+        placeholder={Sy.placeholder}
+        className="block w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+      />
+      <button
+        type="button"
+        onClick={() => void run()}
+        disabled={busy || text.trim().length < 2}
+        className="w-full rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+      >
+        {busy ? Sy.submitting : Sy.submit}
+      </button>
+
+      {err && <p className="text-[12px] text-rose-600 dark:text-rose-300">{Sy.error}</p>}
+      {!result && !err && (
+        <p className="text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">{Sy.empty}</p>
+      )}
+
+      {result && (
+        <div className="space-y-2.5">
+          <SymptomSection title={Sy.possibleCauses} items={result.possibleCauses} tone="neutral" />
+          <SymptomSection title={Sy.selfCare} items={result.selfCare} tone="brand" />
+          <SymptomSection title={Sy.seeDoctor} items={result.seeDoctor} tone="warn" />
+        </div>
+      )}
+
+      {/* 필수 경고문 — 결과 유무와 무관하게 항상 노출 */}
+      <div className="space-y-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 dark:border-rose-900/50 dark:bg-rose-950/30">
+        <p className="text-[11px] font-semibold leading-relaxed text-rose-800 dark:text-rose-200">
+          ⚠️ {Sy.disclaimer}
         </p>
-        <p className="mt-1 text-[13px] leading-relaxed text-stone-800 dark:text-stone-100">{tip}</p>
+        <p className="text-[10px] leading-relaxed text-rose-700 dark:text-rose-300">{Sy.emergency}</p>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Link
-          href="/care"
-          className="rounded-xl bg-stone-900 px-3 py-2.5 text-center text-[12px] font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
-        >
-          {S.careCta}
-        </Link>
-        <Link
-          href="/survey"
-          className="rounded-xl border border-stone-300 px-3 py-2.5 text-center text-[12px] font-semibold text-stone-700 transition active:scale-[0.98] hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
-        >
-          {S.surveyCta}
-        </Link>
-      </div>
+    </div>
+  );
+}
+
+function SymptomSection({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  tone: 'neutral' | 'brand' | 'warn';
+}) {
+  if (!items || items.length === 0) return null;
+  const dot =
+    tone === 'warn' ? 'bg-rose-500' : tone === 'brand' ? 'bg-brand-500' : 'bg-stone-400';
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        {title}
+      </p>
+      <ul className="mt-1 space-y-1">
+        {items.map((s, i) => (
+          <li key={i} className="flex items-start gap-2 text-[12px] text-stone-800 dark:text-stone-200">
+            <span aria-hidden className={`mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full ${dot}`} />
+            <span>{s}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

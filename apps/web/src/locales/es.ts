@@ -273,7 +273,7 @@ export const es: Dictionary = {
     selfCheck: {
       tabToday: 'Rutina de hoy',
       tabGraph: 'Gráfico de salud',
-      tabGuide: 'Guía',
+      tabGuide: 'Autochequeo',
       moodLabel: 'Estado de hoy',
       mood: { great: 'Muy bien', good: 'Bien', soso: 'Normal', tired: 'Cansado', bad: 'Mal' },
       exerciseLabel: 'Ejercicio',
@@ -316,6 +316,18 @@ export const es: Dictionary = {
       ],
       careCta: 'Recibir cuidado IA',
       surveyCta: 'Encuesta de hoy',
+      symptom: {
+        placeholder: 'Describe tus síntomas (p. ej. dolor de cabeza y mareo por 2 días)',
+        submit: 'Hacer autochequeo',
+        submitting: 'Analizando…',
+        possibleCauses: 'Posibles causas (referencia)',
+        selfCare: 'Autocuidado',
+        seeDoctor: 'Consulta a un médico si',
+        disclaimer: 'Esta autoevaluación es una referencia general basada en datos comunes; para un diagnóstico y tratamiento precisos, consulta a un médico.',
+        emergency: 'Ante signos urgentes (dolor de pecho súbito, dificultad para respirar, desmayo), llama a emergencias o acude a urgencias de inmediato. (Crisis de salud mental: 1393 · 1577-0199)',
+        error: 'El análisis falló. Inténtalo de nuevo en breve.',
+        empty: 'Escribe tus síntomas para ver una opinión de autochequeo de referencia.',
+      },
     },
   },
   healthDiary: {

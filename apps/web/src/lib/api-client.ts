@@ -1425,6 +1425,27 @@ export async function fetchPrescriptionHistory(
   return ((await res.json()) as { items: PrescriptionHistoryItem[] }).items;
 }
 
+// 자가 진단 — 증상 입력 → 일반 건강 정보(참고). 필수 경고는 UI에서 항상 노출.
+export type SymptomAssessment = {
+  possibleCauses: string[];
+  selfCare: string[];
+  seeDoctor: string[];
+};
+export async function symptomCheck(
+  symptoms: string,
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<SymptomAssessment> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/ai/symptom-check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ symptoms, locale }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { assessment: SymptomAssessment }).assessment;
+}
+
 // Phase 2.2 — MY DIARY
 export type DiaryMood = 'great' | 'good' | 'soso' | 'tired' | 'bad';
 export type DiaryEntry = {

@@ -270,7 +270,7 @@ export const ja: Dictionary = {
     selfCheck: {
       tabToday: '今日のルーティン',
       tabGraph: '健康グラフ',
-      tabGuide: 'ガイド',
+      tabGuide: 'セルフ診断',
       moodLabel: '今日の体調',
       mood: { great: 'とても良い', good: '良い', soso: '普通', tired: '疲れ', bad: '悪い' },
       exerciseLabel: '運動',
@@ -313,6 +313,18 @@ export const ja: Dictionary = {
       ],
       careCta: 'AIケアを受ける',
       surveyCta: '今日のアンケート',
+      symptom: {
+        placeholder: '症状を入力してください（例: 2日続く頭痛とめまい）',
+        submit: 'セルフ診断を受ける',
+        submitting: '分析中…',
+        possibleCauses: '考えられる原因（参考）',
+        selfCare: 'セルフケア',
+        seeDoctor: 'こんなときは受診を',
+        disclaimer: '本セルフ診断は一般的なデータに基づく参考意見です。正確な診断と治療は必ず医師の診察を受けてください。',
+        emergency: '突然の胸痛・呼吸困難・意識低下など緊急症状はすぐに119または救急外来へ。（こころの危機相談 1393・1577-0199）',
+        error: '分析に失敗しました。しばらくして再度お試しください。',
+        empty: '症状を入力すると参考用のセルフ診断意見を表示します。',
+      },
     },
   },
   healthDiary: {

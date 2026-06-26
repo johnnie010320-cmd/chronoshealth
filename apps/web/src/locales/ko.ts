@@ -267,7 +267,7 @@ export const ko = {
     selfCheck: {
       tabToday: '오늘의 루틴',
       tabGraph: '건강 그래프',
-      tabGuide: '가이드',
+      tabGuide: '자가 진단',
       moodLabel: '오늘 컨디션',
       mood: { great: '아주 좋음', good: '좋음', soso: '보통', tired: '피곤', bad: '나쁨' },
       exerciseLabel: '운동',
@@ -310,6 +310,18 @@ export const ko = {
       ],
       careCta: 'AI 케어 받기',
       surveyCta: '오늘 설문',
+      symptom: {
+        placeholder: '증상이나 증세를 입력하세요 (예: 이틀째 두통과 어지러움)',
+        submit: '자가 진단 받기',
+        submitting: '분석 중…',
+        possibleCauses: '가능성 있는 원인(참고)',
+        selfCare: '자가 관리',
+        seeDoctor: '이럴 땐 병원에',
+        disclaimer: '본 자가진단은 일반적인 데이터에 의한 참고 의견이며, 정확한 진단과 치료는 반드시 의사의 진료를 받으세요.',
+        emergency: '갑작스러운 가슴 통증·호흡곤란·의식저하 등 위급 증상은 즉시 119 또는 응급실로 연락하세요. (정신건강 위기 1393 · 1577-0199)',
+        error: '분석에 실패했어요. 잠시 후 다시 시도해 주세요.',
+        empty: '증상을 입력하면 참고용 자가진단 의견을 보여드려요.',
+      },
     },
   },
   healthDiary: {
