@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { PulseBackground } from '@/components/PulseBackground';
+import { TodaySelfCheck } from '@/components/TodaySelfCheck';
 import {
   ChevronRightIcon,
-  ActivityIcon,
   UsersIcon,
 } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
@@ -187,21 +186,7 @@ export default function HomePage() {
         />
       </section>
 
-      <section className="card-shadow relative mt-3 overflow-hidden rounded-2xl">
-        <div className="relative aspect-[16/10] w-full bg-gradient-to-br from-brand-700 via-teal-600 to-emerald-500">
-          <PulseBackground variant="bottom" />
-          <div className="absolute inset-0 flex items-end p-4">
-            <div className="flex items-center gap-2 text-white">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 backdrop-blur">
-                <ActivityIcon className="h-5 w-5" />
-              </span>
-              <span className="text-[12px] font-semibold tracking-wide">
-                {H.videoCaption}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <TodaySelfCheck />
 
       <section className="mt-3 grid grid-cols-2 gap-3">
         <Link
