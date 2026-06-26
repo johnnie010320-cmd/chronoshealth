@@ -18,6 +18,7 @@ import {
   type RoutineEntry,
   type RoutineSummary,
   type DiaryMood,
+  type ExerciseIntensity,
 } from '@/lib/api-client';
 
 type TabKey = 'today' | 'graph' | 'guide';
@@ -31,10 +32,16 @@ function daysAgoIso(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// 비의료 "생활 점수"(0~100): 운동 40 + 수면 40 + 기록(칼로리) 20.
+// 운동 강도 가중치(강=호흡 가쁨, 약=걷기). 짧고 강한 운동도 적절히 반영.
+const INTENSITY_MULT: Record<ExerciseIntensity, number> = { low: 0.7, medium: 1, high: 1.4 };
+const INTENSITIES: ExerciseIntensity[] = ['low', 'medium', 'high'];
+
+// 비의료 "생활 점수"(0~100): 운동 40(강도 가중) + 수면 40 + 기록(칼로리) 20.
 function dayScore(e: RoutineEntry): number {
   let s = 0;
-  s += Math.min((e.exerciseMinutes ?? 0) / 30, 1) * 40;
+  const mult = e.exerciseIntensity ? INTENSITY_MULT[e.exerciseIntensity] : 1;
+  const effMin = (e.exerciseMinutes ?? 0) * mult;
+  s += Math.min(effMin / 30, 1) * 40;
   if (e.sleepHours != null) s += 40 * (1 - Math.min(Math.abs(e.sleepHours - 7.5) / 4, 1));
   if ((e.caloriesKcal ?? 0) > 0) s += 20;
   return Math.round(Math.max(0, Math.min(100, s)));
@@ -52,7 +59,7 @@ const MOOD_EMOJI: Record<DiaryMood, string> = {
 export function TodaySelfCheck() {
   const { t } = useI18n();
   const S = t.home.selfCheck;
-  const [tab, setTab] = useState<TabKey>('today');
+  const [tab, setTab] = useState<TabKey>('graph');
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -65,8 +72,8 @@ export function TodaySelfCheck() {
       <div className="flex border-b border-stone-100 dark:border-stone-800">
         {(
           [
-            ['today', S.tabToday],
             ['graph', S.tabGraph],
+            ['today', S.tabToday],
             ['guide', S.tabGuide],
           ] as [TabKey, string][]
         ).map(([key, label]) => (
@@ -100,6 +107,7 @@ type SelfCheckLabels = ReturnType<typeof useI18n>['t']['home']['selfCheck'];
 function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
   const [mood, setMood] = useState<DiaryMood | null>(null);
   const [exercise, setExercise] = useState('');
+  const [intensity, setIntensity] = useState<ExerciseIntensity | null>(null);
   const [sleep, setSleep] = useState('');
   const [note, setNote] = useState('');
   const [existingCalories, setExistingCalories] = useState<number | null>(null);
@@ -112,6 +120,7 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       .then((r) => {
         if (r.entry) {
           if (r.entry.exerciseMinutes != null) setExercise(String(r.entry.exerciseMinutes));
+          if (r.entry.exerciseIntensity) setIntensity(r.entry.exerciseIntensity);
           if (r.entry.sleepHours != null) setSleep(String(r.entry.sleepHours));
           if (r.entry.note) setNote(r.entry.note);
           setExistingCalories(r.entry.caloriesKcal ?? null);
@@ -135,6 +144,7 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
         entryDate: todayIso(),
         caloriesKcal: existingCalories, // 기존 음식 기록 보존
         exerciseMinutes: num(exercise),
+        exerciseIntensity: intensity,
         sleepHours: num(sleep),
         note: note.trim() || null,
       });
@@ -215,6 +225,30 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
             <span className="shrink-0 text-[11px] text-stone-400">{S.sleepUnit}</span>
           </div>
         </label>
+      </div>
+
+      {/* 운동 강도 */}
+      <div>
+        <p className="mb-1 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
+          {S.intensityLabel}
+        </p>
+        <div className="flex gap-1.5">
+          {INTENSITIES.map((lv) => (
+            <button
+              key={lv}
+              type="button"
+              onClick={() => setIntensity((cur) => (cur === lv ? null : lv))}
+              className={`flex-1 rounded-xl border px-2 py-2 text-[12px] font-semibold transition ${
+                intensity === lv
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/40 dark:text-brand-200'
+                  : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+              }`}
+            >
+              {S.intensity[lv]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{S.intensityHint}</p>
       </div>
 
       {/* 메모 */}

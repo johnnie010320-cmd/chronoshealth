@@ -827,10 +827,13 @@ export async function toggleCommunityLike(postId: string): Promise<{ liked: bool
 }
 
 // R6 Routine
+export type ExerciseIntensity = 'low' | 'medium' | 'high';
+
 export type RoutineEntry = {
   entryDate: string;
   caloriesKcal: number | null;
   exerciseMinutes: number | null;
+  exerciseIntensity?: ExerciseIntensity | null;
   sleepHours: number | null;
   note: string | null;
 };

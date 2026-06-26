@@ -569,6 +569,7 @@ type RoutineRow = {
   entry_date: string;
   calories_kcal: number | null;
   exercise_minutes: number | null;
+  exercise_intensity?: string | null;
   sleep_hours: number | null;
   note: string | null;
   updated_at: string;
@@ -1175,6 +1176,7 @@ export function makeMockAnalysisDb(): {
         entry_date,
         calories_kcal,
         exercise_minutes,
+        exercise_intensity,
         sleep_hours,
         note,
       ] = args as [
@@ -1182,6 +1184,7 @@ export function makeMockAnalysisDb(): {
         string,
         number | null,
         number | null,
+        string | null,
         number | null,
         string | null,
       ];
@@ -1191,6 +1194,7 @@ export function makeMockAnalysisDb(): {
       if (existing) {
         existing.calories_kcal = calories_kcal;
         existing.exercise_minutes = exercise_minutes;
+        existing.exercise_intensity = exercise_intensity;
         existing.sleep_hours = sleep_hours;
         existing.note = note;
         existing.updated_at = new Date().toISOString();
@@ -1200,6 +1204,7 @@ export function makeMockAnalysisDb(): {
           entry_date,
           calories_kcal,
           exercise_minutes,
+          exercise_intensity,
           sleep_hours,
           note,
           updated_at: new Date().toISOString(),
@@ -1748,6 +1753,7 @@ export function makeMockAnalysisDb(): {
         entry_date: r.entry_date,
         calories_kcal: r.calories_kcal,
         exercise_minutes: r.exercise_minutes,
+        exercise_intensity: r.exercise_intensity ?? null,
         sleep_hours: r.sleep_hours,
         note: r.note,
       };
@@ -2098,6 +2104,7 @@ export function makeMockAnalysisDb(): {
           entry_date: r.entry_date,
           calories_kcal: r.calories_kcal,
           exercise_minutes: r.exercise_minutes,
+          exercise_intensity: r.exercise_intensity ?? null,
           sleep_hours: r.sleep_hours,
           note: r.note,
         }));

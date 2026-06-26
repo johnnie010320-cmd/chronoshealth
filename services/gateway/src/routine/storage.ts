@@ -2,6 +2,7 @@ export type RoutineEntry = {
   entryDate: string;
   caloriesKcal: number | null;
   exerciseMinutes: number | null;
+  exerciseIntensity?: 'low' | 'medium' | 'high' | null;
   sleepHours: number | null;
   note: string | null;
   // 스토리보드 p20 추가 카테고리 (확장).
@@ -23,14 +24,15 @@ export async function upsertRoutineEntry(
     .prepare(
       `INSERT INTO routine_entries (
         user_pseudonym_id, purpose_code, entry_date,
-        calories_kcal, exercise_minutes, sleep_hours, note,
+        calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
         weight_kg, waist_cm, blood_glucose_mg_dl,
         blood_pressure_systolic, blood_pressure_diastolic,
         medication_taken, stress_level
-      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (user_pseudonym_id, entry_date) DO UPDATE SET
         calories_kcal = excluded.calories_kcal,
         exercise_minutes = excluded.exercise_minutes,
+        exercise_intensity = excluded.exercise_intensity,
         sleep_hours = excluded.sleep_hours,
         note = excluded.note,
         weight_kg = excluded.weight_kg,
@@ -47,6 +49,7 @@ export async function upsertRoutineEntry(
       entry.entryDate,
       entry.caloriesKcal,
       entry.exerciseMinutes,
+      entry.exerciseIntensity ?? null,
       entry.sleepHours,
       entry.note,
       entry.weightKg ?? null,
@@ -67,7 +70,7 @@ export async function readRoutineByDate(
 ): Promise<RoutineEntry | null> {
   const row = await db
     .prepare(
-      `SELECT entry_date, calories_kcal, exercise_minutes, sleep_hours, note
+      `SELECT entry_date, calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note
          FROM routine_entries
         WHERE user_pseudonym_id = ? AND entry_date = ?`,
     )
@@ -76,6 +79,7 @@ export async function readRoutineByDate(
       entry_date: string;
       calories_kcal: number | null;
       exercise_minutes: number | null;
+      exercise_intensity: string | null;
       sleep_hours: number | null;
       note: string | null;
     }>();
@@ -85,9 +89,14 @@ export async function readRoutineByDate(
     entryDate: row.entry_date,
     caloriesKcal: row.calories_kcal,
     exerciseMinutes: row.exercise_minutes,
+    exerciseIntensity: normIntensity(row.exercise_intensity),
     sleepHours: row.sleep_hours,
     note: row.note,
   };
+}
+
+function normIntensity(v: string | null | undefined): 'low' | 'medium' | 'high' | null {
+  return v === 'low' || v === 'medium' || v === 'high' ? v : null;
 }
 
 export async function readRoutineRange(
@@ -98,7 +107,7 @@ export async function readRoutineRange(
 ): Promise<RoutineEntry[]> {
   const result = await db
     .prepare(
-      `SELECT entry_date, calories_kcal, exercise_minutes, sleep_hours, note
+      `SELECT entry_date, calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note
          FROM routine_entries
         WHERE user_pseudonym_id = ?
           AND entry_date >= ?
@@ -110,6 +119,7 @@ export async function readRoutineRange(
       entry_date: string;
       calories_kcal: number | null;
       exercise_minutes: number | null;
+      exercise_intensity: string | null;
       sleep_hours: number | null;
       note: string | null;
     }>();
@@ -118,6 +128,7 @@ export async function readRoutineRange(
     entryDate: row.entry_date,
     caloriesKcal: row.calories_kcal,
     exerciseMinutes: row.exercise_minutes,
+    exerciseIntensity: normIntensity(row.exercise_intensity),
     sleepHours: row.sleep_hours,
     note: row.note,
   }));

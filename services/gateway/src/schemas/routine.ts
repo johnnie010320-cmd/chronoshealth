@@ -17,6 +17,8 @@ export const RoutineUpsertRequest = z
     entryDate: ENTRY_DATE,
     caloriesKcal: z.number().int().min(0).max(20000).nullable(),
     exerciseMinutes: z.number().int().min(0).max(1440).nullable(),
+    // 운동 강도 — low(걷기)/medium(보통)/high(호흡 가쁨). 선택.
+    exerciseIntensity: z.enum(['low', 'medium', 'high']).nullable().default(null),
     sleepHours: z.number().min(0).max(24).nullable(),
     note: z.string().max(280).nullable(),
   })
