@@ -1406,6 +1406,25 @@ export async function fetchAiPrescription(body: {
   return ((await res.json()) as { prescription: AiPrescription }).prescription;
 }
 
+// 나의 건강 일기 — 날짜별 저장된 AI 처방 조회.
+export type PrescriptionHistoryItem = {
+  entryDate: string;
+  prescription: AiPrescription | null;
+};
+export async function fetchPrescriptionHistory(
+  from: string,
+  to: string,
+): Promise<PrescriptionHistoryItem[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/ai/prescriptions?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    { headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { items: PrescriptionHistoryItem[] }).items;
+}
+
 // Phase 2.2 — MY DIARY
 export type DiaryMood = 'great' | 'good' | 'soso' | 'tired' | 'bad';
 export type DiaryEntry = {

@@ -190,7 +190,7 @@ export default function HomePage() {
 
       <section className="mt-3 grid grid-cols-2 gap-3">
         <Link
-          href="/routine"
+          href="/health-diary"
           className="card-shadow flex flex-col gap-1 rounded-2xl bg-white px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
         >
           <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">

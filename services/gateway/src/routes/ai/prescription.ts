@@ -8,6 +8,7 @@ import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import { listConditions } from '../../medical/storage.js';
 import { aiText } from './ai-text.js';
+import { savePrescription, listPrescriptions } from '../../ai/prescription-storage.js';
 import type { Bindings } from '../../bindings.js';
 
 // 모델 이력:
@@ -94,9 +95,37 @@ aiPrescriptionRoute.post(
     if (!result) {
       return c.json({ error: { code: 'AI_PARSE_FAILED' } }, 502);
     }
+    // '나의 건강 일기' — 오늘 날짜로 처방 저장(저장 실패해도 응답은 정상).
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      await savePrescription(c.env.DB, pseudonymId, today, JSON.stringify(result), MODEL_VERSION);
+    } catch {
+      /* best-effort */
+    }
     return c.json({ prescription: result, modelVersion: MODEL_VERSION });
   },
 );
+
+// '나의 건강 일기' — 저장된 처방 날짜별 조회.
+aiPrescriptionRoute.get('/prescriptions', authMiddleware, rateLimit(60), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const from = c.req.query('from') ?? '';
+  const to = c.req.query('to') ?? '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const rows = await listPrescriptions(c.env.DB, pseudonymId, from, to);
+  const items = rows.map((r) => {
+    let prescription: Prescription | null = null;
+    try {
+      prescription = JSON.parse(r.payload) as Prescription;
+    } catch {
+      prescription = null;
+    }
+    return { entryDate: r.entryDate, prescription };
+  });
+  return c.json({ items, modelVersion: MODEL_VERSION });
+});
 
 const SYSTEM_PROMPT = `You are a wellness coach (NOT a doctor). Given health predictions and routines,
 produce specific, concrete habit nudges. PRIORITIZE the diet plan and the exercise plan — these
