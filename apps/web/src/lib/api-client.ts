@@ -350,6 +350,24 @@ export async function submitProfileUpdate(
   return (await res.json()) as { profile: MeProfile };
 }
 
+// 폼코치 SSO — 크로노스 로그인 정보(전화번호)로 폼코치 자동 로그인 링크 발급.
+// OK: 발급된 SSO URL(폼코치 워커)로 이동하면 자동 로그인 + 해당 종목 화면.
+// NO_PHONE: 전화번호 미등록 → 클라이언트가 2옵션(폼코치 로그인/전화 등록) 노출.
+export type FormcoachSsoResult =
+  | { status: 'OK'; url: string }
+  | { status: 'NO_PHONE'; sport: string };
+
+export async function formcoachSso(sport: string): Promise<FormcoachSsoResult> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/formcoach/sso?sport=${encodeURIComponent(sport)}`,
+    { headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as FormcoachSsoResult;
+}
+
 // 회원가입 폼 — 이메일 중복 확인
 export async function checkEmailAvailable(email: string): Promise<boolean> {
   const res = await fetch(

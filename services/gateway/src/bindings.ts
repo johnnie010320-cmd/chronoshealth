@@ -27,4 +27,6 @@ export type Bindings = {
   // 슈퍼관리자(창업자) 부트스트랩 폴백 — 평소엔 is_super_admin 컬럼이 진실원천.
   SUPERADMIN_EMAILS?: string;
   SUPERADMIN_PSEUDONYM_IDS?: string;
+  // 폼코치 SSO 핸드오프 서명 시크릿 — 폼코치 워커와 동일 값. wrangler secret 으로 주입.
+  FORMCOACH_SSO_SECRET?: string;
 };

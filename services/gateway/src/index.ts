@@ -26,6 +26,7 @@ import { diaryRoute } from './routes/diary/index.js';
 import { messagingRoute } from './routes/messaging/index.js';
 import { noticesPublicRoute, noticesAdminRoute } from './routes/notices/index.js';
 import { membersRoute } from './routes/members/index.js';
+import { formcoachRoute } from './routes/formcoach/index.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -71,6 +72,7 @@ app.route('/api/v1/auth/check-email', checkEmailRoute);
 app.route('/api/v1/ai', aiCalorieRoute);
 app.route('/api/v1/ai', aiPrescriptionRoute);
 app.route('/api/v1/ai', aiFoodshotRoute);
+app.route('/api/v1/formcoach', formcoachRoute);
 app.route('/api/v1/me/medical', medicalRoute);
 app.route('/api/v1/me/diary', diaryRoute);
 app.route('/api/v1/messages', messagingRoute);

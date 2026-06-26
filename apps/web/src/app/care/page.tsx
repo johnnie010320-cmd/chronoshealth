@@ -16,6 +16,7 @@ import {
   fetchAvatarMe,
   fetchCareMe,
   fetchAiPrescription,
+  formcoachSso,
   type AiPrescription,
   type CareResponse,
   type CareRule,
@@ -307,6 +308,11 @@ function PrescriptionCard({
     formcoachHint: string;
     formcoachCta: string;
     sportNames: Record<FormcoachSport, string>;
+    formcoachOpening: string;
+    formcoachNoPhoneTitle: string;
+    formcoachNoPhoneBody: string;
+    formcoachGuestCta: string;
+    formcoachRegisterCta: string;
   };
 }) {
   return (
@@ -351,6 +357,7 @@ function PrescriptionCard({
               hint={labels.formcoachHint}
               cta={labels.formcoachCta}
               names={labels.sportNames}
+              labels={labels}
             />
           )}
           <RxList title={labels.restTitle} items={rx.rest} />
@@ -367,13 +374,44 @@ function FormcoachLinks({
   hint,
   cta,
   names,
+  labels,
 }: {
   sports: FormcoachSport[];
   title: string;
   hint: string;
   cta: string;
   names: Record<FormcoachSport, string>;
+  labels: {
+    formcoachOpening: string;
+    formcoachNoPhoneTitle: string;
+    formcoachNoPhoneBody: string;
+    formcoachGuestCta: string;
+    formcoachRegisterCta: string;
+  };
 }) {
+  // 전화번호 미등록 시 2옵션을 노출할 종목.
+  const [noPhoneSport, setNoPhoneSport] = useState<FormcoachSport | null>(null);
+  const [busySport, setBusySport] = useState<FormcoachSport | null>(null);
+
+  async function handleClick(s: FormcoachSport) {
+    setNoPhoneSport(null);
+    setBusySport(s);
+    try {
+      const res = await formcoachSso(s);
+      if (res.status === 'OK') {
+        // 폼코치 자동 로그인 → 해당 종목 화면.
+        window.open(res.url, '_blank', 'noopener,noreferrer');
+      } else {
+        setNoPhoneSport(s);
+      }
+    } catch {
+      // SSO 실패(미설정 등) → 일반 딥링크로 폴백(비로그인 진입).
+      window.open(`${FORMCOACH_BASE}/${s}`, '_blank', 'noopener,noreferrer');
+    } finally {
+      setBusySport(null);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-brand-200/70 bg-white/70 p-3 dark:border-brand-900/50 dark:bg-stone-900/50">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-300">
@@ -384,18 +422,45 @@ function FormcoachLinks({
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {sports.map((s) => (
-          <a
+          <button
             key={s}
-            href={`${FORMCOACH_BASE}/${s}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97] hover:bg-brand-700"
+            type="button"
+            onClick={() => void handleClick(s)}
+            disabled={busySport !== null}
+            className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97] hover:bg-brand-700 disabled:opacity-60"
           >
             <span>{names[s]}</span>
-            <span aria-hidden>· {cta}</span>
-          </a>
+            <span aria-hidden>· {busySport === s ? labels.formcoachOpening : cta}</span>
+          </button>
         ))}
       </div>
+
+      {noPhoneSport && (
+        <div className="mt-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-900">
+          <p className="text-[12px] font-semibold text-stone-900 dark:text-stone-100">
+            {labels.formcoachNoPhoneTitle}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+            {labels.formcoachNoPhoneBody}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link
+              href="/profile"
+              className="inline-flex items-center rounded-full bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97] hover:bg-brand-700"
+            >
+              {labels.formcoachRegisterCta}
+            </Link>
+            <a
+              href={`${FORMCOACH_BASE}/${noPhoneSport}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-full border border-stone-300 px-3 py-1.5 text-[11px] font-semibold text-stone-700 transition active:scale-[0.97] hover:bg-stone-50 dark:border-stone-600 dark:text-stone-200 dark:hover:bg-stone-800"
+            >
+              {labels.formcoachGuestCta}
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
