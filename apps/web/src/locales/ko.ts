@@ -36,11 +36,11 @@ export const ko = {
   },
   survey: {
     pageTitle: '베타 설문',
-    heroTitle: '오늘의 건강을 입력해주세요',
+    heroTitle: '기본 정보를 입력해주세요',
     heroBody: '23문항 · 2~3분 · 모든 답변은 사용자의 동의 없이는 저장되지 않습니다.',
     section: {
       step: 'STEP',
-      demographics: '인구통계',
+      demographics: '기본 인적사항',
       lifestyle: '생활 습관',
       vitals: '신체 측정값',
       vitalsHint: '모르면 비워두세요. 추정 정확도가 일부 낮아질 수 있습니다.',
@@ -241,7 +241,7 @@ export const ko = {
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '나의 생명의 Twin 만들기를 시작해 볼까요?',
-    twinPromptSignedIn: '오늘의 컨디션을 기록해 보세요',
+    twinPromptSignedIn: '건강 관리 기본 정보',
     twinCtaSignedOut: 'Twin 만들기 시작',
     twinCtaSignedIn: '설문 작성하기',
     cardBioAgeEyebrow: 'BioAge',

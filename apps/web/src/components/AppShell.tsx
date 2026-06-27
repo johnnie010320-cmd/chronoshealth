@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeftIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu } from './UserMenu';
@@ -30,6 +31,20 @@ export function AppShell({
   const { t } = useI18n();
   const nickname = useTwinNickname();
   const unread = useUnreadMessages();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // 명시적 showBack 페이지(부모 경로 backHref 지정)는 그대로, 그 외 비-홈 페이지는 자동 뒤로가기.
+  const isExplicitBack = showBack === true;
+  const autoBack = showBack ?? pathname !== '/';
+  // 자동 뒤로가기: 직전 페이지로(앞단). 히스토리 없으면 backHref(기본 홈)로 폴백.
+  const handleAutoBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push(backHref);
+  };
+
+  const backButtonClass =
+    '-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60';
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
@@ -42,14 +57,16 @@ export function AppShell({
       )}
 
       <header className="safe-top sticky top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 backdrop-blur-md">
-        {showBack ? (
-          <Link
-            href={backHref}
-            aria-label={t.common.back}
-            className="-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60"
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-          </Link>
+        {autoBack ? (
+          isExplicitBack ? (
+            <Link href={backHref} aria-label={t.common.back} className={backButtonClass}>
+              <ArrowLeftIcon className="h-5 w-5" />
+            </Link>
+          ) : (
+            <button type="button" onClick={handleAutoBack} aria-label={t.common.back} className={backButtonClass}>
+              <ArrowLeftIcon className="h-5 w-5" />
+            </button>
+          )
         ) : (
           <Link
             href="/"

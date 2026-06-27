@@ -38,12 +38,12 @@ export const ja: Dictionary = {
   },
   survey: {
     pageTitle: 'ベータ アンケート',
-    heroTitle: '今日の健康を入力してください',
+    heroTitle: '基本情報を入力してください',
     heroBody:
       '23問 · 2〜3分 · 同意なしに回答が保存されることはありません。',
     section: {
       step: 'STEP',
-      demographics: '基本情報',
+      demographics: '基本事項',
       lifestyle: '生活習慣',
       vitals: '身体測定値',
       vitalsHint: '不明なら空欄でOK。推定精度は若干下がります。',
@@ -244,7 +244,7 @@ export const ja: Dictionary = {
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '生命のTwin作りを始めましょうか?',
-    twinPromptSignedIn: '今日のコンディションを記録しましょう',
+    twinPromptSignedIn: '健康管理の基本情報',
     twinCtaSignedOut: 'Twin作りを開始',
     twinCtaSignedIn: 'アンケートを開始',
     cardBioAgeEyebrow: 'BioAge',

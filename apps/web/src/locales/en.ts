@@ -38,12 +38,12 @@ export const en: Dictionary = {
   },
   survey: {
     pageTitle: 'Beta survey',
-    heroTitle: 'Tell us about your health today',
+    heroTitle: 'Enter your basic information',
     heroBody:
       '23 questions · 2–3 minutes · Answers are never stored without your consent.',
     section: {
       step: 'STEP',
-      demographics: 'Demographics',
+      demographics: 'Basic details',
       lifestyle: 'Lifestyle',
       vitals: 'Measurements',
       vitalsHint:
@@ -247,7 +247,7 @@ export const en: Dictionary = {
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: 'Shall we start building your life Twin?',
-    twinPromptSignedIn: "Log today's condition",
+    twinPromptSignedIn: 'Basic health info',
     twinCtaSignedOut: 'Start building Twin',
     twinCtaSignedIn: 'Take the survey',
     cardBioAgeEyebrow: 'BioAge',
