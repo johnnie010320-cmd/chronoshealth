@@ -1,7 +1,7 @@
 'use client';
 
 // 홈 "오늘의 셀프 체크" 멀티탭 카드.
-// ① 오늘 체크: 컨디션·운동·수면·메모 입력 → 루틴(+다이어리) 반영
+// ① 오늘의 루틴: 컨디션·음식(AI 칼로리)·운동(강도)·수면·메모 입력 → 루틴(+다이어리) 반영
 // ② 건강 그래프: 최근 14일 생활패턴(음식·운동·수면) → 종합 생활 점수 + 세부 3지표
 // ③ 가이드: 오늘의 셀프 체크 팁 + 케어/설문 진입
 // 의료·윤리: "진단" 아님. "생활 점수/추이" + 면책. (apps/web CLAUDE.md 규칙)
@@ -10,20 +10,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
+import { fileToFoodshotB64 } from '@/lib/foodshot-image';
 import {
   fetchRoutineToday,
   fetchRoutineRange,
   submitRoutineDaily,
   addDiary,
   symptomCheck,
+  estimateCalories,
+  estimateFoodshot,
   type RoutineEntry,
   type RoutineSummary,
   type DiaryMood,
   type ExerciseIntensity,
   type SymptomAssessment,
+  type CalorieEstimateLine,
 } from '@/lib/api-client';
 
 type TabKey = 'today' | 'graph' | 'guide';
+type FoodRow = { name: string; amount: string };
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -107,14 +112,26 @@ type SelfCheckLabels = ReturnType<typeof useI18n>['t']['home']['selfCheck'];
 
 // ── 탭1: 오늘 체크 ──────────────────────────────────────────────────────────
 function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
+  const { t, locale } = useI18n();
+  const F = t.routine.food;
+  const RErr = t.routine.error;
+  const unitCal = t.routine.unitCal;
   const [mood, setMood] = useState<DiaryMood | null>(null);
   const [exercise, setExercise] = useState('');
   const [intensity, setIntensity] = useState<ExerciseIntensity | null>(null);
   const [sleep, setSleep] = useState('');
   const [note, setNote] = useState('');
-  const [existingCalories, setExistingCalories] = useState<number | null>(null);
+  const [calories, setCalories] = useState(''); // 음식 → AI 칼로리 추정값(편집 가능)
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  // 음식/칼로리 입력
+  const [foodRows, setFoodRows] = useState<FoodRow[]>([{ name: '', amount: '' }]);
+  const [estimating, setEstimating] = useState(false);
+  const [estimateLines, setEstimateLines] = useState<CalorieEstimateLine[] | null>(null);
+  const [estimateErr, setEstimateErr] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoErr, setPhotoErr] = useState<string | null>(null);
+  const [photoApplied, setPhotoApplied] = useState(false);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -125,7 +142,7 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
           if (r.entry.exerciseIntensity) setIntensity(r.entry.exerciseIntensity);
           if (r.entry.sleepHours != null) setSleep(String(r.entry.sleepHours));
           if (r.entry.note) setNote(r.entry.note);
-          setExistingCalories(r.entry.caloriesKcal ?? null);
+          if (r.entry.caloriesKcal != null) setCalories(String(r.entry.caloriesKcal));
         }
       })
       .catch(() => {});
@@ -138,13 +155,60 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
     return Number.isFinite(n) ? n : null;
   }
 
+  // 텍스트 음식 입력 → AI 칼로리 추정
+  async function handleEstimate() {
+    const cleaned = foodRows
+      .map((r) => ({ name: r.name.trim(), amount: r.amount.trim() }))
+      .filter((r) => r.name !== '' && r.amount !== '');
+    if (cleaned.length === 0) return;
+    setEstimating(true);
+    setEstimateErr(null);
+    try {
+      const res = await estimateCalories(cleaned, locale);
+      setEstimateLines(res.breakdown);
+      setCalories(String(res.totalCalories));
+    } catch (err) {
+      setEstimateErr(err instanceof Error ? err.message : 'generic');
+    } finally {
+      setEstimating(false);
+    }
+  }
+
+  // 음식 사진 → AI Vision 인식 → 칼로리 추정
+  async function handlePhoto(file: File | null) {
+    if (!file) return;
+    setPhotoErr(null);
+    setPhotoApplied(false);
+    setEstimateErr(null);
+    setPhotoBusy(true);
+    try {
+      const imageB64 = await fileToFoodshotB64(file);
+      const res = await estimateFoodshot(imageB64, locale);
+      if (res.estimatedItems.length === 0) {
+        setPhotoErr('errPhoto');
+        return;
+      }
+      setFoodRows(res.estimatedItems.slice(0, 10).map((it) => ({ name: it.name, amount: it.amount })));
+      setEstimateLines(
+        res.estimatedItems.map((it) => ({ name: it.name, amount: it.amount, calories: it.calories })),
+      );
+      setCalories(String(res.totalCalories));
+      setPhotoApplied(true);
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'errPhoto';
+      setPhotoErr(code in RErr ? code : 'errPhoto');
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
   async function save() {
     setBusy(true);
     setDone(false);
     try {
       await submitRoutineDaily({
         entryDate: todayIso(),
-        caloriesKcal: existingCalories, // 기존 음식 기록 보존
+        caloriesKcal: num(calories), // 음식 입력으로 추정한 칼로리(생활점수·처방 신뢰도 반영)
         exerciseMinutes: num(exercise),
         exerciseIntensity: intensity,
         sleepHours: num(sleep),
@@ -251,6 +315,178 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
           ))}
         </div>
         <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{S.intensityHint}</p>
+      </div>
+
+      {/* 음식 → AI 칼로리 추정(텍스트/사진). 칼로리는 생활점수·AI 처방 신뢰도에 반영 */}
+      <div className="rounded-xl border border-stone-200 bg-stone-50/60 px-3 py-2.5 dark:border-stone-800 dark:bg-stone-800/30">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+            {F.sectionTitle}
+          </span>
+          <span className="text-[9px] font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
+            {F.aiBadge}
+          </span>
+        </div>
+
+        {/* 사진으로 추정 */}
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <label
+            className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-2 py-2 text-[11px] font-semibold text-stone-700 transition active:scale-[0.97] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 ${
+              photoBusy ? 'pointer-events-none opacity-60' : ''
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            <span>{F.photoCamera}</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={photoBusy}
+              onChange={(e) => {
+                void handlePhoto(e.target.files?.[0] ?? null);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          <label
+            className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-2 py-2 text-[11px] font-semibold text-stone-700 transition active:scale-[0.97] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 ${
+              photoBusy ? 'pointer-events-none opacity-60' : ''
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span>{F.photoGallery}</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={photoBusy}
+              onChange={(e) => {
+                void handlePhoto(e.target.files?.[0] ?? null);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
+        {photoBusy && (
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-stone-500 dark:text-stone-400">
+            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-stone-300 border-t-brand-600 dark:border-stone-700 dark:border-t-brand-400" />
+            {F.photoAnalyzing}
+          </div>
+        )}
+        {photoApplied && !photoBusy && (
+          <p className="mt-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+            {F.photoApplied}
+          </p>
+        )}
+        {photoErr && (
+          <p className="mt-2 text-[11px] font-medium text-rose-600 dark:text-rose-300">
+            {RErr[photoErr as keyof typeof RErr] ?? F.errPhoto}
+          </p>
+        )}
+
+        {/* 음식 직접 입력 */}
+        <ul className="mt-2 space-y-1.5">
+          {foodRows.map((row, idx) => (
+            <li key={idx} className="grid grid-cols-[1fr_84px_24px] items-center gap-1.5">
+              <input
+                type="text"
+                value={row.name}
+                placeholder={F.namePlaceholder}
+                maxLength={80}
+                onChange={(e) =>
+                  setFoodRows((prev) => prev.map((r, i) => (i === idx ? { ...r, name: e.target.value } : r)))
+                }
+                className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[13px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+              />
+              <input
+                type="text"
+                value={row.amount}
+                placeholder={F.amountPlaceholder}
+                maxLength={60}
+                onChange={(e) =>
+                  setFoodRows((prev) => prev.map((r, i) => (i === idx ? { ...r, amount: e.target.value } : r)))
+                }
+                className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[13px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+              />
+              <button
+                type="button"
+                aria-label={F.removeRow}
+                onClick={() => setFoodRows((prev) => prev.filter((_, i) => i !== idx))}
+                disabled={foodRows.length === 1}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 disabled:opacity-30 dark:hover:bg-stone-800"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setFoodRows((prev) => (prev.length >= 10 ? prev : [...prev, { name: '', amount: '' }]))}
+            disabled={foodRows.length >= 10}
+            className="rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-stone-700 transition active:scale-[0.97] disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+          >
+            {F.addRow}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleEstimate()}
+            disabled={estimating || foodRows.every((r) => r.name.trim() === '' || r.amount.trim() === '')}
+            className="rounded-lg bg-brand-700 px-2.5 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97] disabled:opacity-60"
+          >
+            {estimating ? F.estimating : F.estimateCta}
+          </button>
+        </div>
+
+        {estimateErr && (
+          <p className="mt-2 text-[11px] font-medium text-rose-600 dark:text-rose-300">
+            {RErr[estimateErr as keyof typeof RErr] ?? F.errEstimate}
+          </p>
+        )}
+        {estimateLines && estimateLines.length > 0 && (
+          <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50/60 px-2.5 py-2 text-[12px] text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
+            <p className="font-semibold">
+              {F.estimateResultPrefix} {estimateLines.reduce((s, l) => s + l.calories, 0)} {unitCal}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {estimateLines.map((line, i) => (
+                <li key={i} className="flex items-center justify-between text-[11px]">
+                  <span className="truncate">
+                    {line.name} · {line.amount}
+                  </span>
+                  <span className="tabular-nums font-semibold">
+                    {line.calories} {unitCal}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[10px] opacity-70">{F.estimateNote}</p>
+          </div>
+        )}
+
+        {/* 칼로리 직접 입력/보정 */}
+        <label className="mt-2 flex items-center gap-2">
+          <span className="shrink-0 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
+            {F.sectionTitle} · {unitCal}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={calories}
+            onChange={(e) => setCalories(e.target.value)}
+            placeholder="0"
+            className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[13px] text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+          />
+        </label>
       </div>
 
       {/* 메모 */}
