@@ -283,20 +283,47 @@ function ThreadInner() {
                   >
                     {m.body && (
                       <div
-                        className={`max-w-[78%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] ${
-                          m.isMine
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                        className={`flex max-w-[82%] items-end gap-1 ${
+                          m.isMine ? 'flex-row' : 'flex-row-reverse'
                         }`}
                       >
-                        <MessageBody body={m.body} mine={m.isMine} />
+                        {m.unreadCount > 0 && (
+                          <span
+                            aria-label={M.unreadByCount.replace('{n}', String(m.unreadCount))}
+                            className="mb-1 shrink-0 text-[10px] font-bold leading-none tabular-nums text-amber-500"
+                          >
+                            {m.unreadCount}
+                          </span>
+                        )}
+                        <div
+                          className={`min-w-0 whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] ${
+                            m.isMine
+                              ? 'bg-brand-600 text-white'
+                              : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                          }`}
+                        >
+                          <MessageBody body={m.body} mine={m.isMine} />
+                        </div>
                       </div>
                     )}
                     {m.attachment && (
+                      <div
+                        className={`mt-0.5 flex max-w-[82%] items-end gap-1 ${
+                          m.isMine ? 'flex-row' : 'flex-row-reverse'
+                        }`}
+                      >
+                        {!m.body && m.unreadCount > 0 && (
+                          <span
+                            aria-label={M.unreadByCount.replace('{n}', String(m.unreadCount))}
+                            className="mb-1 shrink-0 text-[10px] font-bold leading-none tabular-nums text-amber-500"
+                          >
+                            {m.unreadCount}
+                          </span>
+                        )}
                       <button
                         type="button"
                         onClick={() => void handleDownload(m.id, m.attachment?.name ?? 'file')}
-                        className={`mt-0.5 flex max-w-[78%] items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
+                        className={`flex min-w-0 items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
                           m.isMine
                             ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/30'
                             : 'border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900'
@@ -312,6 +339,7 @@ function ThreadInner() {
                           </span>
                         </span>
                       </button>
+                      </div>
                     )}
                   </div>
 

@@ -212,6 +212,7 @@ export const ja: Dictionary = {
     deleteRoomConfirm: 'このルームを削除しますか？全参加者から消えます。',
     loadMore: '以前のメッセージ',
     unknownUser: '（ニックネーム未設定）',
+    unreadByCount: '未読{n}人',
     notice: 'メッセージは医療診断ではありません。健康に関する判断は専門家にご相談ください。',
     errorGeneric: '問題が発生しました。もう一度お試しください。',
     errorUserNotFound: 'そのニックネームの会員が見つかりません。',

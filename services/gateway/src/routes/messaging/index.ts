@@ -242,6 +242,19 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(120,
     before: parsed.data.before,
   });
 
+  // 카카오톡식 안읽은 수신자 수 — 멤버별 last_read_at 와 메시지 created_at 비교.
+  // 메시지 m 의 미읽음 = (발신자 제외) 멤버 중 last_read_at < m.created_at 인 인원.
+  // 수신자가 대화를 열면 markRead 로 last_read_at 이 갱신 → 다음 폴링에서 자동 차감.
+  const members = await listMembers(c.env.DB, id);
+  const unreadFor = (senderId: string, createdAt: string): number => {
+    let n = 0;
+    for (const mem of members) {
+      if (mem.memberPseudonymId === senderId) continue;
+      if (mem.lastReadAt < createdAt) n += 1;
+    }
+    return n;
+  };
+
   // 답장 대상 미리보기 + 반응 일괄 조회(N+1 회피).
   const replyTargetIds = [
     ...new Set(rows.map((r) => r.replyToMessageId).filter((x): x is string => !!x)),
@@ -287,6 +300,7 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(120,
         createdAt: r.createdAt,
         senderNickname: nicks.get(r.senderPseudonymId) ?? null,
         isMine: r.senderPseudonymId === me,
+        unreadCount: unreadFor(r.senderPseudonymId, r.createdAt),
         attachment: r.attachment,
         replyTo: preview
           ? {

@@ -209,6 +209,7 @@ export const ko = {
     deleteRoomConfirm: '이 대화방을 삭제할까요? 모든 참여자에게서 사라집니다.',
     loadMore: '이전 메시지',
     unknownUser: '(닉네임 미설정)',
+    unreadByCount: '{n}명 안읽음',
     notice: '메시지는 의학적 진단이 아닙니다. 건강 관련 결정은 전문가와 상의하세요.',
     errorGeneric: '문제가 발생했어요. 다시 시도해 주세요.',
     errorUserNotFound: '해당 닉네임의 회원을 찾을 수 없어요.',

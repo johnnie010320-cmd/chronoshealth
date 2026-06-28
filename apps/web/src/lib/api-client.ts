@@ -1564,6 +1564,8 @@ export type ChatMessage = {
   createdAt: string;
   senderNickname: string | null;
   isMine: boolean;
+  // 안읽은 수신자 수(카카오톡식). 0이면 모두 읽음 → UI 미표시.
+  unreadCount: number;
   attachment: ChatAttachment | null;
   // 답장 대상 미리보기(있으면).
   replyTo: ChatReplyPreview | null;

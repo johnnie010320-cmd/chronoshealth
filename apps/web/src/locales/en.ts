@@ -215,6 +215,7 @@ export const en: Dictionary = {
     deleteRoomConfirm: 'Delete this room? It disappears for all members.',
     loadMore: 'Earlier messages',
     unknownUser: '(no nickname)',
+    unreadByCount: '{n} unread',
     notice: 'Messages are not a medical diagnosis. Consult a professional for health decisions.',
     errorGeneric: 'Something went wrong. Please try again.',
     errorUserNotFound: 'No member found with that nickname.',
