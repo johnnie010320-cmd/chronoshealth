@@ -14,6 +14,7 @@ export const ko = {
   },
   common: {
     back: '뒤로',
+    home: '홈',
     cancel: '취소',
     retry: '다시 시도',
   },

@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeftIcon } from './HealthIcons';
+import { usePathname } from 'next/navigation';
+import { ArrowLeftIcon, HomeIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu } from './UserMenu';
 import { BottomNav } from './BottomNav';
@@ -32,19 +32,15 @@ export function AppShell({
   const nickname = useTwinNickname();
   const unread = useUnreadMessages();
   const pathname = usePathname();
-  const router = useRouter();
 
-  // 명시적 showBack 페이지(부모 경로 backHref 지정)는 그대로, 그 외 비-홈 페이지는 자동 뒤로가기.
-  const isExplicitBack = showBack === true;
-  const autoBack = showBack ?? pathname !== '/';
-  // 자동 뒤로가기: 직전 페이지로(앞단). 히스토리 없으면 backHref(기본 홈)로 폴백.
-  const handleAutoBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(backHref);
-  };
+  // 결정적 상위(부모) 경로 — 브라우저 히스토리(back) 대신 메뉴 계층을 따라 이동(ping-pong 방지).
+  const parentHref = resolveParent(pathname, showBack === true ? backHref : undefined);
+  const showHeaderBack = (showBack ?? pathname !== '/') && pathname !== '/';
+  // 상위가 홈이면 뒤로가기=홈 이므로 홈 버튼 중복 표기 안 함. 상위가 홈이 아닐 때만 홈 버튼 추가.
+  const showHomeButton = showHeaderBack && parentHref !== '/';
 
-  const backButtonClass =
-    '-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60';
+  const iconButtonClass =
+    'inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60';
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
@@ -57,16 +53,17 @@ export function AppShell({
       )}
 
       <header className="safe-top sticky top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 backdrop-blur-md">
-        {autoBack ? (
-          isExplicitBack ? (
-            <Link href={backHref} aria-label={t.common.back} className={backButtonClass}>
+        {showHeaderBack ? (
+          <div className="-ml-2 flex items-center gap-0.5">
+            <Link href={parentHref} aria-label={t.common.back} className={iconButtonClass}>
               <ArrowLeftIcon className="h-5 w-5" />
             </Link>
-          ) : (
-            <button type="button" onClick={handleAutoBack} aria-label={t.common.back} className={backButtonClass}>
-              <ArrowLeftIcon className="h-5 w-5" />
-            </button>
-          )
+            {showHomeButton && (
+              <Link href="/" aria-label={t.common.home} className={iconButtonClass}>
+                <HomeIcon className="h-5 w-5" />
+              </Link>
+            )}
+          </div>
         ) : (
           <Link
             href="/"
@@ -110,6 +107,40 @@ export function AppShell({
       <div className="safe-bottom" />
     </div>
   );
+}
+
+// 페이지별 상위(부모) 경로 맵 — "상위 메뉴류"로 이동. 대부분 콘텐츠 페이지는 전체메뉴(/menu) 허브 하위.
+// 홈 히어로/카드에서 직접 진입하는 페이지(survey·health-diary)는 홈(/)이 상위.
+const PARENT_MAP: Record<string, string> = {
+  '/menu': '/',
+  '/survey': '/',
+  '/health-diary': '/',
+  '/twin': '/menu',
+  '/routine': '/menu',
+  '/reports': '/menu',
+  '/care': '/menu',
+  '/rewards': '/menu',
+  '/profile': '/menu',
+  '/diary': '/menu',
+  '/leaderboard': '/menu',
+  '/stats': '/menu',
+  '/avatar': '/menu',
+  '/notices': '/menu',
+  '/community': '/menu',
+  '/messages': '/menu',
+};
+
+// 상위 경로 해석: ① 명시 backHref 우선 → ② PARENT_MAP → ③ 경로 한 단계 제거 → ④ 홈.
+function resolveParent(pathname: string, explicitBackHref?: string): string {
+  if (explicitBackHref) return explicitBackHref;
+  const path = pathname.replace(/\/$/, '') || '/';
+  if (PARENT_MAP[path]) return PARENT_MAP[path];
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length > 1) {
+    parts.pop();
+    return '/' + parts.join('/');
+  }
+  return '/';
 }
 
 // 신규 메시지 알림 배지 — 미읽음>0 일 때 빨간 점+숫자.

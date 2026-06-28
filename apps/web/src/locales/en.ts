@@ -16,6 +16,7 @@ export const en: Dictionary = {
   },
   common: {
     back: 'Back',
+    home: 'Home',
     cancel: 'Cancel',
     retry: 'Retry',
   },

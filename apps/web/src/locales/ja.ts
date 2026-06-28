@@ -16,6 +16,7 @@ export const ja: Dictionary = {
   },
   common: {
     back: '戻る',
+    home: 'ホーム',
     cancel: 'キャンセル',
     retry: '再試行',
   },
