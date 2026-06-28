@@ -49,6 +49,11 @@ export const ko = {
       perception: '자가 인식',
       consent: '데이터 동의 (선택)',
     },
+    savedProfile: {
+      loaded: '저장된 기본 정보를 자동 입력했습니다',
+      clear: '지우기',
+      autofillHint: '생년·성별·키·가족력은 이 기기에 저장되어 다음 설문에 자동 입력됩니다.',
+    },
     submit: '모의 리포트 받기',
     submitting: '계산 중…',
     bottomDisclaimer:

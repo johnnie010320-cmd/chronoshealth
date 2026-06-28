@@ -53,6 +53,12 @@ export const es: Dictionary = {
       perception: 'Autopercepción',
       consent: 'Consentimiento de datos (opcional)',
     },
+    savedProfile: {
+      loaded: 'Tu información básica guardada se completó automáticamente',
+      clear: 'Borrar',
+      autofillHint:
+        'Año de nacimiento, sexo, altura y antecedentes familiares se guardan en este dispositivo y se completan la próxima vez.',
+    },
     submit: 'Recibir mi informe',
     submitting: 'Calculando…',
     bottomDisclaimer:

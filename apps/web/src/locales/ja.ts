@@ -52,6 +52,12 @@ export const ja: Dictionary = {
       perception: '自己認識',
       consent: 'データ同意（任意）',
     },
+    savedProfile: {
+      loaded: '保存済みの基本情報を自動入力しました',
+      clear: '削除',
+      autofillHint:
+        '生年・性別・身長・家族歴はこの端末に保存され、次回のアンケートに自動入力されます。',
+    },
     submit: 'モックレポートを受け取る',
     submitting: '計算中…',
     bottomDisclaimer:

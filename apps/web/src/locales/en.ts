@@ -53,6 +53,12 @@ export const en: Dictionary = {
       perception: 'Self-perception',
       consent: 'Data consent (optional)',
     },
+    savedProfile: {
+      loaded: 'Your saved basic info was filled in automatically',
+      clear: 'Clear',
+      autofillHint:
+        'Birth year, sex, height and family history are saved on this device and auto-filled next time.',
+    },
     submit: 'Get my mock report',
     submitting: 'Calculating…',
     bottomDisclaimer:

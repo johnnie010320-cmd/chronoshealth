@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RiskSurveyRequest, type RiskSurveyRequest as TRiskSurveyRequest, type RiskSurveyResponse } from '@/lib/schemas';
 import { submitRiskEstimate } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
+import {
+  loadHealthProfile,
+  saveHealthProfile,
+  clearHealthProfile,
+  type StableHealthProfile,
+} from '@/lib/health-profile';
 import {
   UsersIcon,
   ActivityIcon,
@@ -24,6 +30,21 @@ export function SurveyForm({ onSuccess }: Props) {
   const F = S.fields;
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // 변화가 거의 없는 기본 정보(생년·성별·키·가족력) 로컬 프리필.
+  const [profile, setProfile] = useState<StableHealthProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+
+  useEffect(() => {
+    setProfile(loadHealthProfile());
+    setProfileLoaded(true);
+  }, []);
+
+  function handleClearProfile() {
+    clearHealthProfile();
+    setProfile(null);
+    setFormKey((k) => k + 1);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,6 +88,16 @@ export function SurveyForm({ onSuccess }: Props) {
         return;
       }
 
+      // 변화가 거의 없는 기본 정보만 이 기기에 저장 → 다음 설문 자동 입력.
+      saveHealthProfile({
+        birthYear: parsed.data.birthYear,
+        sex: parsed.data.sex,
+        heightCm: parsed.data.heightCm,
+        familyHistoryDiabetes: parsed.data.familyHistoryDiabetes,
+        familyHistoryHypertension: parsed.data.familyHistoryHypertension,
+        familyHistoryCardiovascular: parsed.data.familyHistoryCardiovascular,
+      });
+
       const data = await submitRiskEstimate(parsed.data);
       onSuccess(data, parsed.data);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -82,8 +113,16 @@ export function SurveyForm({ onSuccess }: Props) {
     }
   }
 
+  if (!profileLoaded) {
+    return (
+      <div className="mt-2 h-48 animate-pulse rounded-3xl bg-stone-100 dark:bg-stone-900" />
+    );
+  }
+
+  const p = profile;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-32">
+    <form key={formKey} onSubmit={handleSubmit} className="space-y-6 pb-32">
       <header className="space-y-2 px-1">
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
           {S.heroTitle}
@@ -92,6 +131,21 @@ export function SurveyForm({ onSuccess }: Props) {
           {S.heroBody}
         </p>
       </header>
+
+      {p && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-950">
+          <span className="text-[12px] font-medium leading-snug text-brand-800 dark:text-brand-200">
+            {S.savedProfile.loaded}
+          </span>
+          <button
+            type="button"
+            onClick={handleClearProfile}
+            className="shrink-0 rounded-lg px-2 py-1 text-[12px] font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300"
+          >
+            {S.savedProfile.clear}
+          </button>
+        </div>
+      )}
 
       {error && (
         <div
@@ -107,6 +161,7 @@ export function SurveyForm({ onSuccess }: Props) {
         icon={<UsersIcon className="h-5 w-5" />}
         title={S.section.demographics}
         n="1"
+        hint={S.savedProfile.autofillHint}
       >
         <Field
           label={F.birthYear.label}
@@ -115,11 +170,13 @@ export function SurveyForm({ onSuccess }: Props) {
           required
           min={1900}
           placeholder={F.birthYear.placeholder}
+          defaultValue={p?.birthYear ?? undefined}
         />
         <SelectField
           label={F.sex.label}
           name="sex"
           required
+          defaultValue={p?.sex || ''}
           options={[
             { value: 'male', label: F.sex.options.male },
             { value: 'female', label: F.sex.options.female },
@@ -135,6 +192,7 @@ export function SurveyForm({ onSuccess }: Props) {
           min={100}
           max={250}
           placeholder={F.heightCm.placeholder}
+          defaultValue={p?.heightCm ?? undefined}
         />
         <Field
           label={F.weightKg.label}
@@ -249,14 +307,17 @@ export function SurveyForm({ onSuccess }: Props) {
         <Checkbox
           name="familyHistoryDiabetes"
           label={F.familyHistoryDiabetes.label}
+          defaultChecked={p?.familyHistoryDiabetes}
         />
         <Checkbox
           name="familyHistoryHypertension"
           label={F.familyHistoryHypertension.label}
+          defaultChecked={p?.familyHistoryHypertension}
         />
         <Checkbox
           name="familyHistoryCardiovascular"
           label={F.familyHistoryCardiovascular.label}
+          defaultChecked={p?.familyHistoryCardiovascular}
         />
       </Section>
 
@@ -392,7 +453,7 @@ function Field({
   min?: number;
   max?: number;
   step?: string | number;
-  defaultValue?: string | number;
+  defaultValue?: string | number | undefined;
   placeholder?: string;
 }) {
   return (
@@ -426,11 +487,13 @@ function SelectField({
   name,
   required,
   options,
+  defaultValue = '',
 }: {
   label: string;
   name: string;
   required?: boolean;
   options: Array<{ value: string; label: string }>;
+  defaultValue?: string;
 }) {
   return (
     <label className="block">
@@ -445,7 +508,7 @@ function SelectField({
       <select
         name={name}
         required={required}
-        defaultValue=""
+        defaultValue={defaultValue}
         className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:focus:bg-stone-900"
       >
         <option value="" disabled>
@@ -461,12 +524,21 @@ function SelectField({
   );
 }
 
-function Checkbox({ name, label }: { name: string; label: string }) {
+function Checkbox({
+  name,
+  label,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  defaultChecked?: boolean | undefined;
+}) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 bg-stone-50/60 p-3 transition hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-950/60 dark:hover:bg-stone-900">
       <input
         type="checkbox"
         name={name}
+        defaultChecked={defaultChecked}
         className="mt-0.5 h-5 w-5 shrink-0 accent-brand-700 dark:accent-brand-400"
       />
       <span className="text-sm leading-snug text-stone-700 dark:text-stone-300">
