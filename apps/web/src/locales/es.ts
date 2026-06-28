@@ -290,6 +290,7 @@ export const es: Dictionary = {
       saving: 'Guardando…',
       saved: 'Guardado',
       savedHint: 'Reflejado en tu rutina y gráfico.',
+      viewGraphCta: 'Ver gráfico',
       detailCta: 'Registrar detalles',
       loginPrompt: 'Inicia sesión para registrar tu autochequeo y tu gráfico de salud.',
       loginCta: 'Iniciar sesión / Registrarse',

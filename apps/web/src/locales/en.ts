@@ -290,6 +290,7 @@ export const en: Dictionary = {
       saving: 'Saving…',
       saved: 'Saved',
       savedHint: 'Reflected in your routine & graph.',
+      viewGraphCta: 'View graph',
       detailCta: 'Log details',
       loginPrompt: "Sign in to record today's self-check and your health graph.",
       loginCta: 'Sign in / Sign up',

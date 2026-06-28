@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fileToFoodshotB64 } from '@/lib/foodshot-image';
@@ -100,7 +101,9 @@ export function TodaySelfCheck() {
       </div>
 
       <div className="p-4">
-        {tab === 'today' && <TodayTab signedIn={signedIn} S={S} />}
+        {tab === 'today' && (
+          <TodayTab signedIn={signedIn} S={S} onShowGraph={() => setTab('graph')} />
+        )}
         {tab === 'graph' && <GraphTab signedIn={signedIn} S={S} />}
         {tab === 'guide' && <SymptomTab signedIn={signedIn} S={S} />}
       </div>
@@ -111,7 +114,15 @@ export function TodaySelfCheck() {
 type SelfCheckLabels = ReturnType<typeof useI18n>['t']['home']['selfCheck'];
 
 // ── 탭1: 오늘 체크 ──────────────────────────────────────────────────────────
-function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
+function TodayTab({
+  signedIn,
+  S,
+  onShowGraph,
+}: {
+  signedIn: boolean;
+  S: SelfCheckLabels;
+  onShowGraph: () => void;
+}) {
   const { t, locale } = useI18n();
   const F = t.routine.food;
   const RErr = t.routine.error;
@@ -516,7 +527,17 @@ function TodayTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
         </Link>
       </div>
       {done && (
-        <p className="text-[11px] text-brand-700 dark:text-brand-300">{S.savedHint}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] text-brand-700 dark:text-brand-300">{S.savedHint}</p>
+          <button
+            type="button"
+            onClick={onShowGraph}
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-brand-300 bg-brand-50 px-3 py-1.5 text-[12px] font-semibold text-brand-700 transition active:scale-[0.97] hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-900/40 dark:text-brand-200"
+          >
+            {S.viewGraphCta}
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
     </div>
   );

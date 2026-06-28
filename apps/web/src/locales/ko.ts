@@ -284,6 +284,7 @@ export const ko = {
       saving: '저장 중…',
       saved: '저장됨',
       savedHint: '루틴·그래프에 반영했어요.',
+      viewGraphCta: '그래프 확인',
       detailCta: '자세히 기록',
       loginPrompt: '로그인하면 오늘의 셀프 체크와 건강 그래프를 기록할 수 있어요.',
       loginCta: '로그인 / 회원가입',

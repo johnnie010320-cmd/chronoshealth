@@ -287,6 +287,7 @@ export const ja: Dictionary = {
       saving: '保存中…',
       saved: '保存しました',
       savedHint: 'ルーティン・グラフに反映しました。',
+      viewGraphCta: 'グラフを見る',
       detailCta: '詳しく記録',
       loginPrompt: 'ログインすると今日のセルフチェックと健康グラフを記録できます。',
       loginCta: 'ログイン / 新規登録',
