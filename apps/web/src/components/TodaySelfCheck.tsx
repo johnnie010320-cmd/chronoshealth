@@ -111,8 +111,38 @@ function dayScoreParts(e: RoutineEntry, profile: StableHealthProfile | null): Da
   return { exercise, sleep, food, total };
 }
 
-function dayScore(e: RoutineEntry, profile: StableHealthProfile | null): number {
-  return dayScoreParts(e, profile).total;
+// 추세 그래프: 전환 가능한 지표(통합/운동/수면/음식)와 기간(7·14·30일).
+type MetricKey = 'total' | 'exercise' | 'sleep' | 'food';
+const METRIC_KEYS: MetricKey[] = ['total', 'exercise', 'sleep', 'food'];
+const PERIODS = [7, 14, 30] as const;
+type Period = (typeof PERIODS)[number];
+
+// 하루치 항목별 원점수 + 통합 점수(추세용). 기록 없는 날은 has=false, 값 0.
+type DayPoint = {
+  date: string;
+  has: boolean;
+  total: number;
+  exercise: number;
+  sleep: number;
+  food: number;
+};
+
+function metricValue(p: DayPoint, m: MetricKey): number {
+  return m === 'total' ? p.total : m === 'exercise' ? p.exercise : m === 'sleep' ? p.sleep : p.food;
+}
+
+// 오늘 팁: 가중치 대비 가장 손실(개선 여지)이 큰 항목을 고른다. 셋 다 양호하면 칭찬.
+type TipKey = 'exercise' | 'sleep' | 'food' | 'praise' | 'empty';
+function pickTipKey(parts: DayScoreParts | null): TipKey {
+  if (!parts) return 'empty';
+  const cats = [parts.exercise, parts.sleep, parts.food];
+  if (cats.every((c) => c.raw >= 80)) return 'praise';
+  const deficits: { key: Exclude<TipKey, 'praise' | 'empty'>; gap: number }[] = [
+    { key: 'exercise', gap: parts.exercise.weight - parts.exercise.weighted },
+    { key: 'sleep', gap: parts.sleep.weight - parts.sleep.weighted },
+    { key: 'food', gap: parts.food.weight - parts.food.weighted },
+  ];
+  return deficits.reduce((top, c) => (c.gap > top.gap ? c : top)).key;
 }
 
 const MOODS: DiaryMood[] = ['great', 'good', 'soso', 'tired', 'bad'];
@@ -621,9 +651,12 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
   const [entries, setEntries] = useState<RoutineEntry[] | null>(null);
   const [summary, setSummary] = useState<RoutineSummary | null>(null);
   const [profile, setProfile] = useState<StableHealthProfile | null>(null);
+  const [metric, setMetric] = useState<MetricKey>('total');
+  const [period, setPeriod] = useState<Period>(14);
 
   const load = useCallback(async () => {
-    const r = await fetchRoutineRange(daysAgoIso(13), todayIso());
+    // 최근 30일 확보 → 7·14·30일 추이를 클라이언트에서 전환.
+    const r = await fetchRoutineRange(daysAgoIso(29), todayIso());
     setEntries(r.entries);
     setSummary(r.summary);
   }, []);
@@ -635,14 +668,19 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
     }
   }, [signedIn, load]);
 
-  // 최근 14일 일자별 점수(기록 없으면 0).
-  const scores = useMemo(() => {
+  // 최근 30일 일자별 항목 원점수 + 통합 점수(기록 없으면 0).
+  const daily = useMemo<DayPoint[]>(() => {
     const byDate = new Map((entries ?? []).map((e) => [e.entryDate, e]));
-    const out: { date: string; score: number; has: boolean }[] = [];
-    for (let i = 13; i >= 0; i--) {
+    const out: DayPoint[] = [];
+    for (let i = 29; i >= 0; i--) {
       const date = daysAgoIso(i);
       const e = byDate.get(date);
-      out.push({ date, score: e ? dayScore(e, profile) : 0, has: !!e });
+      if (e) {
+        const pp = dayScoreParts(e, profile);
+        out.push({ date, has: true, total: pp.total, exercise: pp.exercise.raw, sleep: pp.sleep.raw, food: pp.food.raw });
+      } else {
+        out.push({ date, has: false, total: 0, exercise: 0, sleep: 0, food: 0 });
+      }
     }
     return out;
   }, [entries, profile]);
@@ -661,28 +699,27 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
     );
   }
 
-  const todayScore = scores[scores.length - 1]?.score ?? 0;
+  const todayScore = daily[daily.length - 1]?.total ?? 0;
   const tier =
     todayScore >= 80 ? S.tierExcellent : todayScore >= 60 ? S.tierGood : todayScore >= 40 ? S.tierFair : S.tierLow;
+  const tierColor =
+    todayScore >= 80
+      ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-900/40'
+      : todayScore >= 60
+        ? 'text-brand-700 bg-brand-50 dark:text-brand-200 dark:bg-brand-900/40'
+        : todayScore >= 40
+          ? 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/30'
+          : 'text-rose-700 bg-rose-50 dark:text-rose-300 dark:bg-rose-900/30';
   const avg = summary?.averages;
   const recordDays = (entries ?? []).filter((e) =>
     (e.exerciseMinutes ?? 0) > 0 || (e.sleepHours ?? 0) > 0 || (e.caloriesKcal ?? 0) > 0,
   ).length;
 
-  // SVG 스파크라인 좌표(280x60, 상하 여백 6).
-  const W = 280;
-  const H = 60;
-  const n = scores.length;
-  const pts = scores.map((s, i) => {
-    const x = n === 1 ? 0 : (i / (n - 1)) * W;
-    const y = H - 6 - (s.score / 100) * (H - 12);
-    return [x, y] as const;
-  });
-  const line = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const area = `0,${H} ${line} ${W},${H}`;
-
   return (
     <div className="space-y-3">
+      {/* 오늘의 팁 — 가장 개선 여지가 큰 항목 기준 맞춤 안내 */}
+      <WellnessTip parts={todayParts} S={S} />
+
       {/* 오늘 점수 + tier */}
       <div className="flex items-end justify-between">
         <div>
@@ -694,33 +731,11 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
             <span className="ml-1 text-sm font-medium text-stone-400">{S.scoreUnit}</span>
           </p>
         </div>
-        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-          {tier}
-        </span>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${tierColor}`}>{tier}</span>
       </div>
 
-      {/* 14일 추이 스파크라인 */}
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(13 148 136)" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="rgb(13 148 136)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <polygon points={area} fill="url(#scoreFill)" />
-        <polyline
-          points={line}
-          fill="none"
-          stroke="rgb(13 148 136)"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {pts.map(([x, y], i) =>
-          scores[i]?.has ? <circle key={i} cx={x} cy={y} r="2" fill="rgb(13 148 136)" /> : null,
-        )}
-      </svg>
-      <p className="text-center text-[10px] text-stone-400">{S.graphRangeNote}</p>
+      {/* 추세: 지표 전환(통합·운동·수면·음식) + 기간(7·14·30일) + 스파크라인 + 평균·최고 */}
+      <TrendChart daily={daily} metric={metric} period={period} setMetric={setMetric} setPeriod={setPeriod} S={S} />
 
       {/* 오늘 항목별 생활 점수(운동·수면·음식 원점수 + 가중 환산 + 통합) */}
       {todayParts && <LifestyleBreakdown parts={todayParts} S={S} />}
@@ -747,6 +762,140 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       <p className="rounded-lg bg-stone-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-stone-500 dark:bg-stone-800/60 dark:text-stone-400">
         {S.graphDisclaimer}
       </p>
+    </div>
+  );
+}
+
+// 오늘의 팁 — 개선 여지가 큰 항목(또는 칭찬/기록유도)을 한 줄로 안내.
+function WellnessTip({ parts, S }: { parts: DayScoreParts | null; S: SelfCheckLabels }) {
+  const T = S.tip;
+  const key = pickTipKey(parts);
+  const emoji = key === 'praise' ? '🎉' : key === 'empty' ? '✍️' : '💡';
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white px-3 py-2.5 dark:border-brand-900/50 dark:from-brand-950/40 dark:to-stone-900">
+      <span aria-hidden className="text-lg leading-none">{emoji}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-300">
+          {T.title}
+        </p>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-stone-700 dark:text-stone-200">{T[key]}</p>
+      </div>
+    </div>
+  );
+}
+
+// 추세 차트 — 지표/기간 전환 가능한 스파크라인 + 평균·최고.
+function TrendChart({
+  daily,
+  metric,
+  period,
+  setMetric,
+  setPeriod,
+  S,
+}: {
+  daily: DayPoint[];
+  metric: MetricKey;
+  period: Period;
+  setMetric: (m: MetricKey) => void;
+  setPeriod: (p: Period) => void;
+  S: SelfCheckLabels;
+}) {
+  const Tr = S.trend;
+  const series = daily.slice(Math.max(0, daily.length - period));
+  const recorded = series.filter((p) => p.has);
+  const avg = recorded.length
+    ? Math.round(recorded.reduce((s, p) => s + metricValue(p, metric), 0) / recorded.length)
+    : 0;
+  const best = recorded.length ? Math.max(...recorded.map((p) => metricValue(p, metric))) : 0;
+  const metricLabel: Record<MetricKey, string> = {
+    total: Tr.metricTotal,
+    exercise: Tr.metricExercise,
+    sleep: Tr.metricSleep,
+    food: Tr.metricFood,
+  };
+
+  // SVG 좌표(280x60, 상하 여백 6).
+  const W = 280;
+  const H = 60;
+  const n = series.length;
+  const pts = series.map((p, i) => {
+    const x = n <= 1 ? 0 : (i / (n - 1)) * W;
+    const y = H - 6 - (metricValue(p, metric) / 100) * (H - 12);
+    return [x, y] as const;
+  });
+  const line = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const area = `0,${H} ${line} ${W},${H}`;
+
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white px-3 py-2.5 dark:border-stone-800 dark:bg-stone-900/40">
+      {/* 지표 전환 */}
+      <div className="flex gap-1">
+        {METRIC_KEYS.map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMetric(m)}
+            className={`flex-1 rounded-lg px-1.5 py-1 text-[11px] font-semibold transition ${
+              metric === m
+                ? 'bg-brand-600 text-white'
+                : 'bg-stone-100 text-stone-500 hover:text-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+            }`}
+          >
+            {metricLabel[m]}
+          </button>
+        ))}
+      </div>
+
+      {/* 스파크라인 */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-16 w-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgb(13 148 136)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="rgb(13 148 136)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={area} fill="url(#scoreFill)" />
+        <polyline
+          points={line}
+          fill="none"
+          stroke="rgb(13 148 136)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {pts.map(([x, y], i) =>
+          series[i]?.has ? <circle key={i} cx={x} cy={y} r="2" fill="rgb(13 148 136)" /> : null,
+        )}
+      </svg>
+
+      {/* 기간 전환 + 평균·최고 */}
+      <div className="mt-1.5 flex items-center justify-between">
+        <div className="flex gap-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
+                period === p
+                  ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900'
+                  : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-200'
+              }`}
+            >
+              {p}
+              {S.daysUnit}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2.5 text-[10px] tabular-nums text-stone-500 dark:text-stone-400">
+          <span>
+            {Tr.avg} <b className="text-stone-800 dark:text-stone-100">{avg}</b>
+          </span>
+          <span>
+            {Tr.best} <b className="text-brand-700 dark:text-brand-300">{best}</b>
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

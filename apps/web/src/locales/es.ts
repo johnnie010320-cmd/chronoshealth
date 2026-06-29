@@ -331,6 +331,22 @@ export const es: Dictionary = {
         total: 'Puntuación total',
         note: 'La puntuación total aplica los pesos ejercicio 30 · sueño 20 · comida 50 a la puntuación bruta (sobre 100) de cada categoría.',
       },
+      tip: {
+        title: 'Consejo de hoy',
+        exercise: 'Hoy te moviste un poco menos. Empieza suave con una caminata de 10–15 min.',
+        sleep: 'Tu puntuación de sueño es baja. Mantén un horario regular y evita pantallas una hora antes de dormir.',
+        food: 'El equilibrio de tus comidas podría mejorar. Empieza tu próxima comida con verduras y proteína.',
+        praise: '¡Ejercicio, sueño y comidas están bien equilibrados. Mantén el ritmo mañana!',
+        empty: 'Registra la rutina de hoy para recibir consejos según tu ejercicio, sueño y comida.',
+      },
+      trend: {
+        metricTotal: 'Total',
+        metricExercise: 'Ejercicio',
+        metricSleep: 'Sueño',
+        metricFood: 'Comida',
+        avg: 'Prom.',
+        best: 'Máx.',
+      },
       guideTitle: 'Guía de autochequeo de hoy',
       tips: [
         'Empieza el día con un vaso de agua. Una ligera hidratación mejora tu estado.',

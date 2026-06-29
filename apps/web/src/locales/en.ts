@@ -331,6 +331,22 @@ export const en: Dictionary = {
         total: 'Total score',
         note: 'The total score applies exercise 30 · sleep 20 · food 50 weights to each category raw score (out of 100).',
       },
+      tip: {
+        title: "Today's tip",
+        exercise: 'You moved a little less today. Start light with a 10–15 min walk.',
+        sleep: 'Your sleep score is low. Keep a regular bedtime and avoid screens an hour before sleep.',
+        food: 'Your meal balance could be better. Start your next meal with veggies and protein.',
+        praise: 'Exercise, sleep, and meals are all well balanced. Keep the rhythm going tomorrow!',
+        empty: "Log today's routine to get tips tailored to your exercise, sleep, and meals.",
+      },
+      trend: {
+        metricTotal: 'Total',
+        metricExercise: 'Exercise',
+        metricSleep: 'Sleep',
+        metricFood: 'Food',
+        avg: 'Avg',
+        best: 'Best',
+      },
       guideTitle: "Today's self-check guide",
       tips: [
         'Start the day with a glass of water. Light hydration lifts your condition.',
