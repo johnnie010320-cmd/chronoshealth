@@ -21,6 +21,11 @@ export const RoutineUpsertRequest = z
     exerciseIntensity: z.enum(['low', 'medium', 'high']).nullable().default(null),
     sleepHours: z.number().min(0).max(24).nullable(),
     note: z.string().max(280).nullable(),
+    // 식단 점수용 영양 데이터(AI 추정 합계). 선택 — 없으면 null.
+    proteinG: z.number().min(0).max(5000).nullable().default(null),
+    carbG: z.number().min(0).max(5000).nullable().default(null),
+    fatG: z.number().min(0).max(5000).nullable().default(null),
+    upfTier: z.enum(['clean', 'processed', 'ultra']).nullable().default(null),
   })
   .strict()
   .refine(

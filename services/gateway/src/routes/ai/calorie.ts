@@ -25,10 +25,17 @@ const EstimateRequest = z
 
 type EstimateRequest = z.infer<typeof EstimateRequest>;
 
+type UpfTier = 'clean' | 'processed' | 'ultra';
+
 type LineEstimate = {
   name: string;
   amount: string;
   calories: number;
+  // 식단 점수용 — 매크로(g) + 초가공식품 등급.
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  upf: UpfTier;
 };
 
 type EstimateResult = {
@@ -66,13 +73,19 @@ aiCalorieRoute.post(
   },
 );
 
-const SYSTEM_PROMPT = `You are a nutrition assistant that estimates calories.
+const SYSTEM_PROMPT = `You are a nutrition assistant that estimates calories and macronutrients.
 You will receive a list of foods with amounts. Reply with STRICT JSON only,
 no prose, no markdown fence. Schema:
-{"breakdown":[{"name":"<echoed name>","amount":"<echoed amount>","calories":<integer kcal>}],
- "totalCalories":<integer kcal>}
+{"breakdown":[{"name":"<echoed name>","amount":"<echoed amount>","calories":<int kcal>,
+  "proteinG":<grams>,"carbG":<grams>,"fatG":<grams>,"upf":"clean|processed|ultra"}],
+ "totalCalories":<int kcal>}
 Use typical values for the food and amount. If amount is ambiguous (e.g. "a bowl"),
-assume a standard adult serving. Always return integer kcal >= 0. Round to nearest 5 kcal.
+assume a standard adult serving. Always return integer kcal >= 0 (round to nearest 5)
+and macro grams >= 0 (one decimal ok).
+"upf" classifies processing level (NOVA): "clean" = unprocessed/whole foods (vegetables,
+fruit, eggs, plain meat/fish, nuts, plain rice), "processed" = simple processed
+(tofu, canned beans, canned tuna, cheese, olives, plain bread), "ultra" = ultra-processed
+(instant noodles, ham/sausage, soda, chips, fried fast food, candy, most packaged snacks).
 Do not refuse; if uncertain, give your best estimate.`;
 
 async function estimateWithAI(
@@ -97,11 +110,14 @@ async function estimateWithAI(
     const found = parsed.breakdown[idx] ?? parsed.breakdown.find(
       (b) => b.name?.toLowerCase().trim() === input.name.toLowerCase().trim(),
     );
-    const cal = clampInt(found?.calories);
     return {
       name: input.name,
       amount: input.amount,
-      calories: cal,
+      calories: clampInt(found?.calories),
+      proteinG: clampGram(found?.proteinG),
+      carbG: clampGram(found?.carbG),
+      fatG: clampGram(found?.fatG),
+      upf: normUpf(found?.upf),
     };
   });
   const total = breakdown.reduce((s, b) => s + b.calories, 0);
@@ -113,9 +129,28 @@ function clampInt(v: unknown): number {
   return Math.max(0, Math.min(5000, Math.round(v)));
 }
 
+function clampGram(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(2000, Math.round(v * 10) / 10));
+}
+
+function normUpf(v: unknown): UpfTier {
+  return v === 'clean' || v === 'processed' || v === 'ultra' ? v : 'processed';
+}
+
+type RawLine = {
+  name?: string;
+  amount?: string;
+  calories?: number;
+  proteinG?: number;
+  carbG?: number;
+  fatG?: number;
+  upf?: string;
+};
+
 function parseAiJson(
   raw: string,
-): { breakdown: Array<{ name?: string; amount?: string; calories?: number }>; totalCalories?: number } | null {
+): { breakdown: RawLine[]; totalCalories?: number } | null {
   if (!raw) return null;
   const trimmed = raw.trim();
   // 모델이 ```json 펜스를 두르는 경우 제거.
@@ -130,7 +165,7 @@ function parseAiJson(
   const json = stripped.slice(start, end + 1);
   try {
     const parsed = JSON.parse(json) as {
-      breakdown?: Array<{ name?: string; amount?: string; calories?: number }>;
+      breakdown?: RawLine[];
       totalCalories?: number;
     };
     if (!parsed || !Array.isArray(parsed.breakdown)) return null;

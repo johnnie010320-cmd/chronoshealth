@@ -93,6 +93,7 @@ export function SurveyForm({ onSuccess }: Props) {
         birthYear: parsed.data.birthYear,
         sex: parsed.data.sex,
         heightCm: parsed.data.heightCm,
+        weightKg: parsed.data.weightKg,
         familyHistoryDiabetes: parsed.data.familyHistoryDiabetes,
         familyHistoryHypertension: parsed.data.familyHistoryHypertension,
         familyHistoryCardiovascular: parsed.data.familyHistoryCardiovascular,

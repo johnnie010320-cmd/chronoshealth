@@ -12,6 +12,8 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fileToFoodshotB64 } from '@/lib/foodshot-image';
+import { loadHealthProfile, type StableHealthProfile } from '@/lib/health-profile';
+import { dietScore, worstUpf, type DietScore } from '@/lib/diet-score';
 import {
   fetchRoutineToday,
   fetchRoutineRange,
@@ -26,10 +28,40 @@ import {
   type ExerciseIntensity,
   type SymptomAssessment,
   type CalorieEstimateLine,
+  type UpfTier,
 } from '@/lib/api-client';
 
 type TabKey = 'today' | 'graph' | 'guide';
 type FoodRow = { name: string; amount: string };
+type DayNutri = {
+  proteinG: number | null;
+  carbG: number | null;
+  fatG: number | null;
+  upfTier: UpfTier | null;
+};
+const EMPTY_NUTRI: DayNutri = { proteinG: null, carbG: null, fatG: null, upfTier: null };
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+// AI 추정 라인들 → 하루 합계 매크로 + 최악 UPF 등급.
+function aggregateNutri(
+  lines: { proteinG?: number; carbG?: number; fatG?: number; upf?: UpfTier }[],
+): DayNutri {
+  let p = 0;
+  let c = 0;
+  let f = 0;
+  let any = false;
+  for (const l of lines) {
+    if (typeof l.proteinG === 'number') { p += l.proteinG; any = true; }
+    if (typeof l.carbG === 'number') { c += l.carbG; any = true; }
+    if (typeof l.fatG === 'number') { f += l.fatG; any = true; }
+  }
+  const upfTier = worstUpf(lines.map((l) => l.upf));
+  if (!any && upfTier == null) return EMPTY_NUTRI;
+  return { proteinG: any ? round1(p) : null, carbG: any ? round1(c) : null, fatG: any ? round1(f) : null, upfTier };
+}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -44,14 +76,15 @@ function daysAgoIso(n: number): string {
 const INTENSITY_MULT: Record<ExerciseIntensity, number> = { low: 0.7, medium: 1, high: 1.4 };
 const INTENSITIES: ExerciseIntensity[] = ['low', 'medium', 'high'];
 
-// 비의료 "생활 점수"(0~100): 운동 40(강도 가중) + 수면 40 + 기록(칼로리) 20.
-function dayScore(e: RoutineEntry): number {
+// 비의료 "생활 점수"(0~100): 운동 30(강도 가중) + 수면 20 + 음식 50.
+// 음식 50 = 식단 점수(칼로리30+영양30+UPF40, 0~100)를 ×0.5 환산.
+function dayScore(e: RoutineEntry, profile: StableHealthProfile | null): number {
   let s = 0;
   const mult = e.exerciseIntensity ? INTENSITY_MULT[e.exerciseIntensity] : 1;
   const effMin = (e.exerciseMinutes ?? 0) * mult;
-  s += Math.min(effMin / 30, 1) * 40;
-  if (e.sleepHours != null) s += 40 * (1 - Math.min(Math.abs(e.sleepHours - 7.5) / 4, 1));
-  if ((e.caloriesKcal ?? 0) > 0) s += 20;
+  s += Math.min(effMin / 30, 1) * 30;
+  if (e.sleepHours != null) s += 20 * (1 - Math.min(Math.abs(e.sleepHours - 7.5) / 4, 1));
+  s += dietScore(e, profile).total * 0.5;
   return Math.round(Math.max(0, Math.min(100, s)));
 }
 
@@ -143,6 +176,7 @@ function TodayTab({
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoErr, setPhotoErr] = useState<string | null>(null);
   const [photoApplied, setPhotoApplied] = useState(false);
+  const [nutri, setNutri] = useState<DayNutri>(EMPTY_NUTRI); // 식단 점수용 매크로+UPF
 
   useEffect(() => {
     if (!signedIn) return;
@@ -154,6 +188,12 @@ function TodayTab({
           if (r.entry.sleepHours != null) setSleep(String(r.entry.sleepHours));
           if (r.entry.note) setNote(r.entry.note);
           if (r.entry.caloriesKcal != null) setCalories(String(r.entry.caloriesKcal));
+          setNutri({
+            proteinG: r.entry.proteinG ?? null,
+            carbG: r.entry.carbG ?? null,
+            fatG: r.entry.fatG ?? null,
+            upfTier: r.entry.upfTier ?? null,
+          });
         }
       })
       .catch(() => {});
@@ -178,6 +218,7 @@ function TodayTab({
       const res = await estimateCalories(cleaned, locale);
       setEstimateLines(res.breakdown);
       setCalories(String(res.totalCalories));
+      setNutri(aggregateNutri(res.breakdown));
     } catch (err) {
       setEstimateErr(err instanceof Error ? err.message : 'generic');
     } finally {
@@ -204,6 +245,7 @@ function TodayTab({
         res.estimatedItems.map((it) => ({ name: it.name, amount: it.amount, calories: it.calories })),
       );
       setCalories(String(res.totalCalories));
+      setNutri(aggregateNutri(res.estimatedItems));
       setPhotoApplied(true);
     } catch (err) {
       const code = err instanceof Error ? err.message : 'errPhoto';
@@ -219,11 +261,15 @@ function TodayTab({
     try {
       await submitRoutineDaily({
         entryDate: todayIso(),
-        caloriesKcal: num(calories), // 음식 입력으로 추정한 칼로리(생활점수·처방 신뢰도 반영)
+        caloriesKcal: num(calories), // 음식 입력으로 추정한 칼로리(식단점수·처방 신뢰도 반영)
         exerciseMinutes: num(exercise),
         exerciseIntensity: intensity,
         sleepHours: num(sleep),
         note: note.trim() || null,
+        proteinG: nutri.proteinG,
+        carbG: nutri.carbG,
+        fatG: nutri.fatG,
+        upfTier: nutri.upfTier,
       });
       if (mood) {
         try {
@@ -547,6 +593,7 @@ function TodayTab({
 function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
   const [entries, setEntries] = useState<RoutineEntry[] | null>(null);
   const [summary, setSummary] = useState<RoutineSummary | null>(null);
+  const [profile, setProfile] = useState<StableHealthProfile | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetchRoutineRange(daysAgoIso(13), todayIso());
@@ -555,7 +602,10 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
   }, []);
 
   useEffect(() => {
-    if (signedIn) load().catch(() => setEntries([]));
+    if (signedIn) {
+      setProfile(loadHealthProfile());
+      load().catch(() => setEntries([]));
+    }
   }, [signedIn, load]);
 
   // 최근 14일 일자별 점수(기록 없으면 0).
@@ -565,10 +615,14 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
     for (let i = 13; i >= 0; i--) {
       const date = daysAgoIso(i);
       const e = byDate.get(date);
-      out.push({ date, score: e ? dayScore(e) : 0, has: !!e });
+      out.push({ date, score: e ? dayScore(e, profile) : 0, has: !!e });
     }
     return out;
-  }, [entries]);
+  }, [entries, profile]);
+
+  // 오늘 식단 점수 세부(칼로리/영양/UPF).
+  const todayEntry = (entries ?? []).find((e) => e.entryDate === todayIso()) ?? null;
+  const todayDiet: DietScore | null = todayEntry ? dietScore(todayEntry, profile) : null;
 
   if (!signedIn) return <LoginPrompt S={S} />;
   if (entries === null) {
@@ -640,6 +694,9 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       </svg>
       <p className="text-center text-[10px] text-stone-400">{S.graphRangeNote}</p>
 
+      {/* 오늘 식단 점수 세부(칼로리30 + 영양30 + UPF40) */}
+      {todayDiet && <DietBreakdown d={todayDiet} S={S} />}
+
       {/* 세부 3지표 */}
       <div className="grid grid-cols-3 gap-2">
         <Metric label={S.avgExercise} value={`${Math.round(avg?.exerciseMinutes ?? 0)}`} unit={S.exerciseUnit} />
@@ -659,6 +716,52 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       <p className="rounded-lg bg-stone-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-stone-500 dark:bg-stone-800/60 dark:text-stone-400">
         {S.graphDisclaimer}
       </p>
+    </div>
+  );
+}
+
+// 오늘 식단 점수 세부 — 칼로리/영양/UPF 미니 바 + 데이터 보강 안내.
+function DietBreakdown({ d, S }: { d: DietScore; S: SelfCheckLabels }) {
+  const F = S.diet;
+  const bars: { label: string; val: number; max: number }[] = [
+    { label: F.calorie, val: d.calorie, max: 30 },
+    { label: F.nutrition, val: d.macro, max: 30 },
+    { label: F.upf, val: d.upf, max: 40 },
+  ];
+  return (
+    <div className="rounded-xl border border-stone-200 bg-stone-50/60 px-3 py-2.5 dark:border-stone-800 dark:bg-stone-800/30">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">{F.title}</span>
+        <span className="text-[12px] font-bold tabular-nums text-brand-700 dark:text-brand-300">
+          {d.total}
+          <span className="ml-0.5 text-[10px] font-medium text-stone-400">/100</span>
+        </span>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {bars.map((b) => (
+          <div key={b.label} className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-[10px] font-medium text-stone-500 dark:text-stone-400">
+              {b.label}
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-700">
+              <div
+                className="h-full rounded-full bg-brand-500"
+                style={{ width: `${Math.round((b.val / b.max) * 100)}%` }}
+              />
+            </div>
+            <span className="w-9 shrink-0 text-right text-[10px] tabular-nums font-semibold text-stone-600 dark:text-stone-300">
+              {b.val}/{b.max}
+            </span>
+          </div>
+        ))}
+      </div>
+      {(!d.hasMacro || !d.hasUpf) && (
+        <p className="mt-2 text-[10px] leading-relaxed text-amber-600 dark:text-amber-400">{F.hintEstimate}</p>
+      )}
+      {!d.hasTarget && (
+        <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{F.hintProfile}</p>
+      )}
+      <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{F.formulaNote}</p>
     </div>
   );
 }

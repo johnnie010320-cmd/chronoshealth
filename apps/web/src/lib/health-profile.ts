@@ -16,6 +16,9 @@ export type StableHealthProfile = {
   birthYear: number | null;
   sex: Sex;
   heightCm: number | null;
+  // 체중 — 설문 제출 시점의 최근값. 식단 칼로리 목표(TDEE) 계산에만 사용.
+  // 변동이 있어 설문 폼에는 자동 입력하지 않음(프리필 제외).
+  weightKg: number | null;
   familyHistoryDiabetes: boolean;
   familyHistoryHypertension: boolean;
   familyHistoryCardiovascular: boolean;
@@ -40,6 +43,7 @@ export function loadHealthProfile(): StableHealthProfile | null {
       birthYear: typeof p.birthYear === 'number' ? p.birthYear : null,
       sex: p.sex ?? '',
       heightCm: typeof p.heightCm === 'number' ? p.heightCm : null,
+      weightKg: typeof p.weightKg === 'number' ? p.weightKg : null,
       familyHistoryDiabetes: Boolean(p.familyHistoryDiabetes),
       familyHistoryHypertension: Boolean(p.familyHistoryHypertension),
       familyHistoryCardiovascular: Boolean(p.familyHistoryCardiovascular),

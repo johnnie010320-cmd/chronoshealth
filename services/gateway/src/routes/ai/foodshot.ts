@@ -21,9 +21,21 @@ const FoodshotRequest = z
   })
   .strict();
 
+type UpfTier = 'clean' | 'processed' | 'ultra';
+
+type FoodshotItem = {
+  name: string;
+  amount: string;
+  calories: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  upf: UpfTier;
+};
+
 type FoodshotResult = {
   description: string;
-  estimatedItems: { name: string; amount: string; calories: number }[];
+  estimatedItems: FoodshotItem[];
   totalCalories: number;
 };
 
@@ -87,9 +99,15 @@ async function runFoodshot(
       {
         role: 'system',
         content: `Given a description of foods, produce STRICT JSON only:
-{"estimatedItems":[{"name":"<food>","amount":"<portion>","calories":<integer kcal>}],
- "totalCalories":<integer>}
-2-6 items. Round kcal to nearest 5. Use the locale "${locale}" for the names.`,
+{"estimatedItems":[{"name":"<food>","amount":"<portion>","calories":<int kcal>,
+  "proteinG":<grams>,"carbG":<grams>,"fatG":<grams>,"upf":"clean|processed|ultra"}],
+ "totalCalories":<int>}
+2-6 items. Round kcal to nearest 5; macro grams >= 0 (one decimal ok).
+"upf" = NOVA processing level: "clean" = whole/unprocessed (vegetables, fruit, eggs,
+plain meat/fish, nuts, plain rice), "processed" = simple processed (tofu, canned beans,
+canned tuna, cheese, olives, plain bread), "ultra" = ultra-processed (instant noodles,
+ham/sausage, soda, chips, fried fast food, candy).
+Use the locale "${locale}" for the names.`,
       },
       { role: 'user', content: description },
     ],
@@ -113,9 +131,28 @@ function base64ToArray(b64: string): number[] {
   return arr;
 }
 
+type RawItem = {
+  name?: string;
+  amount?: string;
+  calories?: number;
+  proteinG?: number;
+  carbG?: number;
+  fatG?: number;
+  upf?: string;
+};
+
+function clampGram(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(2000, Math.round(v * 10) / 10));
+}
+
+function normUpf(v: unknown): UpfTier {
+  return v === 'clean' || v === 'processed' || v === 'ultra' ? v : 'processed';
+}
+
 function parseJson(
   raw: string,
-): { estimatedItems: { name: string; amount: string; calories: number }[]; totalCalories: number } | null {
+): { estimatedItems: FoodshotItem[]; totalCalories: number } | null {
   if (!raw) return null;
   const stripped = raw
     .trim()
@@ -127,7 +164,7 @@ function parseJson(
   if (s < 0 || e < s) return null;
   try {
     const obj = JSON.parse(stripped.slice(s, e + 1)) as {
-      estimatedItems?: Array<{ name?: string; amount?: string; calories?: number }>;
+      estimatedItems?: RawItem[];
       totalCalories?: number;
     };
     if (!Array.isArray(obj.estimatedItems)) return null;
@@ -137,6 +174,10 @@ function parseJson(
         name: String(i.name).slice(0, 80),
         amount: String(i.amount ?? '').slice(0, 60),
         calories: Math.max(0, Math.min(5000, Math.round(i.calories ?? 0))),
+        proteinG: clampGram(i.proteinG),
+        carbG: clampGram(i.carbG),
+        fatG: clampGram(i.fatG),
+        upf: normUpf(i.upf),
       }))
       .slice(0, 6);
     const total =

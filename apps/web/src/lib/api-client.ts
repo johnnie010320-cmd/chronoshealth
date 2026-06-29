@@ -836,6 +836,11 @@ export type RoutineEntry = {
   exerciseIntensity?: ExerciseIntensity | null;
   sleepHours: number | null;
   note: string | null;
+  // 식단 점수용 영양 데이터(하루 합계). null/미지정 = 미집계.
+  proteinG?: number | null;
+  carbG?: number | null;
+  fatG?: number | null;
+  upfTier?: UpfTier | null;
 };
 
 export type RoutineSummary = {
@@ -1180,11 +1185,17 @@ export async function deleteRelease(id: string): Promise<void> {
 }
 
 // AI 칼로리 추정 — Cloudflare Workers AI (llama-3.1-8b-instruct)
+export type UpfTier = 'clean' | 'processed' | 'ultra';
 export type CalorieEstimateItem = { name: string; amount: string };
 export type CalorieEstimateLine = {
   name: string;
   amount: string;
   calories: number;
+  // 식단 점수용 — 매크로(g) + 초가공식품 등급. (구버전 응답 호환 위해 optional)
+  proteinG?: number;
+  carbG?: number;
+  fatG?: number;
+  upf?: UpfTier;
 };
 export type CalorieEstimateResponse = {
   breakdown: CalorieEstimateLine[];
@@ -1492,7 +1503,15 @@ export async function removeDiary(id: string): Promise<void> {
 // Phase 2.5 — Foodshot
 export type FoodshotResult = {
   description: string;
-  estimatedItems: { name: string; amount: string; calories: number }[];
+  estimatedItems: {
+    name: string;
+    amount: string;
+    calories: number;
+    proteinG?: number;
+    carbG?: number;
+    fatG?: number;
+    upf?: UpfTier;
+  }[];
   totalCalories: number;
   modelVersion: string;
 };

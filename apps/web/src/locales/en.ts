@@ -313,6 +313,15 @@ export const en: Dictionary = {
       daysUnit: 'd',
       streakLabel: 'Streak',
       graphDisclaimer: 'The lifestyle score is a reference based on your logged exercise, sleep and meals, not a medical diagnosis.',
+      diet: {
+        title: "Today's diet score",
+        calorie: 'Calories',
+        nutrition: 'Nutrition',
+        upf: 'UPF',
+        hintEstimate: 'Run the AI calorie estimate (after a photo or manual entry) to factor in nutrition and ultra-processed scores.',
+        hintProfile: 'Enter your height, weight and birth year in the survey for an accurate calorie target.',
+        formulaNote: 'Diet score = calories 30 + nutrition 30 + ultra-processed 40, counted as 50 of the lifestyle score.',
+      },
       guideTitle: "Today's self-check guide",
       tips: [
         'Start the day with a glass of water. Light hydration lifts your condition.',

@@ -313,6 +313,15 @@ export const es: Dictionary = {
       daysUnit: 'd',
       streakLabel: 'Racha',
       graphDisclaimer: 'La puntuación de estilo de vida es una referencia basada en tu ejercicio, sueño y comidas registrados, no un diagnóstico médico.',
+      diet: {
+        title: 'Puntuación de dieta de hoy',
+        calorie: 'Calorías',
+        nutrition: 'Nutrición',
+        upf: 'UPF',
+        hintEstimate: 'Ejecuta la estimación de calorías con IA (tras una foto o entrada manual) para incluir las puntuaciones de nutrición y ultraprocesados.',
+        hintProfile: 'Ingresa tu altura, peso y año de nacimiento en la encuesta para un objetivo calórico preciso.',
+        formulaNote: 'Puntuación de dieta = calorías 30 + nutrición 30 + ultraprocesados 40, contada como 50 de la puntuación de estilo de vida.',
+      },
       guideTitle: 'Guía de autochequeo de hoy',
       tips: [
         'Empieza el día con un vaso de agua. Una ligera hidratación mejora tu estado.',
