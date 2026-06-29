@@ -322,6 +322,15 @@ export const es: Dictionary = {
         hintProfile: 'Ingresa tu altura, peso y año de nacimiento en la encuesta para un objetivo calórico preciso.',
         formulaNote: 'Puntuación de dieta = calorías 30 + nutrición 30 + ultraprocesados 40, contada como 50 de la puntuación de estilo de vida.',
       },
+      lifestyle: {
+        title: 'Puntuación de estilo de vida por categoría',
+        colHint: 'Bruta · ponderada',
+        exercise: 'Ejercicio',
+        sleep: 'Sueño',
+        food: 'Comida',
+        total: 'Puntuación total',
+        note: 'La puntuación total aplica los pesos ejercicio 30 · sueño 20 · comida 50 a la puntuación bruta (sobre 100) de cada categoría.',
+      },
       guideTitle: 'Guía de autochequeo de hoy',
       tips: [
         'Empieza el día con un vaso de agua. Una ligera hidratación mejora tu estado.',

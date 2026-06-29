@@ -322,6 +322,15 @@ export const en: Dictionary = {
         hintProfile: 'Enter your height, weight and birth year in the survey for an accurate calorie target.',
         formulaNote: 'Diet score = calories 30 + nutrition 30 + ultra-processed 40, counted as 50 of the lifestyle score.',
       },
+      lifestyle: {
+        title: "Today's lifestyle score by category",
+        colHint: 'Raw · weighted',
+        exercise: 'Exercise',
+        sleep: 'Sleep',
+        food: 'Food',
+        total: 'Total score',
+        note: 'The total score applies exercise 30 · sleep 20 · food 50 weights to each category raw score (out of 100).',
+      },
       guideTitle: "Today's self-check guide",
       tips: [
         'Start the day with a glass of water. Light hydration lifts your condition.',

@@ -76,16 +76,43 @@ function daysAgoIso(n: number): string {
 const INTENSITY_MULT: Record<ExerciseIntensity, number> = { low: 0.7, medium: 1, high: 1.4 };
 const INTENSITIES: ExerciseIntensity[] = ['low', 'medium', 'high'];
 
-// 비의료 "생활 점수"(0~100): 운동 30(강도 가중) + 수면 20 + 음식 50.
-// 음식 50 = 식단 점수(칼로리30+영양30+UPF40, 0~100)를 ×0.5 환산.
-function dayScore(e: RoutineEntry, profile: StableHealthProfile | null): number {
-  let s = 0;
+// 항목 가중치(합 100): 운동 30 + 수면 20 + 음식 50.
+const SCORE_WEIGHT = { exercise: 30, sleep: 20, food: 50 } as const;
+
+// 한 항목의 원점수(0~100)와 가중 환산점수(원점수×가중치/100).
+type ScorePart = { raw: number; weighted: number; weight: number };
+type DayScoreParts = {
+  exercise: ScorePart;
+  sleep: ScorePart;
+  food: ScorePart;
+  total: number; // 가중 환산점수 합(0~100)
+};
+
+// 비의료 "생활 점수"를 항목별 원점수 + 가중 환산점수로 분해.
+// 운동: 효과시간/30분 기준(강도 가중). 수면: 7.5h 최적 편차. 음식: 식단 점수(칼로리30+영양30+UPF40).
+function dayScoreParts(e: RoutineEntry, profile: StableHealthProfile | null): DayScoreParts {
   const mult = e.exerciseIntensity ? INTENSITY_MULT[e.exerciseIntensity] : 1;
   const effMin = (e.exerciseMinutes ?? 0) * mult;
-  s += Math.min(effMin / 30, 1) * 30;
-  if (e.sleepHours != null) s += 20 * (1 - Math.min(Math.abs(e.sleepHours - 7.5) / 4, 1));
-  s += dietScore(e, profile).total * 0.5;
-  return Math.round(Math.max(0, Math.min(100, s)));
+  const exRaw = Math.min(effMin / 30, 1) * 100;
+  const slRaw = e.sleepHours != null ? 100 * (1 - Math.min(Math.abs(e.sleepHours - 7.5) / 4, 1)) : 0;
+  const fdRaw = dietScore(e, profile).total;
+  const part = (raw: number, weight: number): ScorePart => ({
+    raw: Math.round(Math.max(0, Math.min(100, raw))),
+    weighted: Math.round(((raw * weight) / 100) * 10) / 10,
+    weight,
+  });
+  const exercise = part(exRaw, SCORE_WEIGHT.exercise);
+  const sleep = part(slRaw, SCORE_WEIGHT.sleep);
+  const food = part(fdRaw, SCORE_WEIGHT.food);
+  // 통합 점수는 반올림 누적오차를 피하려 원점수에서 직접 산출.
+  const total = Math.round(
+    Math.max(0, Math.min(100, (exRaw * SCORE_WEIGHT.exercise + slRaw * SCORE_WEIGHT.sleep + fdRaw * SCORE_WEIGHT.food) / 100)),
+  );
+  return { exercise, sleep, food, total };
+}
+
+function dayScore(e: RoutineEntry, profile: StableHealthProfile | null): number {
+  return dayScoreParts(e, profile).total;
 }
 
 const MOODS: DiaryMood[] = ['great', 'good', 'soso', 'tired', 'bad'];
@@ -620,8 +647,9 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
     return out;
   }, [entries, profile]);
 
-  // 오늘 식단 점수 세부(칼로리/영양/UPF).
+  // 오늘 항목별 생활 점수 + 식단 점수 세부(칼로리/영양/UPF).
   const todayEntry = (entries ?? []).find((e) => e.entryDate === todayIso()) ?? null;
+  const todayParts: DayScoreParts | null = todayEntry ? dayScoreParts(todayEntry, profile) : null;
   const todayDiet: DietScore | null = todayEntry ? dietScore(todayEntry, profile) : null;
 
   if (!signedIn) return <LoginPrompt S={S} />;
@@ -694,6 +722,9 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       </svg>
       <p className="text-center text-[10px] text-stone-400">{S.graphRangeNote}</p>
 
+      {/* 오늘 항목별 생활 점수(운동·수면·음식 원점수 + 가중 환산 + 통합) */}
+      {todayParts && <LifestyleBreakdown parts={todayParts} S={S} />}
+
       {/* 오늘 식단 점수 세부(칼로리30 + 영양30 + UPF40) */}
       {todayDiet && <DietBreakdown d={todayDiet} S={S} />}
 
@@ -716,6 +747,51 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       <p className="rounded-lg bg-stone-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-stone-500 dark:bg-stone-800/60 dark:text-stone-400">
         {S.graphDisclaimer}
       </p>
+    </div>
+  );
+}
+
+// 오늘 항목별 생활 점수 — 운동·수면·음식의 원점수(0~100)와 가중 환산점수(30/20/50) + 통합 점수.
+function LifestyleBreakdown({ parts, S }: { parts: DayScoreParts; S: SelfCheckLabels }) {
+  const L = S.lifestyle;
+  const rows: { label: string; part: ScorePart }[] = [
+    { label: L.exercise, part: parts.exercise },
+    { label: L.sleep, part: parts.sleep },
+    { label: L.food, part: parts.food },
+  ];
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white px-3 py-2.5 dark:border-stone-800 dark:bg-stone-900/40">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">{L.title}</span>
+        <span className="text-[9px] font-medium text-stone-400">{L.colHint}</span>
+      </div>
+      <div className="mt-2 space-y-2">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-stone-700 dark:text-stone-300">{r.label}</span>
+              <span className="tabular-nums text-stone-500 dark:text-stone-400">
+                <b className="text-stone-800 dark:text-stone-100">{r.part.raw}</b>
+                <span className="text-[9px]">/100</span>
+                <span className="mx-1.5 text-stone-300 dark:text-stone-600">→</span>
+                <b className="text-brand-700 dark:text-brand-300">{r.part.weighted}</b>
+                <span className="text-[9px]">/{r.part.weight}</span>
+              </span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-700">
+              <div className="h-full rounded-full bg-brand-500" style={{ width: `${r.part.raw}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2.5 flex items-center justify-between border-t border-stone-100 pt-2 dark:border-stone-800">
+        <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">{L.total}</span>
+        <span className="text-[13px] font-bold tabular-nums text-brand-700 dark:text-brand-300">
+          {parts.total}
+          <span className="ml-0.5 text-[10px] font-medium text-stone-400">/100</span>
+        </span>
+      </div>
+      <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{L.note}</p>
     </div>
   );
 }
