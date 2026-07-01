@@ -26,6 +26,9 @@ export const RoutineUpsertRequest = z
     carbG: z.number().min(0).max(5000).nullable().default(null),
     fatG: z.number().min(0).max(5000).nullable().default(null),
     upfTier: z.enum(['clean', 'processed', 'ultra']).nullable().default(null),
+    // 운동 점수 세분화 — 밸런스(운동 종류) + 리커버리(스트레칭). 선택.
+    exerciseType: z.enum(['cardio', 'strength', 'both']).nullable().default(null),
+    didStretch: z.boolean().nullable().default(null),
   })
   .strict()
   .refine(

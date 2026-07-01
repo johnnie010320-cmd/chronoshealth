@@ -14,6 +14,7 @@ import { readSession } from '@/lib/session';
 import { fileToFoodshotB64 } from '@/lib/foodshot-image';
 import { loadHealthProfile, type StableHealthProfile } from '@/lib/health-profile';
 import { dietScore, worstUpf, type DietScore } from '@/lib/diet-score';
+import { exerciseScore, type ExerciseScore } from '@/lib/exercise-score';
 import {
   fetchRoutineToday,
   fetchRoutineRange,
@@ -26,6 +27,7 @@ import {
   type RoutineSummary,
   type DiaryMood,
   type ExerciseIntensity,
+  type ExerciseType,
   type SymptomAssessment,
   type CalorieEstimateLine,
   type UpfTier,
@@ -72,9 +74,8 @@ function daysAgoIso(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// 운동 강도 가중치(강=호흡 가쁨, 약=걷기). 짧고 강한 운동도 적절히 반영.
-const INTENSITY_MULT: Record<ExerciseIntensity, number> = { low: 0.7, medium: 1, high: 1.4 };
 const INTENSITIES: ExerciseIntensity[] = ['low', 'medium', 'high'];
+const EXERCISE_TYPES: ExerciseType[] = ['cardio', 'strength', 'both'];
 
 // 항목 가중치(합 100): 운동 30 + 수면 20 + 음식 50.
 const SCORE_WEIGHT = { exercise: 30, sleep: 20, food: 50 } as const;
@@ -89,11 +90,9 @@ type DayScoreParts = {
 };
 
 // 비의료 "생활 점수"를 항목별 원점수 + 가중 환산점수로 분해.
-// 운동: 효과시간/30분 기준(강도 가중). 수면: 7.5h 최적 편차. 음식: 식단 점수(칼로리30+영양30+UPF40).
+// 운동: 강도&시간40 + 밸런스30 + 리커버리30 (exercise-score). 수면: 7.5h 최적 편차. 음식: 식단 점수(칼로리30+영양30+UPF40).
 function dayScoreParts(e: RoutineEntry, profile: StableHealthProfile | null): DayScoreParts {
-  const mult = e.exerciseIntensity ? INTENSITY_MULT[e.exerciseIntensity] : 1;
-  const effMin = (e.exerciseMinutes ?? 0) * mult;
-  const exRaw = Math.min(effMin / 30, 1) * 100;
+  const exRaw = exerciseScore(e).total;
   const slRaw = e.sleepHours != null ? 100 * (1 - Math.min(Math.abs(e.sleepHours - 7.5) / 4, 1)) : 0;
   const fdRaw = dietScore(e, profile).total;
   const part = (raw: number, weight: number): ScorePart => ({
@@ -220,6 +219,8 @@ function TodayTab({
   const [mood, setMood] = useState<DiaryMood | null>(null);
   const [exercise, setExercise] = useState('');
   const [intensity, setIntensity] = useState<ExerciseIntensity | null>(null);
+  const [exType, setExType] = useState<ExerciseType | null>(null); // 운동 밸런스: 유산소/근력/혼합
+  const [didStretch, setDidStretch] = useState<boolean | null>(null); // 리커버리: 스트레칭 수행
   const [sleep, setSleep] = useState('');
   const [note, setNote] = useState('');
   const [calories, setCalories] = useState(''); // 음식 → AI 칼로리 추정값(편집 가능)
@@ -242,6 +243,8 @@ function TodayTab({
         if (r.entry) {
           if (r.entry.exerciseMinutes != null) setExercise(String(r.entry.exerciseMinutes));
           if (r.entry.exerciseIntensity) setIntensity(r.entry.exerciseIntensity);
+          if (r.entry.exerciseType) setExType(r.entry.exerciseType);
+          if (r.entry.didStretch != null) setDidStretch(r.entry.didStretch);
           if (r.entry.sleepHours != null) setSleep(String(r.entry.sleepHours));
           if (r.entry.note) setNote(r.entry.note);
           if (r.entry.caloriesKcal != null) setCalories(String(r.entry.caloriesKcal));
@@ -321,6 +324,8 @@ function TodayTab({
         caloriesKcal: num(calories), // 음식 입력으로 추정한 칼로리(식단점수·처방 신뢰도 반영)
         exerciseMinutes: num(exercise),
         exerciseIntensity: intensity,
+        exerciseType: exType,
+        didStretch,
         sleepHours: num(sleep),
         note: note.trim() || null,
         proteinG: nutri.proteinG,
@@ -429,6 +434,53 @@ function TodayTab({
           ))}
         </div>
         <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{S.intensityHint}</p>
+      </div>
+
+      {/* 운동 종류(밸런스) — 유산소/근력/혼합 */}
+      <div>
+        <p className="mb-1 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
+          {S.exercise.typeLabel}
+        </p>
+        <div className="flex gap-1.5">
+          {EXERCISE_TYPES.map((ty) => (
+            <button
+              key={ty}
+              type="button"
+              onClick={() => setExType((cur) => (cur === ty ? null : ty))}
+              className={`flex-1 rounded-xl border px-2 py-2 text-[12px] font-semibold transition ${
+                exType === ty
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/40 dark:text-brand-200'
+                  : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+              }`}
+            >
+              {S.exercise.type[ty]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 리커버리 — 운동 후 스트레칭/쿨다운 여부 */}
+      <div>
+        <p className="mb-1 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
+          {S.exercise.stretchLabel}
+        </p>
+        <div className="flex gap-1.5">
+          {([['yes', true], ['no', false]] as [('yes' | 'no'), boolean][]).map(([k, v]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setDidStretch((cur) => (cur === v ? null : v))}
+              className={`flex-1 rounded-xl border px-2 py-2 text-[12px] font-semibold transition ${
+                didStretch === v
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/40 dark:text-brand-200'
+                  : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+              }`}
+            >
+              {S.exercise.stretch[k]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{S.exercise.stretchHint}</p>
       </div>
 
       {/* 음식 → AI 칼로리 추정(텍스트/사진). 칼로리는 생활점수·AI 처방 신뢰도에 반영 */}
@@ -688,6 +740,7 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
   // 오늘 항목별 생활 점수 + 식단 점수 세부(칼로리/영양/UPF).
   const todayEntry = (entries ?? []).find((e) => e.entryDate === todayIso()) ?? null;
   const todayParts: DayScoreParts | null = todayEntry ? dayScoreParts(todayEntry, profile) : null;
+  const todayExercise: ExerciseScore | null = todayEntry ? exerciseScore(todayEntry) : null;
   const todayDiet: DietScore | null = todayEntry ? dietScore(todayEntry, profile) : null;
 
   if (!signedIn) return <LoginPrompt S={S} />;
@@ -739,6 +792,9 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
 
       {/* 오늘 항목별 생활 점수(운동·수면·음식 원점수 + 가중 환산 + 통합) */}
       {todayParts && <LifestyleBreakdown parts={todayParts} S={S} />}
+
+      {/* 오늘 운동 점수 세부(강도&시간40 + 밸런스30 + 리커버리30) + AI 가비 코멘트 */}
+      {todayExercise && <ExerciseBreakdown x={todayExercise} S={S} />}
 
       {/* 오늘 식단 점수 세부(칼로리30 + 영양30 + UPF40) */}
       {todayDiet && <DietBreakdown d={todayDiet} S={S} />}
@@ -941,6 +997,58 @@ function LifestyleBreakdown({ parts, S }: { parts: DayScoreParts; S: SelfCheckLa
         </span>
       </div>
       <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{L.note}</p>
+    </div>
+  );
+}
+
+// 오늘 운동 점수 세부 — 강도&시간/밸런스/리커버리 미니 바 + AI 가비 코멘트.
+function ExerciseBreakdown({ x, S }: { x: ExerciseScore; S: SelfCheckLabels }) {
+  const X = S.exercise;
+  const bars: { label: string; val: number; max: number }[] = [
+    { label: X.intensityTitle, val: x.intensity, max: 40 },
+    { label: X.balanceTitle, val: x.balance, max: 30 },
+    { label: X.recoveryTitle, val: x.recovery, max: 30 },
+  ];
+  // AI 가비 한마디 — 전반 우수면 칭찬, 아니면 최저 항목을 짚어준다.
+  const coachKey: 'praise' | ExerciseScore['weakest'] = x.total >= 85 ? 'praise' : x.weakest;
+  return (
+    <div className="rounded-xl border border-stone-200 bg-stone-50/60 px-3 py-2.5 dark:border-stone-800 dark:bg-stone-800/30">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">{X.scoreTitle}</span>
+        <span className="text-[12px] font-bold tabular-nums text-brand-700 dark:text-brand-300">
+          {x.total}
+          <span className="ml-0.5 text-[10px] font-medium text-stone-400">/100</span>
+        </span>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {bars.map((b) => (
+          <div key={b.label} className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-[10px] font-medium text-stone-500 dark:text-stone-400">
+              {b.label}
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-700">
+              <div
+                className="h-full rounded-full bg-brand-500"
+                style={{ width: `${Math.round((b.val / b.max) * 100)}%` }}
+              />
+            </div>
+            <span className="w-9 shrink-0 text-right text-[10px] tabular-nums font-semibold text-stone-600 dark:text-stone-300">
+              {b.val}/{b.max}
+            </span>
+          </div>
+        ))}
+      </div>
+      {/* AI 가비 한마디 */}
+      <div className="mt-2 flex items-start gap-2 rounded-lg bg-brand-50 px-2.5 py-2 dark:bg-brand-900/30">
+        <span aria-hidden className="text-sm leading-none">🤖</span>
+        <p className="text-[11px] leading-relaxed text-brand-800 dark:text-brand-100">
+          <b className="font-semibold">{X.coachName}</b> {X.coach[coachKey]}
+        </p>
+      </div>
+      {(!x.hasType || !x.hasStretch) && (
+        <p className="mt-1.5 text-[10px] leading-relaxed text-amber-600 dark:text-amber-400">{X.hintInput}</p>
+      )}
+      <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{X.formulaNote}</p>
     </div>
   );
 }

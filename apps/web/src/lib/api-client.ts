@@ -841,7 +841,12 @@ export type RoutineEntry = {
   carbG?: number | null;
   fatG?: number | null;
   upfTier?: UpfTier | null;
+  // 운동 점수 세분화 — 밸런스(운동 종류) + 리커버리(스트레칭 수행). null = 미입력.
+  exerciseType?: ExerciseType | null;
+  didStretch?: boolean | null;
 };
+
+export type ExerciseType = 'cardio' | 'strength' | 'both';
 
 export type RoutineSummary = {
   from: string;

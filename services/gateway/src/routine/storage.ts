@@ -12,6 +12,9 @@ export type RoutineEntry = {
   carbG?: number | null;
   fatG?: number | null;
   upfTier?: UpfTier | null;
+  // 운동 점수 세분화용 — 밸런스(유산소/근력/혼합) + 리커버리(스트레칭 수행).
+  exerciseType?: 'cardio' | 'strength' | 'both' | null;
+  didStretch?: boolean | null;
   // 스토리보드 p20 추가 카테고리 (확장).
   weightKg?: number | null;
   waistCm?: number | null;
@@ -33,10 +36,11 @@ export async function upsertRoutineEntry(
         user_pseudonym_id, purpose_code, entry_date,
         calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
         protein_g, carb_g, fat_g, upf_tier,
+        exercise_type, did_stretch,
         weight_kg, waist_cm, blood_glucose_mg_dl,
         blood_pressure_systolic, blood_pressure_diastolic,
         medication_taken, stress_level
-      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (user_pseudonym_id, entry_date) DO UPDATE SET
         calories_kcal = excluded.calories_kcal,
         exercise_minutes = excluded.exercise_minutes,
@@ -47,6 +51,8 @@ export async function upsertRoutineEntry(
         carb_g = excluded.carb_g,
         fat_g = excluded.fat_g,
         upf_tier = excluded.upf_tier,
+        exercise_type = excluded.exercise_type,
+        did_stretch = excluded.did_stretch,
         weight_kg = excluded.weight_kg,
         waist_cm = excluded.waist_cm,
         blood_glucose_mg_dl = excluded.blood_glucose_mg_dl,
@@ -68,6 +74,8 @@ export async function upsertRoutineEntry(
       entry.carbG ?? null,
       entry.fatG ?? null,
       entry.upfTier ?? null,
+      entry.exerciseType ?? null,
+      entry.didStretch == null ? null : entry.didStretch ? 1 : 0,
       entry.weightKg ?? null,
       entry.waistCm ?? null,
       entry.bloodGlucoseMgDl ?? null,
@@ -87,7 +95,7 @@ export async function readRoutineByDate(
   const row = await db
     .prepare(
       `SELECT entry_date, calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
-              protein_g, carb_g, fat_g, upf_tier
+              protein_g, carb_g, fat_g, upf_tier, exercise_type, did_stretch
          FROM routine_entries
         WHERE user_pseudonym_id = ? AND entry_date = ?`,
     )
@@ -109,6 +117,8 @@ type NutritionRow = {
   carb_g: number | null;
   fat_g: number | null;
   upf_tier: string | null;
+  exercise_type: string | null;
+  did_stretch: number | null;
 };
 
 function mapRow(row: NutritionRow): RoutineEntry {
@@ -123,11 +133,17 @@ function mapRow(row: NutritionRow): RoutineEntry {
     carbG: row.carb_g,
     fatG: row.fat_g,
     upfTier: normUpf(row.upf_tier),
+    exerciseType: normExerciseType(row.exercise_type),
+    didStretch: row.did_stretch == null ? null : row.did_stretch === 1,
   };
 }
 
 function normIntensity(v: string | null | undefined): 'low' | 'medium' | 'high' | null {
   return v === 'low' || v === 'medium' || v === 'high' ? v : null;
+}
+
+function normExerciseType(v: string | null | undefined): 'cardio' | 'strength' | 'both' | null {
+  return v === 'cardio' || v === 'strength' || v === 'both' ? v : null;
 }
 
 function normUpf(v: string | null | undefined): UpfTier | null {
@@ -143,7 +159,7 @@ export async function readRoutineRange(
   const result = await db
     .prepare(
       `SELECT entry_date, calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
-              protein_g, carb_g, fat_g, upf_tier
+              protein_g, carb_g, fat_g, upf_tier, exercise_type, did_stretch
          FROM routine_entries
         WHERE user_pseudonym_id = ?
           AND entry_date >= ?
