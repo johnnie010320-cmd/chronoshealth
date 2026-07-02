@@ -19,6 +19,8 @@ import {
   type AiPrescription,
   type DiaryMood,
   type ExerciseIntensity,
+  type ExerciseType,
+  type UpfTier,
 } from '@/lib/api-client';
 
 function todayIso(): string {
@@ -61,9 +63,11 @@ export default function HealthDiaryPage() {
     calories: string;
     exercise: string;
     intensity: '' | ExerciseIntensity;
+    exType: '' | ExerciseType;
+    stretch: '' | 'yes' | 'no';
     sleep: string;
     note: string;
-  }>({ calories: '', exercise: '', intensity: '', sleep: '', note: '' });
+  }>({ calories: '', exercise: '', intensity: '', exType: '', stretch: '', sleep: '', note: '' });
 
   function startEdit(d: DayLog) {
     const r = d.routine;
@@ -72,6 +76,8 @@ export default function HealthDiaryPage() {
       calories: r?.caloriesKcal != null ? String(r.caloriesKcal) : '',
       exercise: r?.exerciseMinutes != null ? String(r.exerciseMinutes) : '',
       intensity: r?.exerciseIntensity ?? '',
+      exType: r?.exerciseType ?? '',
+      stretch: r?.didStretch == null ? '' : r.didStretch ? 'yes' : 'no',
       sleep: r?.sleepHours != null ? String(r.sleepHours) : '',
       note: r?.note ?? '',
     });
@@ -107,15 +113,15 @@ export default function HealthDiaryPage() {
         caloriesKcal: calories == null ? null : Math.round(calories),
         exerciseMinutes: exercise == null ? null : Math.round(exercise),
         exerciseIntensity: form.intensity === '' ? null : form.intensity,
+        exerciseType: form.exType === '' ? null : form.exType,
+        didStretch: form.stretch === '' ? null : form.stretch === 'yes',
         sleepHours: sleep,
         note,
-        // 화면에 없는 값(영양·운동종류·스트레칭)은 기존 엔트리에서 보존해 유실 방지.
+        // 영양(매크로·UPF)은 AI 추정값이라 직접 편집하지 않고 기존 엔트리에서 보존(유실 방지).
         proteinG: prev?.proteinG ?? null,
         carbG: prev?.carbG ?? null,
         fatG: prev?.fatG ?? null,
         upfTier: prev?.upfTier ?? null,
-        exerciseType: prev?.exerciseType ?? null,
-        didStretch: prev?.didStretch ?? null,
       };
       const { entry } = await submitRoutineDaily(body);
       setDays((ds) =>
@@ -282,13 +288,46 @@ export default function HealthDiaryPage() {
                           <option value="medium">{S.intensity.medium}</option>
                           <option value="high">{S.intensity.high}</option>
                         </select>
-                        <DiaryInput
-                          placeholder={D.notePh}
-                          value={form.note}
-                          maxLength={280}
-                          onChange={(v) => setForm((s) => ({ ...s, note: v }))}
-                        />
+                        <select
+                          value={form.exType}
+                          onChange={(e) =>
+                            setForm((s) => ({
+                              ...s,
+                              exType: e.target.value as '' | ExerciseType,
+                            }))
+                          }
+                          className="rounded-xl border border-stone-200 bg-white px-2 py-2 text-[13px] text-stone-900 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                        >
+                          <option value="">
+                            {S.exercise.typeLabel}: {D.typeNone}
+                          </option>
+                          <option value="cardio">{S.exercise.type.cardio}</option>
+                          <option value="strength">{S.exercise.type.strength}</option>
+                          <option value="both">{S.exercise.type.both}</option>
+                        </select>
+                        <select
+                          value={form.stretch}
+                          onChange={(e) =>
+                            setForm((s) => ({
+                              ...s,
+                              stretch: e.target.value as '' | 'yes' | 'no',
+                            }))
+                          }
+                          className="rounded-xl border border-stone-200 bg-white px-2 py-2 text-[13px] text-stone-900 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                        >
+                          <option value="">
+                            {D.stretchChip}: {D.typeNone}
+                          </option>
+                          <option value="yes">{S.exercise.stretch.yes}</option>
+                          <option value="no">{S.exercise.stretch.no}</option>
+                        </select>
                       </div>
+                      <DiaryInput
+                        placeholder={D.notePh}
+                        value={form.note}
+                        maxLength={280}
+                        onChange={(v) => setForm((s) => ({ ...s, note: v }))}
+                      />
                       {rowError && (
                         <p className="text-[11px] text-rose-600 dark:text-rose-300">
                           {rowError === 'empty' ? D.emptyFieldsHint : D.saveError}
@@ -314,19 +353,31 @@ export default function HealthDiaryPage() {
                         </button>
                       </div>
                     </div>
-                  ) : d.routine &&
-                    (d.routine.exerciseMinutes != null ||
-                      d.routine.sleepHours != null ||
-                      d.routine.caloriesKcal != null ||
-                      (d.routine.note ?? '') !== '') ? (
+                  ) : d.routine && hasRoutineContent(d.routine) ? (
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {d.routine.caloriesKcal != null && (
                         <Chip label={`${D.caloriesLabel} ${d.routine.caloriesKcal}kcal`} />
+                      )}
+                      {macroLabel(d.routine, S.diet.nutrition, D) && (
+                        <Chip label={macroLabel(d.routine, S.diet.nutrition, D) as string} />
+                      )}
+                      {d.routine.upfTier && (
+                        <Chip label={`${S.diet.upf} · ${upfLabel(d.routine.upfTier, D)}`} />
                       )}
                       {d.routine.exerciseMinutes != null && (
                         <Chip
                           label={`${S.exerciseLabel} ${d.routine.exerciseMinutes}${S.exerciseUnit}${
                             d.routine.exerciseIntensity ? ` · ${S.intensity[d.routine.exerciseIntensity]}` : ''
+                          }`}
+                        />
+                      )}
+                      {d.routine.exerciseType && (
+                        <Chip label={`${S.exercise.typeLabel} · ${S.exercise.type[d.routine.exerciseType]}`} />
+                      )}
+                      {d.routine.didStretch != null && (
+                        <Chip
+                          label={`${D.stretchChip} · ${
+                            d.routine.didStretch ? S.exercise.stretch.yes : S.exercise.stretch.no
                           }`}
                         />
                       )}
@@ -374,6 +425,41 @@ export default function HealthDiaryPage() {
       )}
     </AppShell>
   );
+}
+
+function hasRoutineContent(r: RoutineEntry): boolean {
+  return (
+    r.caloriesKcal != null ||
+    r.exerciseMinutes != null ||
+    r.sleepHours != null ||
+    r.exerciseType != null ||
+    r.didStretch != null ||
+    r.proteinG != null ||
+    r.carbG != null ||
+    r.fatG != null ||
+    r.upfTier != null ||
+    (r.note ?? '') !== ''
+  );
+}
+
+function macroLabel(
+  r: RoutineEntry,
+  nutritionLabel: string,
+  L: { macroP: string; macroC: string; macroF: string },
+): string | null {
+  const parts: string[] = [];
+  if (r.proteinG != null) parts.push(`${L.macroP} ${r.proteinG}g`);
+  if (r.carbG != null) parts.push(`${L.macroC} ${r.carbG}g`);
+  if (r.fatG != null) parts.push(`${L.macroF} ${r.fatG}g`);
+  if (parts.length === 0) return null;
+  return `${nutritionLabel} ${parts.join(' · ')}`;
+}
+
+function upfLabel(
+  tier: UpfTier,
+  L: { upfClean: string; upfProcessed: string; upfUltra: string },
+): string {
+  return tier === 'clean' ? L.upfClean : tier === 'processed' ? L.upfProcessed : L.upfUltra;
 }
 
 function DiaryInput({
