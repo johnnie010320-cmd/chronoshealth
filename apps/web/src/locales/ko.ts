@@ -1108,6 +1108,22 @@ export const ko = {
     nicknameLabel: 'Twin 닉네임',
     nicknameSet: '설정됨',
     nicknameUnset: '아직 설정 안됨',
+    edit: {
+      cta: '내 정보 수정',
+      title: '내 정보 수정',
+      save: '저장',
+      saving: '저장 중…',
+      cancel: '취소',
+      updated: '내 정보가 수정되었습니다.',
+      nicknameNote: 'Twin 닉네임은 한 번 설정하면 변경할 수 없어 여기서 수정되지 않습니다.',
+      errors: {
+        PHONE_EXISTS: '이미 등록된 전화번호입니다.',
+        AGE_RESTRICTED: '만 19세 이상만 이용할 수 있습니다.',
+        INVALID_INPUT: '입력값을 확인해 주세요.',
+        UNAUTHORIZED: '로그인이 필요합니다.',
+        generic: '저장하지 못했습니다.',
+      },
+    },
     avatar: {
       sectionTitle: '프로필 사진',
       hint: '본인 식별용 사진 (256x256). JPG · PNG · WEBP, 자동 정사각 크롭됩니다.',

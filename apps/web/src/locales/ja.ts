@@ -1163,6 +1163,22 @@ export const ja: Dictionary = {
     nicknameLabel: 'Twin ニックネーム',
     nicknameSet: '設定済み',
     nicknameUnset: '未設定',
+    edit: {
+      cta: '基本情報を編集',
+      title: '基本情報を編集',
+      save: '保存',
+      saving: '保存中…',
+      cancel: 'キャンセル',
+      updated: '基本情報を更新しました。',
+      nicknameNote: 'Twin ニックネームは一度設定すると変更できないため、ここでは編集できません。',
+      errors: {
+        PHONE_EXISTS: 'この電話番号はすでに登録されています。',
+        AGE_RESTRICTED: '19歳以上のみご利用いただけます。',
+        INVALID_INPUT: '入力内容をご確認ください。',
+        UNAUTHORIZED: 'ログインが必要です。',
+        generic: '保存できませんでした。',
+      },
+    },
     avatar: {
       sectionTitle: 'プロフィール写真',
       hint: '本人識別用写真 (256x256)。JPG · PNG · WEBP、自動で正方形にトリミング。',

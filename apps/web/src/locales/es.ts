@@ -1169,6 +1169,22 @@ export const es: Dictionary = {
     nicknameLabel: 'Apodo Twin',
     nicknameSet: 'establecido',
     nicknameUnset: 'sin establecer',
+    edit: {
+      cta: 'Editar mis datos',
+      title: 'Editar mis datos',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      cancel: 'Cancelar',
+      updated: 'Tus datos se han actualizado.',
+      nicknameNote: 'Tu apodo Twin se bloquea una vez establecido y no se puede cambiar aquí.',
+      errors: {
+        PHONE_EXISTS: 'Este número de teléfono ya está registrado.',
+        AGE_RESTRICTED: 'Debes tener 19 años o más para usar este servicio.',
+        INVALID_INPUT: 'Comprueba los datos introducidos.',
+        UNAUTHORIZED: 'Inicia sesión.',
+        generic: 'No se pudo guardar.',
+      },
+    },
     avatar: {
       sectionTitle: 'Foto de perfil',
       hint: 'Foto de identificación (256x256). JPG · PNG · WEBP, recorte cuadrado automático.',

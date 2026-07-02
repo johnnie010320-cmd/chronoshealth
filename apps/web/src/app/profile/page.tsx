@@ -12,9 +12,12 @@ import {
   fetchMeProfile,
   fetchMyAvatar,
   submitLogout,
+  submitProfileUpdate,
   uploadMyAvatar,
   type MeProfile,
+  type ProfileUpdateBody,
 } from '@/lib/api-client';
+import { ProfileUpdateRequest } from '@/lib/signup-schema';
 import {
   UserCircleIcon,
   ShieldIcon,
@@ -40,6 +43,8 @@ export default function ProfilePage() {
   const { t, locale } = useI18n();
   const P = t.profile;
   const A = P.avatar;
+  const E = P.edit;
+  const F = t.signup.fields;
   const router = useRouter();
   const [session, setSession] = useState<StoredSession | null>(null);
   const [ready, setReady] = useState(false);
@@ -51,6 +56,19 @@ export default function ProfilePage() {
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isAdmin = useIsAdmin();
+
+  // 내 정보 수정
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    birthYear: '',
+    sex: '',
+    nationality: '',
+  });
 
   useEffect(() => {
     const s = readSession();
@@ -121,6 +139,70 @@ export default function ProfilePage() {
       setAvatarErr(e instanceof Error ? e.message : 'generic');
     } finally {
       setAvatarBusy(false);
+    }
+  }
+
+  async function handleEditStart() {
+    setFormError(null);
+    setSavedFlash(false);
+    let me = state.status === 'ok' ? state.me : null;
+    // 편집에는 마스킹되지 않은 실제 값이 필요 — reveal=1로 다시 로드.
+    if (!revealed || !me) {
+      try {
+        const { profile } = await fetchMeProfile(true);
+        me = profile;
+        setState({ status: 'ok', me: profile });
+        setRevealed(true);
+        if (profile.hasAvatar) void loadAvatar();
+      } catch {
+        setFormError('generic');
+        return;
+      }
+    }
+    if (!me) return;
+    setForm({
+      name: me.name ?? '',
+      phone: me.phone ?? '',
+      birthYear: me.birthYear == null ? '' : String(me.birthYear),
+      sex: me.sex ?? '',
+      nationality: me.nationality ?? '',
+    });
+    setEditing(true);
+  }
+
+  function handleEditCancel() {
+    setEditing(false);
+    setFormError(null);
+  }
+
+  async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setFormError(null);
+    const raw = {
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      birthYear: form.birthYear.trim() === '' ? NaN : Number(form.birthYear),
+      sex: form.sex,
+      nationality: form.nationality,
+    };
+    const parsed = ProfileUpdateRequest.safeParse(raw);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      setFormError(first?.message === 'AGE_RESTRICTED' ? 'AGE_RESTRICTED' : 'INVALID_INPUT');
+      return;
+    }
+    setSaving(true);
+    try {
+      // nickname 미포함 → 백엔드가 기존 Twin 닉네임을 그대로 보존 (변경 불가 정책 유지).
+      await submitProfileUpdate(parsed.data as ProfileUpdateBody);
+      setEditing(false);
+      setSavedFlash(true);
+      await loadMe(true); // GET 응답 형태로 일관되게 재로딩 (hasAvatar 등 포함).
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'generic';
+      setFormError(code);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -233,19 +315,27 @@ export default function ProfilePage() {
               {P.sectionAccount}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadMe(!revealed)}
-            disabled={busy}
-            className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition active:scale-[0.97] disabled:opacity-60 ${
-              revealed
-                ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200'
-                : 'bg-stone-900 text-white dark:bg-white dark:text-stone-900'
-            }`}
-          >
-            {revealed ? P.hideCta : P.revealCta}
-          </button>
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => void loadMe(!revealed)}
+              disabled={busy}
+              className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition active:scale-[0.97] disabled:opacity-60 ${
+                revealed
+                  ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200'
+                  : 'bg-stone-900 text-white dark:bg-white dark:text-stone-900'
+              }`}
+            >
+              {revealed ? P.hideCta : P.revealCta}
+            </button>
+          )}
         </div>
+
+        {savedFlash && !editing && (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+            {E.updated}
+          </div>
+        )}
 
         {state.status === 'loading' && (
           <div className="flex justify-center py-6">
@@ -259,7 +349,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {state.status === 'ok' && (
+        {state.status === 'ok' && !editing && (
           <>
             <dl className="space-y-3 text-sm">
               <Row label={P.nicknameLabel} value={state.me.nickname ?? P.nicknameUnset} />
@@ -297,7 +387,98 @@ export default function ProfilePage() {
             <p className="mt-3 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
               {P.note}
             </p>
+            <button
+              type="button"
+              onClick={() => void handleEditStart()}
+              disabled={busy}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+            >
+              {E.cta}
+            </button>
           </>
+        )}
+
+        {state.status === 'ok' && editing && (
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {formError && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100"
+              >
+                {E.errors[formError as keyof typeof E.errors] ?? E.errors.generic}
+              </div>
+            )}
+
+            <EditField
+              label={F.name.label}
+              value={form.name}
+              onChange={(v) => setForm((s) => ({ ...s, name: v }))}
+              type="text"
+              maxLength={40}
+              placeholder={F.name.placeholder}
+              autoComplete="name"
+            />
+            <EditField
+              label={F.phone.label}
+              value={form.phone}
+              onChange={(v) => setForm((s) => ({ ...s, phone: v }))}
+              type="tel"
+              placeholder={F.phone.placeholder}
+              autoComplete="tel"
+            />
+            <EditField
+              label={F.birthYear.label}
+              value={form.birthYear}
+              onChange={(v) => setForm((s) => ({ ...s, birthYear: v }))}
+              type="number"
+              min={1900}
+              placeholder={F.birthYear.placeholder}
+            />
+            <EditSelect
+              label={F.sex.label}
+              value={form.sex}
+              onChange={(v) => setForm((s) => ({ ...s, sex: v }))}
+              options={[
+                { value: 'male', label: F.sex.options.male },
+                { value: 'female', label: F.sex.options.female },
+                { value: 'other', label: F.sex.options.other },
+              ]}
+            />
+            <EditSelect
+              label={F.nationality.label}
+              value={form.nationality}
+              onChange={(v) => setForm((s) => ({ ...s, nationality: v }))}
+              options={[
+                { value: 'KR', label: F.nationality.options.KR },
+                { value: 'US', label: F.nationality.options.US },
+                { value: 'JP', label: F.nationality.options.JP },
+                { value: 'ES', label: F.nationality.options.ES },
+                { value: 'OTHER', label: F.nationality.options.OTHER },
+              ]}
+            />
+
+            <p className="rounded-xl bg-stone-50 px-3 py-2 text-[11px] leading-relaxed text-stone-500 dark:bg-stone-800/60 dark:text-stone-400">
+              {E.nicknameNote}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleEditCancel}
+                disabled={saving}
+                className="flex-1 rounded-2xl border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition active:scale-[0.98] disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+              >
+                {E.cancel}
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+              >
+                {saving ? E.saving : E.save}
+              </button>
+            </div>
+          </form>
         )}
       </section>
 
@@ -365,5 +546,78 @@ function Row({
         {value}
       </dd>
     </div>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  min,
+  maxLength,
+  placeholder,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  min?: number;
+  maxLength?: number;
+  placeholder?: string;
+  autoComplete?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        type={type}
+        min={min}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        inputMode={type === 'number' ? 'decimal' : type === 'tel' ? 'tel' : undefined}
+        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
+      />
+    </label>
+  );
+}
+
+function EditSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:focus:bg-stone-900"
+      >
+        <option value="" disabled>
+          —
+        </option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

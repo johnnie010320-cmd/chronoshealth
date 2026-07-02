@@ -1166,6 +1166,22 @@ export const en: Dictionary = {
     nicknameLabel: 'Twin nickname',
     nicknameSet: 'set',
     nicknameUnset: 'not set yet',
+    edit: {
+      cta: 'Edit my info',
+      title: 'Edit my info',
+      save: 'Save',
+      saving: 'Saving…',
+      cancel: 'Cancel',
+      updated: 'Your info has been updated.',
+      nicknameNote: 'Your Twin nickname is locked once set and cannot be changed here.',
+      errors: {
+        PHONE_EXISTS: 'This phone number is already registered.',
+        AGE_RESTRICTED: 'You must be 19 or older to use this service.',
+        INVALID_INPUT: 'Please check your input.',
+        UNAUTHORIZED: 'Please sign in.',
+        generic: 'Could not save.',
+      },
+    },
     avatar: {
       sectionTitle: 'Profile photo',
       hint: 'Identification photo (256x256). JPG · PNG · WEBP, auto center-cropped to square.',
