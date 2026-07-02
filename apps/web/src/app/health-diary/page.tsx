@@ -13,9 +13,12 @@ import {
   fetchRoutineRange,
   fetchDiary,
   fetchPrescriptionHistory,
+  submitRoutineDaily,
+  deleteRoutineEntry,
   type RoutineEntry,
   type AiPrescription,
   type DiaryMood,
+  type ExerciseIntensity,
 } from '@/lib/api-client';
 
 function todayIso(): string {
@@ -48,6 +51,101 @@ export default function HealthDiaryPage() {
   const S = t.home.selfCheck;
   const [status, setStatus] = useState<'loading' | 'unauth' | 'ok'>('loading');
   const [days, setDays] = useState<DayLog[]>([]);
+
+  // 편집/삭제 — 수정은 upsert(POST /daily) 재사용, 삭제는 DELETE. 모두 DB에 반영되어
+  // 건강 그래프·점수 등은 각 화면 재조회 시 자동으로 수정된 데이터를 사용(단일 진실원천).
+  const [editDate, setEditDate] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [rowError, setRowError] = useState<'empty' | 'save' | null>(null);
+  const [form, setForm] = useState<{
+    calories: string;
+    exercise: string;
+    intensity: '' | ExerciseIntensity;
+    sleep: string;
+    note: string;
+  }>({ calories: '', exercise: '', intensity: '', sleep: '', note: '' });
+
+  function startEdit(d: DayLog) {
+    const r = d.routine;
+    setRowError(null);
+    setForm({
+      calories: r?.caloriesKcal != null ? String(r.caloriesKcal) : '',
+      exercise: r?.exerciseMinutes != null ? String(r.exerciseMinutes) : '',
+      intensity: r?.exerciseIntensity ?? '',
+      sleep: r?.sleepHours != null ? String(r.sleepHours) : '',
+      note: r?.note ?? '',
+    });
+    setEditDate(d.date);
+  }
+
+  function cancelEdit() {
+    setEditDate(null);
+    setRowError(null);
+  }
+
+  async function saveEdit(d: DayLog) {
+    const numOrNull = (s: string): number | null => {
+      const v = s.trim();
+      if (v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const calories = numOrNull(form.calories);
+    const exercise = numOrNull(form.exercise);
+    const sleep = numOrNull(form.sleep);
+    const note = form.note.trim() === '' ? null : form.note.trim();
+    if (calories == null && exercise == null && sleep == null && note == null) {
+      setRowError('empty');
+      return;
+    }
+    setBusy(true);
+    setRowError(null);
+    try {
+      const prev = d.routine;
+      const body: RoutineEntry = {
+        entryDate: d.date,
+        caloriesKcal: calories == null ? null : Math.round(calories),
+        exerciseMinutes: exercise == null ? null : Math.round(exercise),
+        exerciseIntensity: form.intensity === '' ? null : form.intensity,
+        sleepHours: sleep,
+        note,
+        // 화면에 없는 값(영양·운동종류·스트레칭)은 기존 엔트리에서 보존해 유실 방지.
+        proteinG: prev?.proteinG ?? null,
+        carbG: prev?.carbG ?? null,
+        fatG: prev?.fatG ?? null,
+        upfTier: prev?.upfTier ?? null,
+        exerciseType: prev?.exerciseType ?? null,
+        didStretch: prev?.didStretch ?? null,
+      };
+      const { entry } = await submitRoutineDaily(body);
+      setDays((ds) =>
+        ds.map((x) => (x.date === d.date ? { ...x, routine: entry ?? body } : x)),
+      );
+      setEditDate(null);
+    } catch {
+      setRowError('save');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(d: DayLog) {
+    if (typeof window !== 'undefined' && !window.confirm(D.confirmDelete)) return;
+    setBusy(true);
+    try {
+      await deleteRoutineEntry(d.date);
+      setDays((ds) =>
+        ds
+          .map((x) => (x.date === d.date ? { ...x, routine: null } : x))
+          .filter((x) => x.routine || x.mood || x.prescription),
+      );
+      if (editDate === d.date) setEditDate(null);
+    } catch {
+      if (typeof window !== 'undefined') window.alert(D.deleteError);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!readSession()) {
@@ -116,14 +214,111 @@ export default function HealthDiaryPage() {
 
                 {/* 루틴 */}
                 <div className="mb-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
-                    {D.routineLabel}
-                  </p>
-                  {d.routine &&
-                  (d.routine.exerciseMinutes != null ||
-                    d.routine.sleepHours != null ||
-                    d.routine.caloriesKcal != null ||
-                    (d.routine.note ?? '') !== '') ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
+                      {D.routineLabel}
+                    </p>
+                    {editDate !== d.date && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(d)}
+                          disabled={busy}
+                          className="rounded-lg px-2 py-0.5 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-50 disabled:opacity-50 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                        >
+                          {D.editCta}
+                        </button>
+                        {d.routine && (
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(d)}
+                            disabled={busy}
+                            className="rounded-lg px-2 py-0.5 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                          >
+                            {D.deleteCta}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {editDate === d.date ? (
+                    <div className="mt-2 space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <DiaryInput
+                          placeholder={D.caloriesLabel}
+                          inputMode="numeric"
+                          value={form.calories}
+                          onChange={(v) => setForm((s) => ({ ...s, calories: v }))}
+                        />
+                        <DiaryInput
+                          placeholder={S.exerciseLabel}
+                          inputMode="numeric"
+                          value={form.exercise}
+                          onChange={(v) => setForm((s) => ({ ...s, exercise: v }))}
+                        />
+                        <DiaryInput
+                          placeholder={S.sleepLabel}
+                          inputMode="decimal"
+                          value={form.sleep}
+                          onChange={(v) => setForm((s) => ({ ...s, sleep: v }))}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={form.intensity}
+                          onChange={(e) =>
+                            setForm((s) => ({
+                              ...s,
+                              intensity: e.target.value as '' | ExerciseIntensity,
+                            }))
+                          }
+                          className="rounded-xl border border-stone-200 bg-white px-2 py-2 text-[13px] text-stone-900 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                        >
+                          <option value="">
+                            {D.intensityLabel}: {D.intensityNone}
+                          </option>
+                          <option value="low">{S.intensity.low}</option>
+                          <option value="medium">{S.intensity.medium}</option>
+                          <option value="high">{S.intensity.high}</option>
+                        </select>
+                        <DiaryInput
+                          placeholder={D.notePh}
+                          value={form.note}
+                          maxLength={280}
+                          onChange={(v) => setForm((s) => ({ ...s, note: v }))}
+                        />
+                      </div>
+                      {rowError && (
+                        <p className="text-[11px] text-rose-600 dark:text-rose-300">
+                          {rowError === 'empty' ? D.emptyFieldsHint : D.saveError}
+                        </p>
+                      )}
+                      <p className="text-[10px] leading-relaxed text-stone-400">{D.editHint}</p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={busy}
+                          className="flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[12px] font-semibold text-stone-700 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+                        >
+                          {D.cancel}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveEdit(d)}
+                          disabled={busy}
+                          className="flex-1 rounded-xl bg-stone-900 px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60 dark:bg-white dark:text-stone-900"
+                        >
+                          {busy ? D.saving : D.save}
+                        </button>
+                      </div>
+                    </div>
+                  ) : d.routine &&
+                    (d.routine.exerciseMinutes != null ||
+                      d.routine.sleepHours != null ||
+                      d.routine.caloriesKcal != null ||
+                      (d.routine.note ?? '') !== '') ? (
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {d.routine.caloriesKcal != null && (
                         <Chip label={`${D.caloriesLabel} ${d.routine.caloriesKcal}kcal`} />
@@ -178,6 +373,32 @@ export default function HealthDiaryPage() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+function DiaryInput({
+  value,
+  onChange,
+  placeholder,
+  inputMode,
+  maxLength,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  inputMode?: 'numeric' | 'decimal';
+  maxLength?: number;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      inputMode={inputMode}
+      maxLength={maxLength}
+      className="w-full rounded-xl border border-stone-200 bg-white px-2 py-2 text-[13px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+    />
   );
 }
 

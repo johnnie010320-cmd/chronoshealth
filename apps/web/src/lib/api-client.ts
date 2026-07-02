@@ -900,6 +900,19 @@ export async function fetchRoutineRange(
   return (await res.json()) as RoutineRangeResponse;
 }
 
+export async function deleteRoutineEntry(
+  entryDate: string,
+): Promise<{ deleted: boolean }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/routine/${entryDate}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { deleted: boolean };
+}
+
 export async function submitRoutineDaily(
   body: RoutineEntry,
 ): Promise<RoutineUpsertResponse> {

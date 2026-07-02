@@ -87,6 +87,22 @@ export async function upsertRoutineEntry(
     .run();
 }
 
+export async function deleteRoutineEntry(
+  db: D1Database,
+  userPseudonymId: string,
+  entryDate: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      'DELETE FROM routine_entries WHERE user_pseudonym_id = ? AND entry_date = ?',
+    )
+    .bind(userPseudonymId, entryDate)
+    .run();
+  const changes =
+    (res as { meta?: { changes?: number } }).meta?.changes ?? 0;
+  return changes > 0;
+}
+
 export async function readRoutineByDate(
   db: D1Database,
   userPseudonymId: string,

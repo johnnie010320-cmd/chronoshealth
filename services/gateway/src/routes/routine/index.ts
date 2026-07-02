@@ -6,6 +6,7 @@ import {
   RoutineUpsertRequest,
 } from '../../schemas/routine.js';
 import {
+  deleteRoutineEntry,
   readRoutineByDate,
   readRoutineRange,
   upsertRoutineEntry,
@@ -86,4 +87,15 @@ routineRoute.get('/today', authMiddleware, rateLimit(200), async (c) => {
   const today = new Date().toISOString().slice(0, 10);
   const entry = await readRoutineByDate(c.env.DB, pseudonymId, today);
   return c.json({ entry, today, modelVersion: MODEL_VERSION });
+});
+
+// 날짜별 루틴 기록 삭제 — 삭제 시 range/today 재조회로 그래프·점수 자동 반영(DB 단일 진실원천).
+routineRoute.delete('/:date', authMiddleware, rateLimit(60), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const date = c.req.param('date');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const deleted = await deleteRoutineEntry(c.env.DB, pseudonymId, date);
+  return c.json({ deleted });
 });
