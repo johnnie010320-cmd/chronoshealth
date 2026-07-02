@@ -906,6 +906,8 @@ export const ja: Dictionary = {
     nicknameHint: '2〜8文字 (英数字)。一度設定すると変更できません。',
     nicknamePlaceholder: 'ニックネーム',
     nicknameLocked: '設定済み',
+    nicknameLockWarning: '⚠️ ニックネームは保存後に変更できません。慎重にお選びください。',
+    nicknameConfirmLock: 'ニックネームを「{name}」に確定します。\n保存後は変更できません。続けますか？',
     checkCta: '重複確認',
     available: '使用可能です。',
     taken: 'すでに使われています。',

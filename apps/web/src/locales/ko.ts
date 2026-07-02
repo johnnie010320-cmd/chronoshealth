@@ -902,6 +902,8 @@ export const ko = {
     nicknameHint: '한글·영문·숫자 2~8자. 한 번 설정하면 변경할 수 없습니다.',
     nicknamePlaceholder: '닉네임',
     nicknameLocked: '설정 완료',
+    nicknameLockWarning: '⚠️ 닉네임은 저장 후 변경할 수 없습니다. 신중히 정해 주세요.',
+    nicknameConfirmLock: "'{name}'(으)로 닉네임을 확정합니다.\n저장 후에는 변경할 수 없습니다. 계속할까요?",
     checkCta: '중복 확인',
     available: '사용 가능합니다.',
     taken: '이미 사용 중입니다.',

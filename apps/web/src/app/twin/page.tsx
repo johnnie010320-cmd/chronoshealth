@@ -108,6 +108,13 @@ export default function TwinPage() {
 
   async function handleSaveNickname() {
     if (!me) return;
+    const nick = nicknameInput.trim();
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm(T.nicknameConfirmLock.replace('{name}', nick))
+    ) {
+      return;
+    }
     setNicknameBusy(true);
     setNicknameErr(null);
     try {
@@ -117,7 +124,7 @@ export default function TwinPage() {
         birthYear: me.birthYear ?? new Date().getFullYear() - 20,
         sex: me.sex ?? 'other',
         nationality: (me.nationality as 'KR' | 'US' | 'JP' | 'ES' | 'OTHER') ?? 'OTHER',
-        nickname: nicknameInput.trim(),
+        nickname: nick,
       });
       setMe(updated.profile);
       setNicknameAvail(null);
@@ -171,6 +178,9 @@ export default function TwinPage() {
           </div>
         ) : (
           <div className="mt-2 space-y-2">
+            <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              {T.nicknameLockWarning}
+            </p>
             <div className="flex items-center gap-2">
               <input
                 type="text"

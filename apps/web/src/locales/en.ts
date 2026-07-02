@@ -909,6 +909,8 @@ export const en: Dictionary = {
     nicknameHint: '2–8 characters (letters/numbers). Cannot be changed once set.',
     nicknamePlaceholder: 'nickname',
     nicknameLocked: 'set',
+    nicknameLockWarning: '⚠️ Your nickname cannot be changed after saving. Choose carefully.',
+    nicknameConfirmLock: 'Set your nickname to "{name}".\nIt cannot be changed after saving. Continue?',
     checkCta: 'Check',
     available: 'Available.',
     taken: 'Already taken.',

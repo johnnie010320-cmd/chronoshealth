@@ -909,6 +909,8 @@ export const es: Dictionary = {
     nicknameHint: '2–8 caracteres (letras/números). No se puede cambiar.',
     nicknamePlaceholder: 'apodo',
     nicknameLocked: 'establecido',
+    nicknameLockWarning: '⚠️ El apodo no se puede cambiar después de guardar. Elígelo con cuidado.',
+    nicknameConfirmLock: 'Vas a fijar tu apodo como «{name}».\nNo se podrá cambiar después de guardar. ¿Continuar?',
     checkCta: 'Comprobar',
     available: 'Disponible.',
     taken: 'Ya en uso.',
