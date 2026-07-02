@@ -38,7 +38,7 @@ export const en: Dictionary = {
     roadmapLink: 'View full roadmap',
   },
   survey: {
-    pageTitle: 'Beta survey',
+    pageTitle: 'Health survey',
     heroTitle: 'Enter your basic information',
     heroBody:
       '23 questions · 2–3 minutes · Answers are never stored without your consent.',
@@ -112,7 +112,7 @@ export const en: Dictionary = {
     },
     error: {
       validation: 'Input check needed',
-      UNAUTHORIZED: 'Authentication required (beta token missing).',
+      UNAUTHORIZED: 'Authentication required (auth token missing).',
       AGE_RESTRICTED: 'Adults 19+ only.',
       RATE_LIMITED: 'Daily request limit (5) exceeded.',
       INVALID_INPUT: 'Please re-check your inputs.',
@@ -717,7 +717,7 @@ export const en: Dictionary = {
     menuGroupTitle: 'Admin',
     menuItemDashboard: 'Dashboard',
     menuItemUsers: 'User management',
-    menuItemBetaSignups: 'Beta signups',
+    menuItemBetaSignups: 'Launch signups',
     menuItemContent: 'Terms / Content editor',
     sidebarTitle: 'Admin menu',
     notAuthorizedTitle: 'Not authorized',
@@ -728,7 +728,7 @@ export const en: Dictionary = {
     dashboard: {
       title: 'Dashboard',
       statTotalUsers: 'Total users',
-      statBetaSignups: 'Beta signups',
+      statBetaSignups: 'Launch signups',
       statRiskReports: 'Risk reports',
       statCommunityPosts: 'Community posts',
       statCommunityComments: 'Comments',
@@ -754,8 +754,8 @@ export const en: Dictionary = {
       quickActionsTitle: 'Quick actions',
       actionUsers: 'User management',
       actionUsersDesc: 'List · PII unmask · activity summary',
-      actionBetaSignups: 'Beta signups',
-      actionBetaSignupsDesc: 'List of beta notification subscribers',
+      actionBetaSignups: 'Launch signups',
+      actionBetaSignupsDesc: 'List of launch-notification subscribers',
       actionNotices: 'Notices',
       actionNoticesDesc: 'Write & publish notices',
       actionDevlog: 'Dev log',
@@ -861,7 +861,7 @@ export const en: Dictionary = {
       confirmDelete: 'Delete this dev log entry?',
     },
     betaSignups: {
-      title: 'Beta signups',
+      title: 'Launch signups',
       columns: {
         emailPseudonym: 'Email pseudonym',
         country: 'Country',
@@ -869,7 +869,7 @@ export const en: Dictionary = {
         locale: 'Lang',
         createdAt: 'Joined',
       },
-      empty: 'No beta signups yet.',
+      empty: 'No signups yet.',
       modulesLabel: 'Interested modules',
     },
     error: {
@@ -1214,7 +1214,7 @@ export const en: Dictionary = {
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
       title: 'Building caremybody',
-      body: 'AI-based health risk prediction + decentralized data sovereignty + Health-to-Earn. The full picture from beta to launch.',
+      body: 'AI-based health risk prediction + decentralized data sovereignty + Health-to-Earn. The full picture from early stage to launch.',
     },
     currentLive: {
       badge: 'Now live',
@@ -1227,7 +1227,7 @@ export const en: Dictionary = {
       cta: 'Try the 23-item survey',
     },
     modulesTitle: '11 product modules',
-    modulesBody: 'How the product grows from beta to a full Health-to-Earn ecosystem.',
+    modulesBody: 'How the product grows from early stage to a full Health-to-Earn ecosystem.',
     phaseLabel: 'Phase',
     modules: {
       m1: { title: 'Auth · Onboarding', body: 'Simple signup → OAuth → KYC → DID.' },
@@ -1245,8 +1245,8 @@ export const en: Dictionary = {
     },
     phaseTimelineTitle: 'Phases (64 weeks)',
     phases: {
-      p0: { name: 'Foundations', weeks: 'wk 0~4', summary: 'Monorepo · CI/CD · ADRs · beta survey live' },
-      p1: { name: 'Prediction MVP', weeks: 'wk 5~12', summary: 'Decision-rule estimates · 100-person closed beta' },
+      p0: { name: 'Foundations', weeks: 'wk 0~4', summary: 'Monorepo · CI/CD · ADRs · survey live' },
+      p1: { name: 'Prediction MVP', weeks: 'wk 5~12', summary: 'Decision-rule estimates · 100-person closed test' },
       p2: { name: 'Wearables · EHR', weeks: 'wk 13~22', summary: 'HealthKit · Samsung · Oura · FHIR' },
       p3: { name: 'ML engine v1', weeks: 'wk 23~34', summary: 'PhenoAge · DeepSurv · Transformer · AUROC ≥ 0.78' },
       p4: { name: 'Web3 alpha', weeks: 'wk 35~44', summary: 'Testnet ERC-20 + ZK PoC' },
@@ -1341,8 +1341,8 @@ export const en: Dictionary = {
     errorGeneric: 'Failed to load data.',
   },
   betaSignup: {
-    pageTitle: 'Beta waitlist',
-    heroTitle: 'Get notified when we launch the beta',
+    pageTitle: 'Launch waitlist',
+    heroTitle: 'Get notified when we launch',
     heroBody:
       'We will tell you first when we launch. This is a notification request, not a promise. Rewards and tokens are under review.',
     section: {
@@ -1385,7 +1385,7 @@ export const en: Dictionary = {
       pii: {
         label: 'PII collection & processing (required)',
         description:
-          'I agree to collection and storage of my email, country, and age group for beta launch notification purposes. Deleted on consent withdrawal.',
+          'I agree to collection and storage of my email, country, and age group for launch notification purposes. Deleted on consent withdrawal.',
       },
       medical: {
         label: 'Medical disclaimer (required)',

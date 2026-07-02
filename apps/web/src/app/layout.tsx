@@ -4,7 +4,7 @@ import { I18nProvider } from '@/lib/i18n';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'caremybody — Beta',
+  title: 'caremybody',
   description:
     'Preventive medicine starting from your health data. 한국어 / English / 日本語 / Español.',
   robots: { index: false, follow: false },

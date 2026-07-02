@@ -38,7 +38,7 @@ export const es: Dictionary = {
     roadmapLink: 'Ver hoja de ruta completa',
   },
   survey: {
-    pageTitle: 'Encuesta beta',
+    pageTitle: 'Encuesta de salud',
     heroTitle: 'Ingresa tu información básica',
     heroBody:
       '23 preguntas · 2–3 min · Las respuestas no se guardan sin tu consentimiento.',
@@ -112,7 +112,7 @@ export const es: Dictionary = {
     },
     error: {
       validation: 'Revisa los datos',
-      UNAUTHORIZED: 'Autenticación necesaria (token beta).',
+      UNAUTHORIZED: 'Autenticación necesaria (token de autenticación).',
       AGE_RESTRICTED: 'Sólo adultos 19+.',
       RATE_LIMITED: 'Límite diario (5) superado.',
       INVALID_INPUT: 'Revisa los datos ingresados.',
@@ -717,7 +717,7 @@ export const es: Dictionary = {
     menuGroupTitle: 'Admin',
     menuItemDashboard: 'Panel',
     menuItemUsers: 'Gestión de usuarios',
-    menuItemBetaSignups: 'Suscriptores beta',
+    menuItemBetaSignups: 'Suscriptores de lanzamiento',
     menuItemContent: 'Términos / Contenido',
     sidebarTitle: 'Menú admin',
     notAuthorizedTitle: 'Sin autorización',
@@ -728,7 +728,7 @@ export const es: Dictionary = {
     dashboard: {
       title: 'Panel',
       statTotalUsers: 'Usuarios totales',
-      statBetaSignups: 'Suscriptores beta',
+      statBetaSignups: 'Suscriptores de lanzamiento',
       statRiskReports: 'Informes de riesgo',
       statCommunityPosts: 'Publicaciones',
       statCommunityComments: 'Comentarios',
@@ -754,8 +754,8 @@ export const es: Dictionary = {
       quickActionsTitle:'Acciones rápidas',
       actionUsers: 'Gestión de usuarios',
       actionUsersDesc: 'Lista · ver PII · resumen de actividad',
-      actionBetaSignups: 'Suscriptores beta',
-      actionBetaSignupsDesc: 'Lista de suscriptores de notificación beta',
+      actionBetaSignups: 'Suscriptores de lanzamiento',
+      actionBetaSignupsDesc: 'Lista de suscriptores de notificación de lanzamiento',
       actionNotices: 'Avisos',
       actionNoticesDesc: 'Crear y publicar avisos',
       actionDevlog: 'Registro de desarrollo',
@@ -861,7 +861,7 @@ export const es: Dictionary = {
       confirmDelete: '¿Eliminar esta entrada del registro?',
     },
     betaSignups: {
-      title: 'Suscriptores beta',
+      title: 'Suscriptores de lanzamiento',
       columns: {
         emailPseudonym: 'pseudónimo de email',
         country: 'País',
@@ -869,7 +869,7 @@ export const es: Dictionary = {
         locale: 'Idioma',
         createdAt: 'Registro',
       },
-      empty: 'Sin suscriptores beta aún.',
+      empty: 'Sin suscriptores aún.',
       modulesLabel: 'Módulos de interés',
     },
     error: {
@@ -1217,7 +1217,7 @@ export const es: Dictionary = {
     hero: {
       eyebrow: 'Roadmap · 11 módulos · 64 semanas',
       title: 'Construyendo caremybody',
-      body: 'Predicción de riesgo de salud con IA + soberanía descentralizada de datos + Health-to-Earn. El panorama completo de la beta al lanzamiento.',
+      body: 'Predicción de riesgo de salud con IA + soberanía descentralizada de datos + Health-to-Earn. El panorama completo de la fase inicial al lanzamiento.',
     },
     currentLive: {
       badge: 'Disponible ahora',
@@ -1230,7 +1230,7 @@ export const es: Dictionary = {
       cta: 'Probar la encuesta de 23 preguntas',
     },
     modulesTitle: '11 módulos del producto',
-    modulesBody: 'Cómo crece el producto desde la beta hasta un ecosistema Health-to-Earn completo.',
+    modulesBody: 'Cómo crece el producto desde la fase inicial hasta un ecosistema Health-to-Earn completo.',
     phaseLabel: 'Fase',
     modules: {
       m1: { title: 'Autenticación · Onboarding', body: 'Registro simple → OAuth → KYC → DID.' },
@@ -1248,8 +1248,8 @@ export const es: Dictionary = {
     },
     phaseTimelineTitle: 'Fases (64 semanas)',
     phases: {
-      p0: { name: 'Bases', weeks: 'sem 0~4', summary: 'Monorepo · CI/CD · ADRs · encuesta beta en vivo' },
-      p1: { name: 'MVP predicción', weeks: 'sem 5~12', summary: 'Estimaciones deterministas · beta cerrada 100 personas' },
+      p0: { name: 'Bases', weeks: 'sem 0~4', summary: 'Monorepo · CI/CD · ADRs · encuesta en vivo' },
+      p1: { name: 'MVP predicción', weeks: 'sem 5~12', summary: 'Estimaciones deterministas · prueba cerrada 100 personas' },
       p2: { name: 'Wearables · EHR', weeks: 'sem 13~22', summary: 'HealthKit · Samsung · Oura · FHIR' },
       p3: { name: 'Motor ML v1', weeks: 'sem 23~34', summary: 'PhenoAge · DeepSurv · Transformer · AUROC ≥ 0.78' },
       p4: { name: 'Web3 alpha', weeks: 'sem 35~44', summary: 'Testnet ERC-20 + ZK PoC' },
@@ -1344,8 +1344,8 @@ export const es: Dictionary = {
     errorGeneric: 'No se pudo cargar los datos.',
   },
   betaSignup: {
-    pageTitle: 'Lista beta',
-    heroTitle: 'Te avisamos cuando lancemos la beta',
+    pageTitle: 'Lista de lanzamiento',
+    heroTitle: 'Te avisamos cuando lancemos',
     heroBody:
       'Te avisamos primero al lanzar. Esto es una solicitud de notificación, no una promesa. Las recompensas y tokens están en revisión.',
     section: {

@@ -36,7 +36,7 @@ export const ko = {
     roadmapLink: '전체 로드맵 보기',
   },
   survey: {
-    pageTitle: '베타 설문',
+    pageTitle: '건강 설문',
     heroTitle: '기본 정보를 입력해주세요',
     heroBody: '23문항 · 2~3분 · 모든 답변은 사용자의 동의 없이는 저장되지 않습니다.',
     section: {
@@ -105,7 +105,7 @@ export const ko = {
     },
     error: {
       validation: '입력값 확인 필요',
-      UNAUTHORIZED: '인증이 필요합니다 (베타 토큰 누락).',
+      UNAUTHORIZED: '인증이 필요합니다 (인증 토큰 누락).',
       AGE_RESTRICTED: '만 19세 미만은 이용할 수 없습니다.',
       RATE_LIMITED: '일일 호출 한도(5회)를 초과했습니다.',
       INVALID_INPUT: '입력값을 다시 확인해주세요.',
@@ -149,7 +149,7 @@ export const ko = {
       title: '당신의 크로노스가 자라고 있습니다',
       body: '곧 활력 점수 시뮬레이션 · 5종 나이 · 랭킹이 도착합니다. 출시 시점 미확정, 의료 행위가 아닙니다.',
       roadmapCta: '전체 로드맵 보기',
-      betaSignupCta: '베타 출시 알림 받기',
+      betaSignupCta: '출시 알림 받기',
     },
     whatif: {
       title: 'What-if 시뮬레이션',
@@ -710,7 +710,7 @@ export const ko = {
     menuGroupTitle: '관리자',
     menuItemDashboard: '대시보드',
     menuItemUsers: '사용자 관리',
-    menuItemBetaSignups: '베타 등록자',
+    menuItemBetaSignups: '출시 알림 신청자',
     menuItemContent: '약관 / 콘텐츠 편집',
     sidebarTitle: '관리자 메뉴',
     notAuthorizedTitle: '관리자 권한이 없습니다',
@@ -721,7 +721,7 @@ export const ko = {
     dashboard: {
       title: '대시보드',
       statTotalUsers: '총 사용자',
-      statBetaSignups: '베타 등록자',
+      statBetaSignups: '출시 알림 신청자',
       statRiskReports: '리스크 리포트',
       statCommunityPosts: '커뮤니티 게시물',
       statCommunityComments: '커뮤니티 댓글',
@@ -747,8 +747,8 @@ export const ko = {
       quickActionsTitle: '빠른 작업',
       actionUsers: '사용자 관리',
       actionUsersDesc: '가입자 목록 · 상세 정보 열람 · 활동 요약',
-      actionBetaSignups: '베타 등록자',
-      actionBetaSignupsDesc: '베타 알림 신청자 목록 및 통계',
+      actionBetaSignups: '출시 알림 신청자',
+      actionBetaSignupsDesc: '출시 알림 신청자 목록 및 통계',
       actionNotices: '공지사항',
       actionNoticesDesc: '공지 작성·게시 관리',
       actionDevlog: '개발 로그 관리',
@@ -854,7 +854,7 @@ export const ko = {
       confirmDelete: '이 개발 로그를 삭제하시겠습니까?',
     },
     betaSignups: {
-      title: '베타 등록자',
+      title: '출시 알림 신청자',
       columns: {
         emailPseudonym: 'email pseudonym',
         country: '국가',
@@ -862,7 +862,7 @@ export const ko = {
         locale: '언어',
         createdAt: '등록일',
       },
-      empty: '아직 등록된 베타 사용자가 없습니다.',
+      empty: '아직 신청자가 없습니다.',
       modulesLabel: '관심 모듈',
     },
     error: {
@@ -1156,7 +1156,7 @@ export const ko = {
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
       title: 'caremybody를 만들어 가는 길',
-      body: 'AI 기반 건강 위험 예측 + 분산형 데이터 주권 + Health-to-Earn 토큰. 베타에서 정식 출시까지의 전체 그림.',
+      body: 'AI 기반 건강 위험 예측 + 분산형 데이터 주권 + Health-to-Earn 토큰. 초기 단계부터 정식 출시까지의 전체 그림.',
     },
     currentLive: {
       badge: '지금 사용 가능',
@@ -1169,7 +1169,7 @@ export const ko = {
       cta: '23문항 설문 체험하기',
     },
     modulesTitle: '11개 제품 모듈',
-    modulesBody: '베타에서 전체 Health-to-Earn 생태계로 어떻게 자라는가.',
+    modulesBody: '초기 단계에서 전체 Health-to-Earn 생태계로 어떻게 자라는가.',
     phaseLabel: '단계',
     modules: {
       m1: { title: '인증·온보딩', body: '단순 가입 → OAuth → KYC → DID 통합.' },
@@ -1187,8 +1187,8 @@ export const ko = {
     },
     phaseTimelineTitle: '단계 (64주)',
     phases: {
-      p0: { name: '기반 구축', weeks: '0~4주', summary: '모노레포 · CI/CD · ADR · 베타 설문 라이브' },
-      p1: { name: '예측 MVP', weeks: '5~12주', summary: '결정형 추정 · 100명 비공개 베타' },
+      p0: { name: '기반 구축', weeks: '0~4주', summary: '모노레포 · CI/CD · ADR · 건강 설문 라이브' },
+      p1: { name: '예측 MVP', weeks: '5~12주', summary: '결정형 추정 · 100명 비공개 테스트' },
       p2: { name: '웨어러블 · EHR', weeks: '13~22주', summary: 'HealthKit · Samsung · Oura · FHIR' },
       p3: { name: 'ML 엔진 v1', weeks: '23~34주', summary: 'PhenoAge · DeepSurv · Transformer · AUROC ≥ 0.78' },
       p4: { name: 'Web3 알파', weeks: '35~44주', summary: '테스트넷 ERC-20 + ZK PoC' },
@@ -1205,9 +1205,9 @@ export const ko = {
       '의약품 · 영양제 직접 판매',
     ],
     waitlist: {
-      title: '베타 출시 알림 받기',
+      title: '출시 알림 받기',
       body: '출시 시 가장 먼저 알려드립니다. 보상·코인은 검토 중인 기능이며 등록이 미래 수령을 보장하지 않습니다.',
-      cta: '베타 등록하기',
+      cta: '출시 알림 등록',
     },
     disclaimer:
       'caremybody는 의료 행위를 제공하지 않습니다. 모든 예측은 신뢰구간과 함께 표시됩니다. 만 19세 미만 가입은 차단됩니다. 토큰 보상은 검토 중인 기능입니다.',
@@ -1283,8 +1283,8 @@ export const ko = {
     errorGeneric: '데이터를 불러오지 못했습니다.',
   },
   betaSignup: {
-    pageTitle: '베타 등록',
-    heroTitle: '베타 출시 시 알려드릴게요',
+    pageTitle: '출시 알림 등록',
+    heroTitle: '출시 시 알려드릴게요',
     heroBody:
       '출시 시점에 가장 먼저 안내드립니다. 등록은 약속이 아닌 알림 신청이며, 보상·코인은 검토 중인 기능입니다.',
     section: {
@@ -1327,7 +1327,7 @@ export const ko = {
       pii: {
         label: '개인정보 수집·이용 동의 (필수)',
         description:
-          '이메일·국가·연령대를 베타 출시 알림 목적으로 수집·저장하며, 동의 철회 시 삭제됩니다.',
+          '이메일·국가·연령대를 출시 알림 목적으로 수집·저장하며, 동의 철회 시 삭제됩니다.',
       },
       medical: {
         label: '의료 면책 확인 (필수)',

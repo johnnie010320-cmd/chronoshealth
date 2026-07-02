@@ -38,7 +38,7 @@ export const ja: Dictionary = {
     roadmapLink: '全体ロードマップを見る',
   },
   survey: {
-    pageTitle: 'ベータ アンケート',
+    pageTitle: '健康アンケート',
     heroTitle: '基本情報を入力してください',
     heroBody:
       '23問 · 2〜3分 · 同意なしに回答が保存されることはありません。',
@@ -109,7 +109,7 @@ export const ja: Dictionary = {
     },
     error: {
       validation: '入力値の確認が必要',
-      UNAUTHORIZED: '認証が必要です（ベータトークン不足）。',
+      UNAUTHORIZED: '認証が必要です（認証トークン不足）。',
       AGE_RESTRICTED: '満19歳未満は利用できません。',
       RATE_LIMITED: '1日のリクエスト上限（5回）を超過しました。',
       INVALID_INPUT: '入力値を再確認してください。',
@@ -714,7 +714,7 @@ export const ja: Dictionary = {
     menuGroupTitle: '管理者',
     menuItemDashboard: 'ダッシュボード',
     menuItemUsers: 'ユーザー管理',
-    menuItemBetaSignups: 'ベータ登録',
+    menuItemBetaSignups: 'リリース通知登録',
     menuItemContent: '利用規約 / コンテンツ編集',
     sidebarTitle: '管理メニュー',
     notAuthorizedTitle: '権限がありません',
@@ -725,7 +725,7 @@ export const ja: Dictionary = {
     dashboard: {
       title: 'ダッシュボード',
       statTotalUsers: '総ユーザー',
-      statBetaSignups: 'ベータ登録',
+      statBetaSignups: 'リリース通知登録',
       statRiskReports: 'リスクレポート',
       statCommunityPosts: 'コミュニティ投稿',
       statCommunityComments: 'コメント',
@@ -751,8 +751,8 @@ export const ja: Dictionary = {
       quickActionsTitle:'クイックアクション',
       actionUsers: 'ユーザー管理',
       actionUsersDesc: 'リスト · PII表示 · 活動要約',
-      actionBetaSignups: 'ベータ登録',
-      actionBetaSignupsDesc: 'ベータ通知の購読者一覧',
+      actionBetaSignups: 'リリース通知登録',
+      actionBetaSignupsDesc: 'リリース通知の購読者一覧',
       actionNotices: 'お知らせ',
       actionNoticesDesc: 'お知らせ作成・公開管理',
       actionDevlog: '開発ログ',
@@ -858,7 +858,7 @@ export const ja: Dictionary = {
       confirmDelete: 'この開発ログを削除しますか？',
     },
     betaSignups: {
-      title: 'ベータ登録',
+      title: 'リリース通知登録',
       columns: {
         emailPseudonym: 'email pseudonym',
         country: '国',
@@ -866,7 +866,7 @@ export const ja: Dictionary = {
         locale: '言語',
         createdAt: '登録日',
       },
-      empty: 'まだベータ登録がありません。',
+      empty: 'まだ登録がありません。',
       modulesLabel: '関心モジュール',
     },
     error: {
@@ -1211,7 +1211,7 @@ export const ja: Dictionary = {
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
       title: 'caremybody を作り上げる道のり',
-      body: 'AI 健康リスク予測 + 分散型データ主権 + Health-to-Earn トークン。ベータから本格リリースまでの全体像。',
+      body: 'AI 健康リスク予測 + 分散型データ主権 + Health-to-Earn トークン。初期段階から本格リリースまでの全体像。',
     },
     currentLive: {
       badge: '現在ご利用可能',
@@ -1224,7 +1224,7 @@ export const ja: Dictionary = {
       cta: '23 項目アンケートを試す',
     },
     modulesTitle: '11 のプロダクトモジュール',
-    modulesBody: 'ベータから Health-to-Earn エコシステムへの成長過程。',
+    modulesBody: '初期段階から Health-to-Earn エコシステムへの成長過程。',
     phaseLabel: 'フェーズ',
     modules: {
       m1: { title: '認証・オンボーディング', body: 'シンプル登録 → OAuth → KYC → DID.' },
@@ -1242,8 +1242,8 @@ export const ja: Dictionary = {
     },
     phaseTimelineTitle: 'フェーズ（64 週）',
     phases: {
-      p0: { name: '基盤構築', weeks: '0~4 週', summary: 'モノレポ · CI/CD · ADR · ベータアンケート稼働' },
-      p1: { name: '予測 MVP', weeks: '5~12 週', summary: '決定ルール推定 · 100 名クローズドベータ' },
+      p0: { name: '基盤構築', weeks: '0~4 週', summary: 'モノレポ · CI/CD · ADR · アンケート稼働' },
+      p1: { name: '予測 MVP', weeks: '5~12 週', summary: '決定ルール推定 · 100 名クローズドテスト' },
       p2: { name: 'ウェアラブル · EHR', weeks: '13~22 週', summary: 'HealthKit · Samsung · Oura · FHIR' },
       p3: { name: 'ML エンジン v1', weeks: '23~34 週', summary: 'PhenoAge · DeepSurv · Transformer · AUROC ≥ 0.78' },
       p4: { name: 'Web3 アルファ', weeks: '35~44 週', summary: 'テストネット ERC-20 + ZK PoC' },
@@ -1338,8 +1338,8 @@ export const ja: Dictionary = {
     errorGeneric: 'データの読み込みに失敗しました。',
   },
   betaSignup: {
-    pageTitle: 'ベータ登録',
-    heroTitle: 'ベータリリース時にお知らせします',
+    pageTitle: 'リリース通知登録',
+    heroTitle: 'リリース時にお知らせします',
     heroBody:
       'リリース時に最優先でお知らせします。これは通知の申込みであり約束ではなく、報酬・トークンは検討中の機能です。',
     section: {
@@ -1382,7 +1382,7 @@ export const ja: Dictionary = {
       pii: {
         label: '個人情報の収集・利用同意（必須）',
         description:
-          'メール・国・年齢層をベータリリース通知の目的で収集・保存することに同意します。同意撤回時に削除されます。',
+          'メール・国・年齢層をリリース通知の目的で収集・保存することに同意します。同意撤回時に削除されます。',
       },
       medical: {
         label: '医療免責確認（必須）',
