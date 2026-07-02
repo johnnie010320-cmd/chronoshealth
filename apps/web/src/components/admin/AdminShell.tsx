@@ -25,10 +25,11 @@ export function AdminShell({
   const A = t.admin;
   const pathname = usePathname() ?? '/admin';
 
+  // 용어 일치 — 대시보드 타일과 동일 명칭 사용(사용자 관리 / 약관·면책).
   const tabs: Tab[] = [
     { href: '/admin', label: A.dashboard.title },
-    { href: '/admin/users', label: A.users.title },
-    { href: '/admin/content', label: A.content.pageTitle },
+    { href: '/admin/users', label: A.dashboard.actionUsers },
+    { href: '/admin/content', label: A.dashboard.actionContent },
   ];
 
   return (
