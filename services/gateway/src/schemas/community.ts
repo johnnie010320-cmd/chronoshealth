@@ -94,6 +94,57 @@ export const CreateCommunityRequest = z
     visibility: z.enum(['public', 'private']),
     allowLikesDefault: z.boolean().default(true),
     allowCommentsDefault: z.boolean().default(true),
+    // 하위 카테고리(선택). 존재 검증은 라우트에서.
+    categoryId: z.string().max(64).nullable().default(null),
   })
   .strict();
 export type CreateCommunityRequest = z.infer<typeof CreateCommunityRequest>;
+
+const GROUP = z.enum(['overcome', 'manage', 'talk']);
+const VIDEO_URL = z
+  .string()
+  .trim()
+  .max(500)
+  .url()
+  .refine((u) => u.startsWith('http://') || u.startsWith('https://'), 'must be http(s)');
+
+// 관리자 — 하위 카테고리.
+export const CreateCategoryRequest = z
+  .object({
+    groupKey: GROUP,
+    name: z.string().trim().min(1).max(40),
+    sortOrder: z.number().int().min(0).max(9999).default(0),
+  })
+  .strict();
+export type CreateCategoryRequest = z.infer<typeof CreateCategoryRequest>;
+
+export const UpdateCategoryRequest = z
+  .object({
+    name: z.string().trim().min(1).max(40).optional(),
+    sortOrder: z.number().int().min(0).max(9999).optional(),
+  })
+  .strict();
+export type UpdateCategoryRequest = z.infer<typeof UpdateCategoryRequest>;
+
+// 관리자 — 큐레이션 동영상 링크.
+export const CreateFeaturedVideoRequest = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    videoUrl: VIDEO_URL,
+    groupKey: GROUP.nullable().default(null),
+    categoryId: z.string().max(64).nullable().default(null),
+    sortOrder: z.number().int().min(0).max(9999).default(0),
+  })
+  .strict();
+export type CreateFeaturedVideoRequest = z.infer<typeof CreateFeaturedVideoRequest>;
+
+export const UpdateFeaturedVideoRequest = z
+  .object({
+    title: z.string().trim().min(1).max(120).optional(),
+    videoUrl: VIDEO_URL.optional(),
+    groupKey: GROUP.nullable().optional(),
+    categoryId: z.string().max(64).nullable().optional(),
+    sortOrder: z.number().int().min(0).max(9999).optional(),
+  })
+  .strict();
+export type UpdateFeaturedVideoRequest = z.infer<typeof UpdateFeaturedVideoRequest>;

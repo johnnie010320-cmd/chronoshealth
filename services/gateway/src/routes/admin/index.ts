@@ -21,6 +21,20 @@ import {
   softDeleteCommunity,
 } from '../../community/communities.js';
 import {
+  deleteCategory,
+  deleteFeaturedVideo,
+  insertCategory,
+  insertFeaturedVideo,
+  updateCategory,
+  updateFeaturedVideo,
+} from '../../community/categories.js';
+import {
+  CreateCategoryRequest,
+  CreateFeaturedVideoRequest,
+  UpdateCategoryRequest,
+  UpdateFeaturedVideoRequest,
+} from '../../schemas/community.js';
+import {
   deleteRelease,
   insertRelease,
   listReleases,
@@ -240,6 +254,107 @@ adminRoute.delete(
     return c.json({ deleted: true, modelVersion: MODEL_VERSION });
   },
 );
+
+// ── 커뮤니티 하위 카테고리 관리(관리자 전용) ───────────────────────────────
+adminRoute.post('/community-categories', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
+  const raw = await c.req.json().catch(() => null);
+  const parsed = CreateCategoryRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const id = `cat_${crypto.randomUUID().slice(0, 12)}`;
+  await insertCategory(c.env.DB, {
+    id,
+    groupKey: parsed.data.groupKey,
+    name: parsed.data.name,
+    sortOrder: parsed.data.sortOrder,
+  });
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'community.category.create',
+    target: id,
+    detail: `${parsed.data.groupKey}/${parsed.data.name}`,
+  });
+  return c.json({ id, modelVersion: MODEL_VERSION }, 201);
+});
+
+adminRoute.patch('/community-categories/:id', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
+  const id = c.req.param('id');
+  const raw = await c.req.json().catch(() => null);
+  const parsed = UpdateCategoryRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const ok = await updateCategory(c.env.DB, id, parsed.data);
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'community.category.update',
+    target: id,
+    detail: Object.keys(parsed.data).join(', '),
+  });
+  return c.json({ ok: true, modelVersion: MODEL_VERSION });
+});
+
+adminRoute.delete('/community-categories/:id', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
+  const id = c.req.param('id');
+  const ok = await deleteCategory(c.env.DB, id);
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'community.category.delete',
+    target: id,
+  });
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
+});
+
+// ── 커뮤니티 큐레이션 동영상 관리(관리자 전용) ─────────────────────────────
+adminRoute.post('/community-videos', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
+  const raw = await c.req.json().catch(() => null);
+  const parsed = CreateFeaturedVideoRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const id = `vid_${crypto.randomUUID().slice(0, 12)}`;
+  await insertFeaturedVideo(c.env.DB, {
+    id,
+    groupKey: parsed.data.groupKey,
+    categoryId: parsed.data.categoryId,
+    title: parsed.data.title,
+    videoUrl: parsed.data.videoUrl,
+    sortOrder: parsed.data.sortOrder,
+    createdByPseudonymId: c.get('userPseudonymId'),
+  });
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'community.video.create',
+    target: id,
+    detail: parsed.data.title,
+  });
+  return c.json({ id, modelVersion: MODEL_VERSION }, 201);
+});
+
+adminRoute.patch('/community-videos/:id', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
+  const id = c.req.param('id');
+  const raw = await c.req.json().catch(() => null);
+  const parsed = UpdateFeaturedVideoRequest.safeParse(raw);
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const ok = await updateFeaturedVideo(c.env.DB, id, parsed.data);
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'community.video.update',
+    target: id,
+    detail: Object.keys(parsed.data).join(', '),
+  });
+  return c.json({ ok: true, modelVersion: MODEL_VERSION });
+});
+
+adminRoute.delete('/community-videos/:id', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
+  const id = c.req.param('id');
+  const ok = await deleteFeaturedVideo(c.env.DB, id);
+  if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'community.video.delete',
+    target: id,
+  });
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
+});
 
 // 관리자 감사 로그 조회 — 최신순, 변경자 닉네임 해석.
 adminRoute.get('/audit-log', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {

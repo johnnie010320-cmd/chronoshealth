@@ -79,6 +79,13 @@ export default function AdminDashboardPage() {
         : undefined,
     },
     {
+      key: 'commHub',
+      href: '/admin/community-hub',
+      title: D.actionCommHub,
+      desc: D.actionCommHubDesc,
+      status: 'active',
+    },
+    {
       key: 'notices',
       href: '/admin/notices',
       title: D.actionNotices,

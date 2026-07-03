@@ -660,8 +660,29 @@ export type CommunitySummary = {
   visibility: CommunityVisibility;
   allowLikesDefault: boolean;
   allowCommentsDefault: boolean;
+  categoryId?: string | null;
   followerCount: number;
   postCount: number;
+  createdAt: string;
+};
+
+export type CommunityGroupKey = 'overcome' | 'manage' | 'talk';
+export const COMMUNITY_GROUP_KEYS: CommunityGroupKey[] = ['overcome', 'manage', 'talk'];
+
+export type CommunityCategory = {
+  id: string;
+  groupKey: CommunityGroupKey;
+  name: string;
+  sortOrder: number;
+};
+
+export type CommunityFeaturedVideo = {
+  id: string;
+  groupKey: CommunityGroupKey | null;
+  categoryId: string | null;
+  title: string;
+  videoUrl: string;
+  sortOrder: number;
   createdAt: string;
 };
 
@@ -687,6 +708,7 @@ export type CreateCommunityBody = {
   visibility: CommunityVisibility;
   allowLikesDefault: boolean;
   allowCommentsDefault: boolean;
+  categoryId?: string | null;
 };
 
 export type AdminCommunityListResponse = {
@@ -1047,6 +1069,85 @@ export async function createCommunity(
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as { community: CommunitySummary };
+}
+
+// ── 커뮤니티 카테고리 / 큐레이션 동영상 ─────────────────────────────────────
+export async function fetchCommunityCategories(): Promise<CommunityCategory[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/categories`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { categories: CommunityCategory[] }).categories;
+}
+
+export async function fetchFeaturedVideos(): Promise<CommunityFeaturedVideo[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/featured-videos`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { videos: CommunityFeaturedVideo[] }).videos;
+}
+
+async function adminJson(path: string, method: string, body?: unknown): Promise<unknown> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const init: RequestInit = {
+    method,
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  };
+  if (body !== undefined) {
+    (init.headers as Record<string, string>)['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(body);
+  }
+  const res = await fetch(`${GATEWAY_URL}${path}`, init);
+  if (!res.ok) await throwOnError(res);
+  return res.json();
+}
+
+export function adminCreateCategory(body: {
+  groupKey: CommunityGroupKey;
+  name: string;
+  sortOrder: number;
+}): Promise<unknown> {
+  return adminJson('/api/v1/admin/community-categories', 'POST', body);
+}
+export function adminUpdateCategory(
+  id: string,
+  patch: { name?: string; sortOrder?: number },
+): Promise<unknown> {
+  return adminJson(`/api/v1/admin/community-categories/${id}`, 'PATCH', patch);
+}
+export function adminDeleteCategory(id: string): Promise<unknown> {
+  return adminJson(`/api/v1/admin/community-categories/${id}`, 'DELETE');
+}
+
+export function adminCreateFeaturedVideo(body: {
+  title: string;
+  videoUrl: string;
+  groupKey: CommunityGroupKey | null;
+  categoryId: string | null;
+  sortOrder: number;
+}): Promise<unknown> {
+  return adminJson('/api/v1/admin/community-videos', 'POST', body);
+}
+export function adminUpdateFeaturedVideo(
+  id: string,
+  patch: {
+    title?: string;
+    videoUrl?: string;
+    groupKey?: CommunityGroupKey | null;
+    categoryId?: string | null;
+    sortOrder?: number;
+  },
+): Promise<unknown> {
+  return adminJson(`/api/v1/admin/community-videos/${id}`, 'PATCH', patch);
+}
+export function adminDeleteFeaturedVideo(id: string): Promise<unknown> {
+  return adminJson(`/api/v1/admin/community-videos/${id}`, 'DELETE');
 }
 
 export async function toggleCommunityFollow(

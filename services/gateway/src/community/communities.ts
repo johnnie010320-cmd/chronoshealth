@@ -9,6 +9,7 @@ export type CommunityRow = {
   visibility: CommunityVisibility;
   allowLikesDefault: boolean;
   allowCommentsDefault: boolean;
+  categoryId: string | null;
   createdAt: string;
   deletedAt: string | null;
   followerCount: number;
@@ -30,6 +31,7 @@ type RawCommunity = {
   visibility: string;
   allow_likes_default: number;
   allow_comments_default: number;
+  category_id: string | null;
   created_at: string;
   deleted_at: string | null;
   follower_count: number;
@@ -45,6 +47,7 @@ function mapRow(row: RawCommunity): CommunityRow {
     visibility: row.visibility as CommunityVisibility,
     allowLikesDefault: row.allow_likes_default === 1,
     allowCommentsDefault: row.allow_comments_default === 1,
+    categoryId: row.category_id ?? null,
     createdAt: row.created_at,
     deletedAt: row.deleted_at,
     followerCount: row.follower_count,
@@ -55,7 +58,7 @@ function mapRow(row: RawCommunity): CommunityRow {
 const SELECT_COMMUNITY = `
   SELECT
     c.id, c.owner_pseudonym_id, c.name, c.description, c.visibility,
-    c.allow_likes_default, c.allow_comments_default, c.created_at, c.deleted_at,
+    c.allow_likes_default, c.allow_comments_default, c.category_id, c.created_at, c.deleted_at,
     (SELECT COUNT(*) FROM community_followers f
        WHERE f.community_id = c.id AND f.status = 'active') AS follower_count,
     (SELECT COUNT(*) FROM community_posts p
@@ -73,14 +76,15 @@ export async function insertCommunity(
     visibility: CommunityVisibility;
     allowLikesDefault: boolean;
     allowCommentsDefault: boolean;
+    categoryId: string | null;
   },
 ): Promise<void> {
   await db
     .prepare(
       `INSERT INTO communities
          (id, owner_pseudonym_id, name, description, visibility,
-          allow_likes_default, allow_comments_default)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          allow_likes_default, allow_comments_default, category_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -90,6 +94,7 @@ export async function insertCommunity(
       row.visibility,
       row.allowLikesDefault ? 1 : 0,
       row.allowCommentsDefault ? 1 : 0,
+      row.categoryId,
     )
     .run();
   // owner 는 즉시 active follower 로 등록.

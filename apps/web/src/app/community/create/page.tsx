@@ -8,7 +8,11 @@ import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
   createCommunity,
+  fetchCommunityCategories,
+  COMMUNITY_GROUP_KEYS,
   type CommunityVisibility,
+  type CommunityCategory,
+  type CommunityGroupKey,
 } from '@/lib/api-client';
 
 export default function CreateCommunityPage() {
@@ -23,10 +27,23 @@ export default function CreateCommunityPage() {
   const [allowComments, setAllowComments] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errCode, setErrCode] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CommunityCategory[]>([]);
+  const [group, setGroup] = useState<CommunityGroupKey>('overcome');
+  const [categoryId, setCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!readSession()) router.replace('/signup');
+    if (!readSession()) {
+      router.replace('/signup');
+      return;
+    }
+    fetchCommunityCategories()
+      .then(setCategories)
+      .catch(() => {
+        /* noop */
+      });
   }, [router]);
+
+  const groupCategories = categories.filter((c) => c.groupKey === group);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +56,7 @@ export default function CreateCommunityPage() {
         visibility,
         allowLikesDefault: allowLikes,
         allowCommentsDefault: allowComments,
+        categoryId,
       });
       router.replace(`/community/view?id=${res.community.id}`);
     } catch (err) {
@@ -77,6 +95,50 @@ export default function CreateCommunityPage() {
             className="mt-1 block w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
           />
         </label>
+
+        <div className="space-y-2">
+          <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
+            {C.categoryLabel}
+          </span>
+          <div className="flex gap-1.5">
+            {COMMUNITY_GROUP_KEYS.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => {
+                  setGroup(g);
+                  setCategoryId(null);
+                }}
+                className={`flex-1 rounded-xl px-2 py-2 text-[12px] font-semibold transition ${
+                  group === g
+                    ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900'
+                    : 'bg-white text-stone-600 dark:bg-stone-900 dark:text-stone-300'
+                }`}
+              >
+                {Co.groupTabs[g]}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {groupCategories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategoryId(categoryId === cat.id ? null : cat.id)}
+                className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition ${
+                  categoryId === cat.id
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-900/40 dark:text-brand-200'
+                    : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+            {groupCategories.length === 0 && (
+              <span className="text-[11px] text-stone-400">{C.categoryNone}</span>
+            )}
+          </div>
+        </div>
 
         <fieldset className="space-y-2">
           <legend className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">

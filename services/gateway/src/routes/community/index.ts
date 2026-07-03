@@ -45,6 +45,11 @@ import {
   moderateText,
   moderateVideoUrl,
 } from '../../community/moderation.js';
+import {
+  categoryExists,
+  listCategories,
+  listFeaturedVideos,
+} from '../../community/categories.js';
 import { findPseudonymByNickname, resolveNicknames } from '../../messaging/nickname.js';
 import { isAdmin } from '../../middleware/admin-auth.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
@@ -404,6 +409,10 @@ communityRoute.post('/communities', authMiddleware, rateLimit(20), async (c) => 
   if (!textCheck.allowed) {
     return c.json({ error: { code: textCheck.reason } }, 400);
   }
+  // 카테고리 지정 시 존재 검증.
+  if (parsed.data.categoryId && !(await categoryExists(c.env.DB, parsed.data.categoryId))) {
+    return c.json({ error: { code: 'INVALID_CATEGORY' } }, 400);
+  }
   const id = crypto.randomUUID();
   await insertCommunity(c.env.DB, {
     id,
@@ -413,9 +422,22 @@ communityRoute.post('/communities', authMiddleware, rateLimit(20), async (c) => 
     visibility: parsed.data.visibility,
     allowLikesDefault: parsed.data.allowLikesDefault,
     allowCommentsDefault: parsed.data.allowCommentsDefault,
+    categoryId: parsed.data.categoryId,
   });
   const community = await readCommunity(c.env.DB, id);
   return c.json({ community, modelVersion: MODEL_VERSION });
+});
+
+// 하위 카테고리 목록(3그룹). 커뮤니티 메인·생성 폼에서 사용.
+communityRoute.get('/categories', authMiddleware, rateLimit(200), async (c) => {
+  const categories = await listCategories(c.env.DB);
+  return c.json({ categories, modelVersion: MODEL_VERSION });
+});
+
+// 관리자 큐레이션 동영상 목록(그룹/카테고리별 노출용).
+communityRoute.get('/featured-videos', authMiddleware, rateLimit(200), async (c) => {
+  const videos = await listFeaturedVideos(c.env.DB);
+  return c.json({ videos, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.get('/communities', authMiddleware, rateLimit(200), async (c) => {
