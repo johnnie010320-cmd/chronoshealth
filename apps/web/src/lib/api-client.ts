@@ -1891,6 +1891,26 @@ export async function fetchAdminNotices(): Promise<Notice[]> {
   return ((await res.json()) as { notices: Notice[] }).notices;
 }
 
+// 관리자 변경 감사 로그.
+export type AdminAuditEntry = {
+  id: string;
+  actorNickname: string | null;
+  action: string;
+  target: string | null;
+  detail: string | null;
+  createdAt: string;
+};
+
+export async function fetchAdminAuditLog(): Promise<AdminAuditEntry[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/audit-log`, {
+    headers: authHeaders(session.sessionToken),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { entries: AdminAuditEntry[] }).entries;
+}
+
 export async function createNotice(body: {
   title: string;
   body: string;

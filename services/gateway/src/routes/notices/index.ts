@@ -22,6 +22,7 @@ import {
   resolveNoticeImageType,
 } from '../../notices/files.js';
 import { safeFileName } from '../../messaging/files.js';
+import { appendAudit } from '../../admin/audit.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'notices-v0.1.0';
@@ -96,6 +97,12 @@ noticesAdminRoute.post('/', authMiddleware, adminMiddleware, rateLimit(30), asyn
     createdByPseudonymId: me,
   });
   const notice = await readNotice(c.env.DB, id);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: me,
+    action: 'notice.create',
+    target: id,
+    detail: parsed.data.title,
+  });
   return c.json({ notice, modelVersion: MODEL_VERSION }, 201);
 });
 
@@ -113,6 +120,12 @@ noticesAdminRoute.patch('/:id', authMiddleware, adminMiddleware, rateLimit(60), 
   const ok = await updateNotice(c.env.DB, id, parsed.data);
   if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   const notice = await readNotice(c.env.DB, id);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'notice.update',
+    target: id,
+    detail: Object.keys(parsed.data).join(', '),
+  });
   return c.json({ notice, modelVersion: MODEL_VERSION });
 });
 
@@ -120,10 +133,17 @@ noticesAdminRoute.delete('/:id', authMiddleware, adminMiddleware, rateLimit(30),
   const id = c.req.param('id');
   // 첨부(R2) 정리 후 행 삭제.
   const media = await readNoticeMedia(c.env.DB, id);
+  const existing = await readNotice(c.env.DB, id);
   const ok = await deleteNotice(c.env.DB, id);
   if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   if (media?.imageKey) await c.env.ATTACHMENTS.delete(media.imageKey).catch(() => {});
   if (media?.fileKey) await c.env.ATTACHMENTS.delete(media.fileKey).catch(() => {});
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'notice.delete',
+    target: id,
+    detail: existing?.title ?? null,
+  });
   return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });
 
@@ -149,6 +169,11 @@ noticesAdminRoute.post('/:id/image', authMiddleware, adminMiddleware, rateLimit(
     return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
   }
   await setNoticeImage(c.env.DB, id, key, type);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'notice.image.set',
+    target: id,
+  });
   const notice = await readNotice(c.env.DB, id);
   return c.json({ notice, modelVersion: MODEL_VERSION });
 });
@@ -159,6 +184,11 @@ noticesAdminRoute.delete('/:id/image', authMiddleware, adminMiddleware, rateLimi
   if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   if (media.imageKey) await c.env.ATTACHMENTS.delete(media.imageKey).catch(() => {});
   await setNoticeImage(c.env.DB, id, null, null);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'notice.image.remove',
+    target: id,
+  });
   const notice = await readNotice(c.env.DB, id);
   return c.json({ notice, modelVersion: MODEL_VERSION });
 });
@@ -182,7 +212,14 @@ noticesAdminRoute.post('/:id/file', authMiddleware, adminMiddleware, rateLimit(3
     console.error('R2 put notice file failed', err);
     return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
   }
-  await setNoticeFile(c.env.DB, id, key, safeFileName(file.name));
+  const savedName = safeFileName(file.name);
+  await setNoticeFile(c.env.DB, id, key, savedName);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'notice.file.set',
+    target: id,
+    detail: savedName,
+  });
   const notice = await readNotice(c.env.DB, id);
   return c.json({ notice, modelVersion: MODEL_VERSION });
 });
@@ -193,6 +230,11 @@ noticesAdminRoute.delete('/:id/file', authMiddleware, adminMiddleware, rateLimit
   if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   if (media.fileKey) await c.env.ATTACHMENTS.delete(media.fileKey).catch(() => {});
   await setNoticeFile(c.env.DB, id, null, null);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'notice.file.remove',
+    target: id,
+  });
   const notice = await readNotice(c.env.DB, id);
   return c.json({ notice, modelVersion: MODEL_VERSION });
 });

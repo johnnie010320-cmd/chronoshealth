@@ -25,6 +25,8 @@ import {
   insertRelease,
   listReleases,
 } from '../../releases/storage.js';
+import { appendAudit, listAudit } from '../../admin/audit.js';
+import { resolveNicknames } from '../../messaging/nickname.js';
 import type { Bindings } from '../../bindings.js';
 
 const SetRoleRequest = z.object({ role: z.enum(['user', 'admin']) }).strict();
@@ -136,6 +138,12 @@ adminRoute.post(
       // 대상 없음 또는 superadmin(변경 불가).
       return c.json({ error: { code: 'ROLE_UNCHANGED' } }, 409);
     }
+    await appendAudit(c.env.DB, {
+      actorPseudonymId: c.get('userPseudonymId'),
+      action: 'user.role',
+      target: targetId,
+      detail: parsed.data.role,
+    });
     return c.json({ ok: true, role: parsed.data.role, modelVersion: MODEL_VERSION });
   },
 );
@@ -164,12 +172,24 @@ adminRoute.post('/releases', authMiddleware, adminMiddleware, rateLimit(60), asy
     notes: parsed.data.notes,
     createdByPseudonymId: me,
   });
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: me,
+    action: 'release.create',
+    target: id,
+    detail: `${parsed.data.component} ${parsed.data.version}`,
+  });
   return c.json({ id, modelVersion: MODEL_VERSION }, 201);
 });
 
 adminRoute.delete('/releases/:id', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
-  const ok = await deleteRelease(c.env.DB, c.req.param('id'));
+  const rid = c.req.param('id');
+  const ok = await deleteRelease(c.env.DB, rid);
   if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  await appendAudit(c.env.DB, {
+    actorPseudonymId: c.get('userPseudonymId'),
+    action: 'release.delete',
+    target: rid,
+  });
   return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });
 
@@ -212,9 +232,34 @@ adminRoute.delete(
     if (!ok) {
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     }
+    await appendAudit(c.env.DB, {
+      actorPseudonymId: c.get('userPseudonymId'),
+      action: 'community.delete',
+      target: id,
+    });
     return c.json({ deleted: true, modelVersion: MODEL_VERSION });
   },
 );
+
+// 관리자 감사 로그 조회 — 최신순, 변경자 닉네임 해석.
+adminRoute.get('/audit-log', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
+  const limit = clampInt(c.req.query('limit'), 100, 1, 200);
+  const before = c.req.query('before') ?? null;
+  const entries = await listAudit(c.env.DB, { limit, before });
+  const nicks = await resolveNicknames(
+    c.env.IDENTITY_DB,
+    entries.map((e) => e.actorPseudonymId),
+  );
+  const rows = entries.map((e) => ({
+    id: e.id,
+    actorNickname: nicks.get(e.actorPseudonymId) ?? null,
+    action: e.action,
+    target: e.target,
+    detail: e.detail,
+    createdAt: e.createdAt,
+  }));
+  return c.json({ entries: rows, hasMore: entries.length === limit, modelVersion: MODEL_VERSION });
+});
 
 function clampInt(
   raw: string | undefined,

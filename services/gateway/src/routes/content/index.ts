@@ -8,6 +8,7 @@ import {
   readContentPage,
   upsertContentPage,
 } from '../../content/storage.js';
+import { appendAudit } from '../../admin/audit.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'content-v0.1.0';
@@ -88,6 +89,12 @@ contentAdminRoute.put(
       updatedByPseudonymId: pseudonymId,
     });
     const page = await readContentPage(c.env.DB, parsed.data.slug, parsed.data.locale);
+    await appendAudit(c.env.DB, {
+      actorPseudonymId: pseudonymId,
+      action: 'content.update',
+      target: `${parsed.data.slug}/${parsed.data.locale}`,
+      detail: `v${parsed.data.version}`,
+    });
     return c.json({ page, modelVersion: MODEL_VERSION });
   },
 );

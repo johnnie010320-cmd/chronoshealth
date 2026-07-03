@@ -119,6 +119,13 @@ export default function AdminDashboardPage() {
       status: 'active',
     },
     {
+      key: 'audit',
+      href: '/admin/audit-log',
+      title: D.actionAudit,
+      desc: D.actionAuditDesc,
+      status: 'active',
+    },
+    {
       key: 'ledgerAdjust',
       href: null,
       title: D.actionLedgerAdjust,
