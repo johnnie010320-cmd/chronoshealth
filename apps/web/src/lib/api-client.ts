@@ -844,6 +844,14 @@ export type RoutineEntry = {
   // 운동 점수 세분화 — 밸런스(운동 종류) + 리커버리(스트레칭 수행). null = 미입력.
   exerciseType?: ExerciseType | null;
   didStretch?: boolean | null;
+  // 입력한 음식 항목 목록(항목명·양·칼로리). null = 미입력.
+  foodItems?: FoodItem[] | null;
+};
+
+export type FoodItem = {
+  name: string;
+  amount: string;
+  calories: number | null;
 };
 
 export type ExerciseType = 'cardio' | 'strength' | 'both';

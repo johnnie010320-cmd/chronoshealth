@@ -30,6 +30,7 @@ import {
   type ExerciseType,
   type SymptomAssessment,
   type CalorieEstimateLine,
+  type FoodItem,
   type UpfTier,
 } from '@/lib/api-client';
 
@@ -254,6 +255,19 @@ function TodayTab({
             fatG: r.entry.fatG ?? null,
             upfTier: r.entry.upfTier ?? null,
           });
+          // 입력했던 음식 항목 복원(재진입 시에도 그대로 보이도록).
+          if (r.entry.foodItems && r.entry.foodItems.length > 0) {
+            setFoodRows(r.entry.foodItems.map((it) => ({ name: it.name, amount: it.amount })));
+            if (r.entry.foodItems.every((it) => it.calories != null)) {
+              setEstimateLines(
+                r.entry.foodItems.map((it) => ({
+                  name: it.name,
+                  amount: it.amount,
+                  calories: it.calories as number,
+                })),
+              );
+            }
+          }
         }
       })
       .catch(() => {});
@@ -315,6 +329,20 @@ function TodayTab({
     }
   }
 
+  // 저장할 음식 항목: AI 추정 라인(칼로리 포함) 우선, 없으면 입력행(이름·양)만.
+  function collectFoodItems(): FoodItem[] | null {
+    if (estimateLines && estimateLines.length > 0) {
+      const items = estimateLines
+        .filter((l) => l.name.trim() !== '')
+        .map((l) => ({ name: l.name.trim(), amount: l.amount.trim(), calories: l.calories }));
+      return items.length > 0 ? items : null;
+    }
+    const rows = foodRows
+      .map((r) => ({ name: r.name.trim(), amount: r.amount.trim(), calories: null as number | null }))
+      .filter((r) => r.name !== '');
+    return rows.length > 0 ? rows : null;
+  }
+
   async function save() {
     setBusy(true);
     setDone(false);
@@ -332,6 +360,7 @@ function TodayTab({
         carbG: nutri.carbG,
         fatG: nutri.fatG,
         upfTier: nutri.upfTier,
+        foodItems: collectFoodItems(),
       });
       if (mood) {
         try {

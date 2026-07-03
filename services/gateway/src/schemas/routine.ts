@@ -29,6 +29,18 @@ export const RoutineUpsertRequest = z
     // 운동 점수 세분화 — 밸런스(운동 종류) + 리커버리(스트레칭). 선택.
     exerciseType: z.enum(['cardio', 'strength', 'both']).nullable().default(null),
     didStretch: z.boolean().nullable().default(null),
+    // 입력한 음식 항목 목록(항목명·양·칼로리). 선택 — 최대 30개.
+    foodItems: z
+      .array(
+        z.object({
+          name: z.string().max(120),
+          amount: z.string().max(60),
+          calories: z.number().min(0).max(20000).nullable(),
+        }),
+      )
+      .max(30)
+      .nullable()
+      .default(null),
   })
   .strict()
   .refine(

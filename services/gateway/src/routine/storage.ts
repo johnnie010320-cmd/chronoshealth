@@ -1,5 +1,12 @@
 export type UpfTier = 'clean' | 'processed' | 'ultra';
 
+// 오늘의 루틴에서 입력한 개별 음식 항목(칼로리는 AI 추정, 없으면 null).
+export type FoodItem = {
+  name: string;
+  amount: string;
+  calories: number | null;
+};
+
 export type RoutineEntry = {
   entryDate: string;
   caloriesKcal: number | null;
@@ -12,6 +19,8 @@ export type RoutineEntry = {
   carbG?: number | null;
   fatG?: number | null;
   upfTier?: UpfTier | null;
+  // 입력한 음식 항목 목록(항목명·양·칼로리). null = 미입력.
+  foodItems?: FoodItem[] | null;
   // 운동 점수 세분화용 — 밸런스(유산소/근력/혼합) + 리커버리(스트레칭 수행).
   exerciseType?: 'cardio' | 'strength' | 'both' | null;
   didStretch?: boolean | null;
@@ -36,11 +45,11 @@ export async function upsertRoutineEntry(
         user_pseudonym_id, purpose_code, entry_date,
         calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
         protein_g, carb_g, fat_g, upf_tier,
-        exercise_type, did_stretch,
+        exercise_type, did_stretch, food_items,
         weight_kg, waist_cm, blood_glucose_mg_dl,
         blood_pressure_systolic, blood_pressure_diastolic,
         medication_taken, stress_level
-      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'routine_log', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (user_pseudonym_id, entry_date) DO UPDATE SET
         calories_kcal = excluded.calories_kcal,
         exercise_minutes = excluded.exercise_minutes,
@@ -53,6 +62,7 @@ export async function upsertRoutineEntry(
         upf_tier = excluded.upf_tier,
         exercise_type = excluded.exercise_type,
         did_stretch = excluded.did_stretch,
+        food_items = excluded.food_items,
         weight_kg = excluded.weight_kg,
         waist_cm = excluded.waist_cm,
         blood_glucose_mg_dl = excluded.blood_glucose_mg_dl,
@@ -76,6 +86,7 @@ export async function upsertRoutineEntry(
       entry.upfTier ?? null,
       entry.exerciseType ?? null,
       entry.didStretch == null ? null : entry.didStretch ? 1 : 0,
+      entry.foodItems == null ? null : JSON.stringify(entry.foodItems),
       entry.weightKg ?? null,
       entry.waistCm ?? null,
       entry.bloodGlucoseMgDl ?? null,
@@ -111,7 +122,7 @@ export async function readRoutineByDate(
   const row = await db
     .prepare(
       `SELECT entry_date, calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
-              protein_g, carb_g, fat_g, upf_tier, exercise_type, did_stretch
+              protein_g, carb_g, fat_g, upf_tier, exercise_type, did_stretch, food_items
          FROM routine_entries
         WHERE user_pseudonym_id = ? AND entry_date = ?`,
     )
@@ -135,6 +146,7 @@ type NutritionRow = {
   upf_tier: string | null;
   exercise_type: string | null;
   did_stretch: number | null;
+  food_items: string | null;
 };
 
 function mapRow(row: NutritionRow): RoutineEntry {
@@ -151,7 +163,31 @@ function mapRow(row: NutritionRow): RoutineEntry {
     upfTier: normUpf(row.upf_tier),
     exerciseType: normExerciseType(row.exercise_type),
     didStretch: row.did_stretch == null ? null : row.did_stretch === 1,
+    foodItems: parseFoodItems(row.food_items),
   };
+}
+
+// TEXT(JSON) → FoodItem[] 안전 파싱. 형식이 어긋나면 null.
+function parseFoodItems(v: string | null): FoodItem[] | null {
+  if (v == null || v === '') return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(v);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) return null;
+  const items: FoodItem[] = [];
+  for (const el of parsed) {
+    if (el == null || typeof el !== 'object') continue;
+    const o = el as Record<string, unknown>;
+    const name = typeof o.name === 'string' ? o.name : null;
+    const amount = typeof o.amount === 'string' ? o.amount : '';
+    if (name == null) continue;
+    const calories = typeof o.calories === 'number' ? o.calories : null;
+    items.push({ name, amount, calories });
+  }
+  return items.length > 0 ? items : null;
 }
 
 function normIntensity(v: string | null | undefined): 'low' | 'medium' | 'high' | null {
@@ -175,7 +211,7 @@ export async function readRoutineRange(
   const result = await db
     .prepare(
       `SELECT entry_date, calories_kcal, exercise_minutes, exercise_intensity, sleep_hours, note,
-              protein_g, carb_g, fat_g, upf_tier, exercise_type, did_stretch
+              protein_g, carb_g, fat_g, upf_tier, exercise_type, did_stretch, food_items
          FROM routine_entries
         WHERE user_pseudonym_id = ?
           AND entry_date >= ?

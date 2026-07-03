@@ -15,12 +15,14 @@ import {
   fetchPrescriptionHistory,
   submitRoutineDaily,
   deleteRoutineEntry,
+  estimateCalories,
   type RoutineEntry,
   type AiPrescription,
   type DiaryMood,
   type ExerciseIntensity,
   type ExerciseType,
   type UpfTier,
+  type FoodItem,
 } from '@/lib/api-client';
 
 function todayIso(): string {
@@ -47,8 +49,15 @@ type DayLog = {
   prescription: AiPrescription | null;
 };
 
+type EditNutri = {
+  proteinG: number | null;
+  carbG: number | null;
+  fatG: number | null;
+  upfTier: UpfTier | null;
+};
+
 export default function HealthDiaryPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const D = t.healthDiary;
   const S = t.home.selfCheck;
   const [status, setStatus] = useState<'loading' | 'unauth' | 'ok'>('loading');
@@ -68,10 +77,18 @@ export default function HealthDiaryPage() {
     sleep: string;
     note: string;
   }>({ calories: '', exercise: '', intensity: '', exType: '', stretch: '', sleep: '', note: '' });
+  // 음식 항목 편집 상태. editNutri=null 이면 기존 매크로 보존, 재계산 시 갱신값 사용.
+  const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [editNutri, setEditNutri] = useState<EditNutri | null>(null);
+  const [recalcBusy, setRecalcBusy] = useState(false);
+  const [recalcErr, setRecalcErr] = useState(false);
 
   function startEdit(d: DayLog) {
     const r = d.routine;
     setRowError(null);
+    setRecalcErr(false);
+    setEditNutri(null);
+    setFoods(r?.foodItems ? r.foodItems.map((it) => ({ ...it })) : []);
     setForm({
       calories: r?.caloriesKcal != null ? String(r.caloriesKcal) : '',
       exercise: r?.exerciseMinutes != null ? String(r.exerciseMinutes) : '',
@@ -82,6 +99,27 @@ export default function HealthDiaryPage() {
       note: r?.note ?? '',
     });
     setEditDate(d.date);
+  }
+
+  async function recalcCalories() {
+    const clean = foods
+      .map((f) => ({ name: f.name.trim(), amount: f.amount.trim() }))
+      .filter((f) => f.name !== '' && f.amount !== '');
+    if (clean.length === 0) return;
+    setRecalcBusy(true);
+    setRecalcErr(false);
+    try {
+      const res = await estimateCalories(clean, locale);
+      setFoods(
+        res.breakdown.map((l) => ({ name: l.name, amount: l.amount, calories: l.calories })),
+      );
+      setForm((s) => ({ ...s, calories: String(res.totalCalories) }));
+      setEditNutri(aggregateNutri(res.breakdown));
+    } catch {
+      setRecalcErr(true);
+    } finally {
+      setRecalcBusy(false);
+    }
   }
 
   function cancelEdit() {
@@ -100,7 +138,16 @@ export default function HealthDiaryPage() {
     const exercise = numOrNull(form.exercise);
     const sleep = numOrNull(form.sleep);
     const note = form.note.trim() === '' ? null : form.note.trim();
-    if (calories == null && exercise == null && sleep == null && note == null) {
+    const cleanFoods = foods
+      .map((f) => ({ name: f.name.trim(), amount: f.amount.trim(), calories: f.calories }))
+      .filter((f) => f.name !== '');
+    if (
+      calories == null &&
+      exercise == null &&
+      sleep == null &&
+      note == null &&
+      cleanFoods.length === 0
+    ) {
       setRowError('empty');
       return;
     }
@@ -117,11 +164,12 @@ export default function HealthDiaryPage() {
         didStretch: form.stretch === '' ? null : form.stretch === 'yes',
         sleepHours: sleep,
         note,
-        // 영양(매크로·UPF)은 AI 추정값이라 직접 편집하지 않고 기존 엔트리에서 보존(유실 방지).
-        proteinG: prev?.proteinG ?? null,
-        carbG: prev?.carbG ?? null,
-        fatG: prev?.fatG ?? null,
-        upfTier: prev?.upfTier ?? null,
+        foodItems: cleanFoods.length > 0 ? cleanFoods : null,
+        // 매크로·UPF: 재계산했으면 갱신값, 아니면 기존값 보존(유실 방지).
+        proteinG: editNutri ? editNutri.proteinG : prev?.proteinG ?? null,
+        carbG: editNutri ? editNutri.carbG : prev?.carbG ?? null,
+        fatG: editNutri ? editNutri.fatG : prev?.fatG ?? null,
+        upfTier: editNutri ? editNutri.upfTier : prev?.upfTier ?? null,
       };
       const { entry } = await submitRoutineDaily(body);
       setDays((ds) =>
@@ -250,6 +298,73 @@ export default function HealthDiaryPage() {
 
                   {editDate === d.date ? (
                     <div className="mt-2 space-y-2">
+                      <div>
+                        <p className="mb-1 text-[10px] font-semibold text-stone-400">
+                          {D.foodItemsLabel}
+                        </p>
+                        <div className="space-y-1.5">
+                          {foods.map((it, i) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                              <DiaryInput
+                                placeholder={D.foodNamePh}
+                                value={it.name}
+                                maxLength={120}
+                                onChange={(v) =>
+                                  setFoods((fs) =>
+                                    fs.map((f, idx) => (idx === i ? { ...f, name: v } : f)),
+                                  )
+                                }
+                              />
+                              <input
+                                type="text"
+                                value={it.amount}
+                                placeholder={D.foodAmountPh}
+                                maxLength={60}
+                                onChange={(e) =>
+                                  setFoods((fs) =>
+                                    fs.map((f, idx) =>
+                                      idx === i ? { ...f, amount: e.target.value } : f,
+                                    ),
+                                  )
+                                }
+                                className="w-28 shrink-0 rounded-xl border border-stone-200 bg-white px-2 py-2 text-[13px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setFoods((fs) => fs.filter((_, idx) => idx !== i))}
+                                aria-label={D.removeFood}
+                                className="shrink-0 px-1.5 text-stone-400 hover:text-rose-600"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFoods((fs) => [...fs, { name: '', amount: '', calories: null }])
+                            }
+                            className="rounded-lg px-2 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                          >
+                            {D.addFood}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void recalcCalories()}
+                            disabled={recalcBusy || foods.every((f) => f.name.trim() === '' || f.amount.trim() === '')}
+                            className="rounded-lg border border-stone-300 px-2 py-1 text-[11px] font-semibold text-stone-700 disabled:opacity-50 dark:border-stone-700 dark:text-stone-200"
+                          >
+                            {recalcBusy ? D.recalculating : D.recalc}
+                          </button>
+                        </div>
+                        {recalcErr && (
+                          <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-300">
+                            {D.recalcError}
+                          </p>
+                        )}
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         <DiaryInput
                           placeholder={D.caloriesLabel}
@@ -354,6 +469,22 @@ export default function HealthDiaryPage() {
                       </div>
                     </div>
                   ) : d.routine && hasRoutineContent(d.routine) ? (
+                    <>
+                    {d.routine.foodItems && d.routine.foodItems.length > 0 && (
+                      <div className="mt-1">
+                        <p className="text-[10px] font-semibold text-stone-400">{D.foodItemsLabel}</p>
+                        <div className="mt-0.5 flex flex-wrap gap-1">
+                          {d.routine.foodItems.map((it, i) => (
+                            <Chip
+                              key={i}
+                              label={`${it.name}${it.amount ? ` ${it.amount}` : ''}${
+                                it.calories != null ? ` · ${it.calories}kcal` : ''
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {d.routine.caloriesKcal != null && (
                         <Chip label={`${D.caloriesLabel} ${d.routine.caloriesKcal}kcal`} />
@@ -386,6 +517,7 @@ export default function HealthDiaryPage() {
                       )}
                       {d.routine.note && <Chip label={d.routine.note} />}
                     </div>
+                    </>
                   ) : (
                     <p className="mt-0.5 text-[12px] text-stone-400">{D.noRoutine}</p>
                   )}
@@ -438,8 +570,41 @@ function hasRoutineContent(r: RoutineEntry): boolean {
     r.carbG != null ||
     r.fatG != null ||
     r.upfTier != null ||
+    (r.foodItems?.length ?? 0) > 0 ||
     (r.note ?? '') !== ''
   );
+}
+
+function worstUpf(tiers: (UpfTier | undefined)[]): UpfTier | null {
+  const rank: Record<UpfTier, number> = { clean: 0, processed: 1, ultra: 2 };
+  let worst: UpfTier | null = null;
+  for (const tr of tiers) {
+    if (!tr) continue;
+    if (worst == null || rank[tr] > rank[worst]) worst = tr;
+  }
+  return worst;
+}
+
+function aggregateNutri(
+  lines: { proteinG?: number; carbG?: number; fatG?: number; upf?: UpfTier }[],
+): EditNutri {
+  let p = 0;
+  let c = 0;
+  let f = 0;
+  let any = false;
+  for (const l of lines) {
+    if (typeof l.proteinG === 'number') { p += l.proteinG; any = true; }
+    if (typeof l.carbG === 'number') { c += l.carbG; any = true; }
+    if (typeof l.fatG === 'number') { f += l.fatG; any = true; }
+  }
+  const upfTier = worstUpf(lines.map((l) => l.upf));
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return {
+    proteinG: any ? r1(p) : null,
+    carbG: any ? r1(c) : null,
+    fatG: any ? r1(f) : null,
+    upfTier,
+  };
 }
 
 function macroLabel(
