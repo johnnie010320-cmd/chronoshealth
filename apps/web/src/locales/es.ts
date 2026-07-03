@@ -599,6 +599,10 @@ export const es: Dictionary = {
   },
   community: {
     groupTabs: { overcome: 'Superémoslo juntos', manage: 'Gestionémoslo juntos', talk: 'Hablemos juntos' },
+    searchPh: 'Buscar comunidades',
+    catAll: 'Todo',
+    videoTitle: 'Vídeos destacados',
+    emptyInGroup: 'Aún no hay comunidades en esta categoría',
     pageTitle: 'Comunidad',
     nav: 'Comunidad',
     homeCardLabel: 'Explorar la comunidad',

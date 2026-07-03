@@ -596,6 +596,10 @@ export const ja: Dictionary = {
   },
   community: {
     groupTabs: { overcome: '一緒に乗り越えよう', manage: '一緒に管理しよう', talk: '一緒に話そう' },
+    searchPh: 'コミュニティを検索',
+    catAll: 'すべて',
+    videoTitle: 'おすすめ動画',
+    emptyInGroup: 'このカテゴリにはまだコミュニティがありません',
     pageTitle: 'コミュニティ',
     nav: 'コミュニティ',
     homeCardLabel: 'コミュニティを見る',

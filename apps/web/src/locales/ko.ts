@@ -592,6 +592,10 @@ export const ko = {
   },
   community: {
     groupTabs: { overcome: '같이 이겨내요', manage: '같이 관리해요', talk: '같이 얘기해요' },
+    searchPh: '커뮤니티 검색',
+    catAll: '전체',
+    videoTitle: '추천 영상',
+    emptyInGroup: '이 분류에 커뮤니티가 아직 없어요',
     pageTitle: '커뮤니티',
     nav: '커뮤니티',
     homeCardLabel: '커뮤니티 둘러보기',
