@@ -50,6 +50,11 @@ import {
   listCategories,
   listFeaturedVideos,
 } from '../../community/categories.js';
+import {
+  hotPeople,
+  searchCommunities,
+  searchPosts,
+} from '../../community/discover.js';
 import { findPseudonymByNickname, resolveNicknames } from '../../messaging/nickname.js';
 import { isAdmin } from '../../middleware/admin-auth.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
@@ -438,6 +443,48 @@ communityRoute.get('/categories', authMiddleware, rateLimit(200), async (c) => {
 communityRoute.get('/featured-videos', authMiddleware, rateLimit(200), async (c) => {
   const videos = await listFeaturedVideos(c.env.DB);
   return c.json({ videos, modelVersion: MODEL_VERSION });
+});
+
+// 키워드 검색 — 공개 커뮤니티/게시물. 하이라이트는 클라이언트.
+communityRoute.get('/search', authMiddleware, rateLimit(120), async (c) => {
+  const q = (c.req.query('q') ?? '').trim();
+  if (q.length < 2) {
+    return c.json({ communities: [], posts: [], modelVersion: MODEL_VERSION });
+  }
+  const [communities, posts] = await Promise.all([
+    searchCommunities(c.env.DB, q, 10),
+    searchPosts(c.env.DB, q, 20),
+  ]);
+  const nicks = await resolveNicknames(
+    c.env.IDENTITY_DB,
+    posts.map((p) => p.authorPseudonymId),
+  );
+  const postRows = posts.map((p) => ({
+    id: p.id,
+    communityId: p.communityId,
+    communityName: p.communityName,
+    authorNickname: nicks.get(p.authorPseudonymId) ?? null,
+    title: p.title,
+    body: p.body,
+    createdAt: p.createdAt,
+  }));
+  return c.json({ communities, posts: postRows, modelVersion: MODEL_VERSION });
+});
+
+// 오늘의 핫피플 — 최근 7일 게시·좋아요 기준 상위 크리에이터.
+communityRoute.get('/hot-people', authMiddleware, rateLimit(120), async (c) => {
+  const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+  const rows = await hotPeople(c.env.DB, since, 12);
+  const nicks = await resolveNicknames(
+    c.env.IDENTITY_DB,
+    rows.map((r) => r.authorPseudonymId),
+  );
+  const people = rows.map((r) => ({
+    nickname: nicks.get(r.authorPseudonymId) ?? null,
+    postCount: r.postCount,
+    likeCount: r.likeCount,
+  }));
+  return c.json({ people, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.get('/communities', authMiddleware, rateLimit(200), async (c) => {

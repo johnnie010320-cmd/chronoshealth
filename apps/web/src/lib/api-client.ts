@@ -1092,6 +1092,42 @@ export async function fetchFeaturedVideos(): Promise<CommunityFeaturedVideo[]> {
   return ((await res.json()) as { videos: CommunityFeaturedVideo[] }).videos;
 }
 
+export type CommunitySearchResult = {
+  communities: { id: string; name: string; description: string }[];
+  posts: {
+    id: string;
+    communityId: string;
+    communityName: string;
+    authorNickname: string | null;
+    title: string;
+    body: string;
+    createdAt: string;
+  }[];
+};
+
+export async function searchCommunity(q: string): Promise<CommunitySearchResult> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/community/search?q=${encodeURIComponent(q)}`,
+    { headers: { Authorization: `Bearer ${session.sessionToken}` } },
+  );
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as CommunitySearchResult;
+}
+
+export type HotPerson = { nickname: string | null; postCount: number; likeCount: number };
+
+export async function fetchHotPeople(): Promise<HotPerson[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/community/hot-people`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { people: HotPerson[] }).people;
+}
+
 async function adminJson(path: string, method: string, body?: unknown): Promise<unknown> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');

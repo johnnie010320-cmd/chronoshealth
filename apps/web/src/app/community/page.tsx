@@ -11,11 +11,15 @@ import {
   fetchCommunities,
   fetchCommunityCategories,
   fetchFeaturedVideos,
+  fetchHotPeople,
+  searchCommunity,
   COMMUNITY_GROUP_KEYS,
   type CommunitySummary,
   type CommunityCategory,
   type CommunityFeaturedVideo,
   type CommunityGroupKey,
+  type CommunitySearchResult,
+  type HotPerson,
 } from '@/lib/api-client';
 
 // YouTube/Vimeo URL → 영상 ID (썸네일·임베드용). 실패 시 null.
@@ -43,6 +47,8 @@ export default function CommunityPage() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [playing, setPlaying] = useState<string | null>(null);
+  const [hot, setHot] = useState<HotPerson[]>([]);
+  const [searchResult, setSearchResult] = useState<CommunitySearchResult | null>(null);
 
   useEffect(() => {
     if (!readSession()) {
@@ -55,18 +61,36 @@ export default function CommunityPage() {
       fetchCommunities(),
       fetchCommunityCategories().catch(() => [] as CommunityCategory[]),
       fetchFeaturedVideos().catch(() => [] as CommunityFeaturedVideo[]),
+      fetchHotPeople().catch(() => [] as HotPerson[]),
     ])
-      .then(([list, cats, vids]) => {
+      .then(([list, cats, vids, people]) => {
         setMine(list.mine);
         setDiscover(list.discover);
         setCategories(cats);
         setVideos(vids);
+        setHot(people);
       })
       .catch(() => {
         /* noop */
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // 검색어 디바운스 → 서버 검색(2자 이상).
+  const searching = query.trim().length >= 2;
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setSearchResult(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      searchCommunity(q)
+        .then(setSearchResult)
+        .catch(() => setSearchResult({ communities: [], posts: [] }));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // categoryId → groupKey 매핑.
   const catGroup = useMemo(() => {
@@ -130,6 +154,10 @@ export default function CommunityPage() {
         className="mt-3 block w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
       />
 
+      {searching && <SearchResults result={searchResult} query={query.trim()} Co={Co} />}
+
+      {!searching && (
+        <>
       {/* 그룹 탭 */}
       <div className="mt-3 flex gap-1.5">
         {COMMUNITY_GROUP_KEYS.map((g) => (
@@ -170,6 +198,9 @@ export default function CommunityPage() {
           </Chip>
         ))}
       </div>
+
+      {/* 오늘의 핫피플 */}
+      {hot.length > 0 && <HotPeople people={hot} title={Co.hotPeopleTitle} />}
 
       {/* 추천 영상 히어로 */}
       {shownVideos.length > 0 && (
@@ -281,6 +312,8 @@ export default function CommunityPage() {
         </div>
         <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-500 dark:text-stone-400" />
       </Link>
+        </>
+      )}
 
       <div className="mt-4 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
         {Co.disclaimer}
@@ -393,5 +426,129 @@ function EmptyCard({ text }: { text: string }) {
     <div className="card-shadow rounded-2xl bg-white px-4 py-6 text-center text-[12px] text-stone-500 dark:bg-stone-900 dark:text-stone-400">
       {text}
     </div>
+  );
+}
+
+// 검색어 하이라이트(대소문자 무시).
+function Highlight({ text, term }: { text: string; term: string }) {
+  if (!term) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const q = term.toLowerCase();
+  const out: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(q, i);
+    if (idx < 0) {
+      out.push(text.slice(i));
+      break;
+    }
+    if (idx > i) out.push(text.slice(i, idx));
+    out.push(
+      <mark key={key++} className="rounded bg-amber-200 px-0.5 text-stone-900 dark:bg-amber-400/60">
+        {text.slice(idx, idx + q.length)}
+      </mark>,
+    );
+    i = idx + q.length;
+  }
+  return <>{out}</>;
+}
+
+function HotPeople({ people, title }: { people: HotPerson[]; title: string }) {
+  return (
+    <section className="mt-4">
+      <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        {title}
+      </h2>
+      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+        {people.map((p, i) => (
+          <div key={i} className="w-16 shrink-0 text-center">
+            <span
+              className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white ${
+                i === 0
+                  ? 'bg-gradient-to-br from-amber-400 to-rose-500'
+                  : 'bg-gradient-to-br from-brand-400 to-brand-600'
+              }`}
+            >
+              {(p.nickname ?? '?').slice(0, 1)}
+            </span>
+            <p className="mt-1 truncate text-[10px] font-medium text-stone-700 dark:text-stone-300">
+              {p.nickname ?? '—'}
+            </p>
+            <p className="text-[9px] tabular-nums text-stone-400">♥ {p.likeCount}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SearchResults({
+  result,
+  query,
+  Co,
+}: {
+  result: CommunitySearchResult | null;
+  query: string;
+  Co: { searchResultTitle: string; searchEmpty: string; searchCommsLabel: string; searchPostsLabel: string };
+}) {
+  const empty = result && result.communities.length === 0 && result.posts.length === 0;
+  return (
+    <section className="mt-4 space-y-4">
+      <h2 className="px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        {Co.searchResultTitle}
+      </h2>
+      {empty && <EmptyCard text={Co.searchEmpty} />}
+      {result && result.communities.length > 0 && (
+        <div>
+          <p className="mb-1 px-1 text-[10px] font-semibold text-stone-400">{Co.searchCommsLabel}</p>
+          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+            {result.communities.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/community/view?id=${c.id}`}
+                  className="block px-4 py-3 transition active:bg-stone-50 dark:active:bg-stone-800/50"
+                >
+                  <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    <Highlight text={c.name} term={query} />
+                  </p>
+                  {c.description && (
+                    <p className="mt-0.5 line-clamp-1 text-[12px] text-stone-500 dark:text-stone-400">
+                      <Highlight text={c.description} term={query} />
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {result && result.posts.length > 0 && (
+        <div>
+          <p className="mb-1 px-1 text-[10px] font-semibold text-stone-400">{Co.searchPostsLabel}</p>
+          <ul className="space-y-2">
+            {result.posts.map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/community/post?id=${p.id}`}
+                  className="card-shadow block rounded-2xl bg-white px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
+                >
+                  <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    <Highlight text={p.title} term={query} />
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-stone-600 dark:text-stone-400">
+                    <Highlight text={p.body} term={query} />
+                  </p>
+                  <p className="mt-1 text-[10px] text-stone-400">
+                    {p.communityName}
+                    {p.authorNickname ? ` · ${p.authorNickname}` : ''}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
