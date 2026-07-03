@@ -405,14 +405,10 @@ export async function listExpiredAttachments(
   return (results ?? []).map((r) => ({ id: r.id, key: r.attachment_key }));
 }
 
-// 만료 첨부 정리 — 메시지 soft delete + 키 제거(다운로드 404).
+// 만료 첨부 정리 — R2 실물만 제거(attachment_key NULL). 메시지 기록은 보존(대화 기록 유지).
 export async function expireAttachment(db: D1Database, messageId: string): Promise<void> {
   await db
-    .prepare(
-      `UPDATE messages
-          SET deleted_at = datetime('now'), attachment_key = NULL
-        WHERE id = ?`,
-    )
+    .prepare(`UPDATE messages SET attachment_key = NULL WHERE id = ?`)
     .bind(messageId)
     .run();
 }
@@ -527,4 +523,40 @@ export async function deleteConversation(db: D1Database, conversationId: string)
     .prepare(`UPDATE conversations SET deleted_at = datetime('now') WHERE id = ?`)
     .bind(conversationId)
     .run();
+}
+
+// 대화방의 남은 첨부 R2 키 목록(정리용).
+export async function listConversationAttachmentKeys(
+  db: D1Database,
+  conversationId: string,
+): Promise<string[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT attachment_key FROM messages
+        WHERE conversation_id = ? AND attachment_key IS NOT NULL`,
+    )
+    .bind(conversationId)
+    .all<{ attachment_key: string }>();
+  return (results ?? []).map((r) => r.attachment_key);
+}
+
+// 대화방 완전 삭제 — 메시지·반응·멤버·대화 행을 물리 삭제(채팅방 삭제 시 데이터 전량 제거).
+// R2 첨부 실물 삭제는 호출측에서 listConversationAttachmentKeys 로 선처리.
+export async function purgeConversation(
+  db: D1Database,
+  conversationId: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `DELETE FROM message_reactions
+        WHERE message_id IN (SELECT id FROM messages WHERE conversation_id = ?)`,
+    )
+    .bind(conversationId)
+    .run();
+  await db.prepare(`DELETE FROM messages WHERE conversation_id = ?`).bind(conversationId).run();
+  await db
+    .prepare(`DELETE FROM conversation_members WHERE conversation_id = ?`)
+    .bind(conversationId)
+    .run();
+  await db.prepare(`DELETE FROM conversations WHERE id = ?`).bind(conversationId).run();
 }

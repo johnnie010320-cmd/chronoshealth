@@ -12,7 +12,8 @@ import {
 import {
   addMember,
   addReaction,
-  deleteConversation,
+  listConversationAttachmentKeys,
+  purgeConversation,
   dmConversationId,
   getMessageAttachment,
   getMessagePreviews,
@@ -556,6 +557,15 @@ messagingRoute.delete('/conversations/:id', authMiddleware, rateLimit(50), async
   if (conv.kind !== 'room' || conv.ownerPseudonymId !== me) {
     return c.json({ error: { code: 'FORBIDDEN' } }, 403);
   }
-  await deleteConversation(c.env.DB, id);
+  // 채팅방 삭제 = 데이터 전량 제거. 첨부 R2 실물 삭제 후 행 물리 삭제.
+  const keys = await listConversationAttachmentKeys(c.env.DB, id);
+  for (const key of keys) {
+    try {
+      await c.env.ATTACHMENTS.delete(key);
+    } catch (err) {
+      console.error('R2 delete on conversation purge failed', err);
+    }
+  }
+  await purgeConversation(c.env.DB, id);
   return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });

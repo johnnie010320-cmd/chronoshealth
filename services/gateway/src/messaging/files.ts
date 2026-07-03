@@ -2,7 +2,9 @@
 // 허용: jpg/jpeg, pdf, ppt, pptx. 최대 20MB. 비공개(게이트웨이 인증 후 스트림).
 
 export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // 20MB
-export const ATTACHMENT_TTL_DAYS = 7;
+// 첨부(R2 실물) 보관 기간 90일. 만료 시 파일 바이트만 삭제하고 메시지 기록은 보존.
+// 대화 기록(텍스트·첨부 기록)은 채팅방 삭제 전까지 영구 보관.
+export const ATTACHMENT_TTL_DAYS = 90;
 
 const EXT_TO_MIME: Record<string, string> = {
   jpg: 'image/jpeg',

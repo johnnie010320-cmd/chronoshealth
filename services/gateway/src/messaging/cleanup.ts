@@ -1,5 +1,5 @@
-// R9 — 만료(7일 경과) 대화 첨부 정리. cron(scheduled) 에서 호출.
-// R2 객체 삭제 + 메시지 soft delete(attachment_key NULL → 다운로드 404).
+// R9 — 만료(90일 경과) 대화 첨부 정리. cron(scheduled) 에서 호출.
+// R2 실물만 삭제 + attachment_key NULL(다운로드 404). 메시지 기록은 보존(대화 기록 유지).
 
 import type { Bindings } from '../bindings.js';
 import { expireAttachment, listExpiredAttachments } from './storage.js';
