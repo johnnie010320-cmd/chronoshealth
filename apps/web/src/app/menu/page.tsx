@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
+import { useUnseenNotice } from '@/lib/notice-state';
 import type { Dictionary } from '@/locales/ko';
 
 type ItemKey = keyof Dictionary['menu'];
@@ -110,6 +111,7 @@ const MENU_GROUPS: MenuGroup[] = [
 export default function MenuPage() {
   const { t } = useI18n();
   const M = t.menu;
+  const { hasNew } = useUnseenNotice();
 
   return (
     <AppShell title={M.pageTitle} decoration="dots">
@@ -144,14 +146,20 @@ export default function MenuPage() {
                     </li>
                   );
                 }
+                const showNoticeDot = item.href === '/notices' && hasNew;
                 return (
                   <li key={item.itemKey}>
                     <Link
                       href={item.href}
                       className="flex items-center justify-between gap-3 px-4 py-3 text-stone-700 transition active:bg-stone-50 dark:text-stone-200 dark:active:bg-stone-800"
                     >
-                      <span className="truncate text-[13px] font-medium">
-                        {label}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-[13px] font-medium">{label}</span>
+                        {showNoticeDot && (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                            {t.notices.newBadge}
+                          </span>
+                        )}
                       </span>
                       <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
                     </Link>

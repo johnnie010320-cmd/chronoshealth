@@ -9,6 +9,7 @@ import {
   noticeImageUrl,
   type Notice,
 } from '@/lib/api-client';
+import { setNoticeLastSeen } from '@/lib/notice-state';
 
 export default function NoticesPage() {
   const { t } = useI18n();
@@ -18,7 +19,15 @@ export default function NoticesPage() {
 
   useEffect(() => {
     fetchNotices()
-      .then(setNotices)
+      .then((list) => {
+        setNotices(list);
+        // 목록을 열었으므로 최신 공지까지 '확인'으로 표시 → 알림 뱃지 해제.
+        const max = list.reduce<string | null>(
+          (m, n) => (m == null || n.createdAt > m ? n.createdAt : m),
+          null,
+        );
+        if (max) setNoticeLastSeen(max);
+      })
       .catch(() => {
         /* noop */
       })

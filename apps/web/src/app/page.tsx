@@ -12,6 +12,7 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { useIsAdmin } from '@/lib/admin-state';
+import { getNoticeLastSeen } from '@/lib/notice-state';
 import {
   fetchAvatarMe,
   fetchMeProfile,
@@ -39,6 +40,7 @@ export default function HomePage() {
   const [avatar, setAvatar] = useState<AvatarResponse | null>(null);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [noticeHasNew, setNoticeHasNew] = useState(false);
   const isAdmin = useIsAdmin();
 
   useEffect(() => {
@@ -67,9 +69,17 @@ export default function HomePage() {
   }, [router]);
 
   useEffect(() => {
-    // 공지는 공개 — 로그인 여부 무관. 최신 1건만 배너로.
+    // 공지는 공개 — 로그인 여부 무관. 최신 1건만 배너로 + 미확인 알림 표시.
     fetchNotices()
-      .then((list) => setNotice(list[0] ?? null))
+      .then((list) => {
+        setNotice(list[0] ?? null);
+        const max = list.reduce<string | null>(
+          (m, n) => (m == null || n.createdAt > m ? n.createdAt : m),
+          null,
+        );
+        const seen = getNoticeLastSeen();
+        setNoticeHasNew(max != null && (seen == null || max > seen));
+      })
       .catch(() => {
         /* noop */
       });
@@ -119,8 +129,13 @@ export default function HomePage() {
           className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-br from-brand-50 to-amber-50 px-4 py-3 transition active:scale-[0.99] dark:from-brand-900/30 dark:to-amber-900/20"
         >
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-200">
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-200">
               {t.notices.homeEyebrow}
+              {noticeHasNew && (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                  {t.notices.newBadge}
+                </span>
+              )}
             </p>
             <p className="mt-0.5 truncate text-sm font-bold text-stone-900 dark:text-stone-100">
               {notice.title}
