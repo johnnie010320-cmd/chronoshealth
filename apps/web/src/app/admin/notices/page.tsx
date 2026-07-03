@@ -6,8 +6,13 @@ import { useI18n } from '@/lib/i18n';
 import {
   createNotice,
   deleteNotice,
+  deleteNoticeFile,
+  deleteNoticeImage,
   fetchAdminNotices,
+  noticeImageUrl,
   updateNotice,
+  uploadNoticeFile,
+  uploadNoticeImage,
   type Notice,
 } from '@/lib/api-client';
 
@@ -21,6 +26,7 @@ export default function AdminNoticesPage() {
   const [errCode, setErrCode] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
   const [pinned, setPinned] = useState(false);
   const [published, setPublished] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -42,9 +48,16 @@ export default function AdminNoticesPage() {
     setBusy(true);
     setErrCode(null);
     try {
-      await createNotice({ title: title.trim(), body: body.trim(), pinned, published });
+      await createNotice({
+        title: title.trim(),
+        body: body.trim(),
+        pinned,
+        published,
+        linkUrl: linkUrl.trim() === '' ? null : linkUrl.trim(),
+      });
       setTitle('');
       setBody('');
+      setLinkUrl('');
       setPinned(false);
       setPublished(true);
       reload();
@@ -67,6 +80,25 @@ export default function AdminNoticesPage() {
     if (typeof window !== 'undefined' && !window.confirm(N.confirmDelete)) return;
     await deleteNotice(n.id);
     reload();
+  }
+
+  async function withReload(fn: () => Promise<unknown>) {
+    setErrCode(null);
+    try {
+      await fn();
+      reload();
+    } catch (e) {
+      setErrCode(e instanceof Error ? e.message : 'generic');
+    }
+  }
+
+  async function handleEditLink(n: Notice) {
+    if (typeof window === 'undefined') return;
+    const v = window.prompt(N.linkPrompt, n.linkUrl ?? '');
+    if (v === null) return;
+    await withReload(() =>
+      updateNotice(n.id, { linkUrl: v.trim() === '' ? null : v.trim() }),
+    );
   }
 
   return (
@@ -94,6 +126,15 @@ export default function AdminNoticesPage() {
           onChange={(e) => setBody(e.target.value)}
           className="block w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
         />
+        <input
+          type="url"
+          value={linkUrl}
+          placeholder={N.linkPlaceholder}
+          maxLength={500}
+          onChange={(e) => setLinkUrl(e.target.value)}
+          className="block w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+        />
+        <p className="text-[10px] text-stone-400">{N.linkLabel}</p>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 text-[12px] text-stone-700 dark:text-stone-300">
             <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="h-4 w-4 accent-brand-600" />
@@ -153,6 +194,77 @@ export default function AdminNoticesPage() {
               <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[12px] text-stone-600 dark:text-stone-400">
                 {n.body}
               </p>
+
+              {/* 첨부 요약 태그 */}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {n.hasImage && (
+                  <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+                    🖼 {N.imageTag}
+                  </span>
+                )}
+                {n.fileName && (
+                  <span className="max-w-[60%] truncate rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                    📄 {n.fileName}
+                  </span>
+                )}
+                {n.linkUrl && (
+                  <span className="max-w-[60%] truncate rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                    🔗 {n.linkUrl}
+                  </span>
+                )}
+              </div>
+              {n.hasImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={noticeImageUrl(n.id)}
+                  alt={N.imageTag}
+                  className="mt-2 max-h-40 rounded-xl border border-stone-100 object-contain dark:border-stone-800"
+                />
+              )}
+
+              {/* 첨부 관리 */}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <label className="cursor-pointer rounded-xl border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-200">
+                  {n.hasImage ? N.imageChange : N.imageAdd}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = '';
+                      if (f) void withReload(() => uploadNoticeImage(n.id, f));
+                    }}
+                  />
+                </label>
+                {n.hasImage && (
+                  <button type="button" onClick={() => void withReload(() => deleteNoticeImage(n.id))} className="rounded-xl border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                    {N.imageRemove}
+                  </button>
+                )}
+                <label className="cursor-pointer rounded-xl border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-200">
+                  {n.fileName ? N.pdfChange : N.pdfAdd}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = '';
+                      if (f) void withReload(() => uploadNoticeFile(n.id, f));
+                    }}
+                  />
+                </label>
+                {n.fileName && (
+                  <button type="button" onClick={() => void withReload(() => deleteNoticeFile(n.id))} className="rounded-xl border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                    {N.pdfRemove}
+                  </button>
+                )}
+                <button type="button" onClick={() => void handleEditLink(n)} className="rounded-xl border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-200">
+                  {N.linkEdit}
+                </button>
+              </div>
+
               <div className="mt-2 flex gap-2">
                 <button type="button" onClick={() => void togglePinned(n)} className="rounded-xl border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-200">
                   {N.pinCta}

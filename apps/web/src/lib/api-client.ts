@@ -1860,7 +1860,20 @@ export type Notice = {
   published: boolean;
   createdAt: string;
   updatedAt: string;
+  // 첨부 — 이미지(인라인), 파일(PDF 다운로드), 외부 링크.
+  hasImage?: boolean;
+  imageType?: string | null;
+  fileName?: string | null;
+  linkUrl?: string | null;
 };
+
+// 공개 첨부 스트림 URL(인증 불필요).
+export function noticeImageUrl(id: string): string {
+  return `${GATEWAY_URL}/api/v1/notices/${id}/image`;
+}
+export function noticeFileUrl(id: string): string {
+  return `${GATEWAY_URL}/api/v1/notices/${id}/file`;
+}
 
 export async function fetchNotices(): Promise<Notice[]> {
   const res = await fetch(`${GATEWAY_URL}/api/v1/notices`, { method: 'GET' });
@@ -1883,6 +1896,7 @@ export async function createNotice(body: {
   body: string;
   pinned: boolean;
   published: boolean;
+  linkUrl?: string | null;
 }): Promise<Notice> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
@@ -1897,7 +1911,13 @@ export async function createNotice(body: {
 
 export async function updateNotice(
   id: string,
-  patch: { title?: string; body?: string; pinned?: boolean; published?: boolean },
+  patch: {
+    title?: string;
+    body?: string;
+    pinned?: boolean;
+    published?: boolean;
+    linkUrl?: string | null;
+  },
 ): Promise<Notice> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
@@ -1918,4 +1938,40 @@ export async function deleteNotice(id: string): Promise<void> {
     headers: authHeaders(session.sessionToken),
   });
   if (!res.ok) await throwOnError(res);
+}
+
+// 공지 첨부 업로드/삭제 (관리자). kind: 'image'(png/jpg/webp) | 'file'(pdf).
+async function noticeAttachment(
+  id: string,
+  kind: 'image' | 'file',
+  method: 'POST' | 'DELETE',
+  file?: File,
+): Promise<Notice> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const init: RequestInit = {
+    method,
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  };
+  if (method === 'POST' && file) {
+    const form = new FormData();
+    form.append('file', file);
+    init.body = form;
+  }
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/notices/${id}/${kind}`, init);
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { notice: Notice }).notice;
+}
+
+export function uploadNoticeImage(id: string, file: File): Promise<Notice> {
+  return noticeAttachment(id, 'image', 'POST', file);
+}
+export function deleteNoticeImage(id: string): Promise<Notice> {
+  return noticeAttachment(id, 'image', 'DELETE');
+}
+export function uploadNoticeFile(id: string, file: File): Promise<Notice> {
+  return noticeAttachment(id, 'file', 'POST', file);
+}
+export function deleteNoticeFile(id: string): Promise<Notice> {
+  return noticeAttachment(id, 'file', 'DELETE');
 }

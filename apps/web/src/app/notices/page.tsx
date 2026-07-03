@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { useI18n } from '@/lib/i18n';
-import { fetchNotices, type Notice } from '@/lib/api-client';
+import {
+  fetchNotices,
+  noticeFileUrl,
+  noticeImageUrl,
+  type Notice,
+} from '@/lib/api-client';
 
 export default function NoticesPage() {
   const { t } = useI18n();
@@ -57,6 +62,40 @@ export default function NoticesPage() {
               <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-stone-700 dark:text-stone-300">
                 {n.body}
               </p>
+
+              {n.hasImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={noticeImageUrl(n.id)}
+                  alt={n.title}
+                  className="mt-3 w-full rounded-xl border border-stone-100 object-contain dark:border-stone-800"
+                />
+              )}
+
+              {(n.fileName || n.linkUrl) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {n.fileName && (
+                    <a
+                      href={noticeFileUrl(n.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+                    >
+                      📄 {N.fileDownload}
+                    </a>
+                  )}
+                  {n.linkUrl && (
+                    <a
+                      href={n.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-xl border border-brand-200 bg-brand-50 px-3 py-1.5 text-[12px] font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-900/40 dark:text-brand-200"
+                    >
+                      🔗 {N.openLink}
+                    </a>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
