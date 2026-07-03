@@ -221,6 +221,8 @@ export const es: Dictionary = {
     deleteRoomConfirm: '¿Eliminar esta sala? Desaparece para todos los miembros.',
     loadMore: 'Mensajes anteriores',
     unknownUser: '(sin apodo)',
+    loadOlder: 'Ver mensajes anteriores',
+    loadingOlder: 'Cargando…',
     unreadByCount: '{n} sin leer',
     notice: 'Los mensajes no son un diagnóstico médico. Consulta a un profesional para decisiones de salud.',
     errorGeneric: 'Algo salió mal. Inténtalo de nuevo.',

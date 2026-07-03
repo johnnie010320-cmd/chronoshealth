@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon } from '@/components/HealthIcons';
@@ -25,6 +25,16 @@ import {
 
 const POLL_MS = 4000;
 
+// id 기준 합치고 created_at 오름차순 정렬. 겹치면 새 값(b) 우선(읽음·반응 최신 반영).
+function mergeAsc(a: ChatMessage[], b: ChatMessage[]): ChatMessage[] {
+  const map = new Map<string, ChatMessage>();
+  for (const m of a) map.set(m.id, m);
+  for (const m of b) map.set(m.id, m);
+  return [...map.values()].sort((x, y) =>
+    x.createdAt < y.createdAt ? -1 : x.createdAt > y.createdAt ? 1 : 0,
+  );
+}
+
 function ThreadInner() {
   const { t } = useI18n();
   const M = t.messaging;
@@ -44,6 +54,12 @@ function ThreadInner() {
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  // 과거 메시지 prepend 시 스크롤 위치 보존용(이전 높이·스크롤톱).
+  const preserveScrollRef = useRef<{ height: number; top: number } | null>(null);
+  const initedRef = useRef(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -51,12 +67,38 @@ function ThreadInner() {
     if (!id) return;
     try {
       const res = await fetchMessages(id);
-      setMessages(res.messages);
+      // 폴링/최초 로드: 최신 페이지를 기존 목록과 병합(이미 불러온 과거 메시지 유지).
+      setMessages((prev) => (prev.length === 0 ? res.messages : mergeAsc(prev, res.messages)));
+      // '더 보기' 여부는 최초 로드의 hasMore로만 초기화(이후엔 loadOlder가 갱신).
+      if (!initedRef.current) {
+        initedRef.current = true;
+        setHasMoreOlder(res.hasMore);
+      }
       void markConversationRead(id);
     } catch (err) {
       if (err instanceof Error && err.message === 'NOT_A_MEMBER') setForbidden(true);
     }
   }, [id]);
+
+  const loadOlder = useCallback(async () => {
+    if (!id || loadingMore || messages.length === 0) return;
+    setLoadingMore(true);
+    const cursor = messages[0]?.createdAt;
+    const el = listRef.current;
+    const snapshot = el ? { height: el.scrollHeight, top: el.scrollTop } : null;
+    try {
+      const res = await fetchMessages(id, cursor);
+      if (res.messages.length > 0) {
+        preserveScrollRef.current = snapshot;
+        setMessages((prev) => mergeAsc(res.messages, prev));
+      }
+      setHasMoreOlder(res.hasMore);
+    } catch {
+      /* noop — 다음 시도에서 재요청 */
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [id, loadingMore, messages]);
 
   useEffect(() => {
     if (!readSession()) {
@@ -82,7 +124,16 @@ function ThreadInner() {
     };
   }, [id, router, loadMessages]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // 과거 메시지를 prepend한 경우: 보던 위치 유지(맨 아래로 튀지 않게).
+    const snap = preserveScrollRef.current;
+    const el = listRef.current;
+    if (snap && el) {
+      el.scrollTop = el.scrollHeight - snap.height + snap.top;
+      preserveScrollRef.current = null;
+      return;
+    }
+    // 그 외(최초 로드·새 메시지 추가): 맨 아래로.
     bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.length]);
 
@@ -235,10 +286,22 @@ function ThreadInner() {
             </div>
           )}
 
-          <div className="flex-1 space-y-2 overflow-y-auto py-2">
+          <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto py-2">
             {loading && (
               <div className="mt-10 flex justify-center">
                 <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700 dark:border-stone-700 dark:border-t-brand-400" />
+              </div>
+            )}
+            {!loading && hasMoreOlder && (
+              <div className="flex justify-center pb-1">
+                <button
+                  type="button"
+                  onClick={() => void loadOlder()}
+                  disabled={loadingMore}
+                  className="rounded-full border border-stone-200 bg-white px-3 py-1 text-[12px] font-semibold text-stone-600 transition hover:bg-stone-50 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
+                >
+                  {loadingMore ? M.loadingOlder : M.loadOlder}
+                </button>
               </div>
             )}
             {!loading &&
