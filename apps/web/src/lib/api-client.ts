@@ -512,6 +512,7 @@ export async function fetchAdminBetaSignups(): Promise<{
 // R8 Rewards
 export type LedgerKind =
   | 'survey_complete'
+  | 'routine_daily'
   | 'routine_streak_7'
   | 'community_post'
   | 'community_comment'

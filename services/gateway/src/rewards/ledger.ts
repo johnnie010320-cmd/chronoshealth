@@ -1,5 +1,6 @@
 export type LedgerKind =
   | 'survey_complete'
+  | 'routine_daily'
   | 'routine_streak_7'
   | 'community_post'
   | 'community_comment'
@@ -22,6 +23,8 @@ export type LedgerEntry = {
 // 적립 룰 (P1 시범 운영, P5 mainnet 진입 시 $CHRO 1:1 전환).
 export const EARN_AMOUNTS: Record<Exclude<LedgerKind, 'spend_coupon' | 'admin_adjust'>, number> = {
   survey_complete: 5,
+  // 오늘의 루틴 기록(입력·저장) 시 하루 1회 적립.
+  routine_daily: 2,
   routine_streak_7: 50,
   community_post: 10,
   community_comment: 2,

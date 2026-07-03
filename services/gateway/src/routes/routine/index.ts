@@ -38,6 +38,21 @@ routineRoute.post('/daily', authMiddleware, rateLimit(200), async (c) => {
   await upsertRoutineEntry(c.env.DB, pseudonymId, parsed.data);
   const saved = await readRoutineByDate(c.env.DB, pseudonymId, parsed.data.entryDate);
 
+  // 오늘의 루틴 기록(입력·저장 → 그래프 생성) 시 하루 2코인 적립. entryDate 기준 1회.
+  try {
+    const dayKey = parsed.data.entryDate;
+    const alreadyDaily = await hasEarnedFor(c.env.DB, pseudonymId, 'routine_daily', dayKey);
+    if (!alreadyDaily) {
+      await appendLedger(c.env.DB, pseudonymId, {
+        kind: 'routine_daily',
+        amount: EARN_AMOUNTS.routine_daily,
+        sourceRef: dayKey,
+      });
+    }
+  } catch (err) {
+    console.error('appendLedger routine_daily failed', err);
+  }
+
   // R8: 7일 연속 기록 달성 시 적립 (entryDate 기준 주차 1회).
   try {
     const from = new Date();

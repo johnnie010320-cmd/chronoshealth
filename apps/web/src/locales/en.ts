@@ -577,6 +577,7 @@ export const en: Dictionary = {
     historyEmpty: 'No activity yet.',
     earnKindLabel: {
       survey_complete: 'Survey completed',
+      routine_daily: 'Daily routine log',
       routine_streak_7: 'Routine 7-day streak',
       community_post: 'Community post',
       community_comment: 'Comment',

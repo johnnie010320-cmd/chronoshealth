@@ -574,6 +574,7 @@ export const ja: Dictionary = {
     historyEmpty: 'まだ活動がありません。',
     earnKindLabel: {
       survey_complete: 'アンケート完了',
+      routine_daily: '今日のルーティン記録',
       routine_streak_7: 'ルーティン7日達成',
       community_post: 'コミュニティ投稿',
       community_comment: 'コメント',

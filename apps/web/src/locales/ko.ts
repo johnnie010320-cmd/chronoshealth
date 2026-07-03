@@ -570,6 +570,7 @@ export const ko = {
     historyEmpty: '아직 활동이 없습니다.',
     earnKindLabel: {
       survey_complete: '설문 완료',
+      routine_daily: '오늘의 루틴 기록',
       routine_streak_7: '루틴 7일 달성',
       community_post: '커뮤니티 게시',
       community_comment: '댓글 작성',
