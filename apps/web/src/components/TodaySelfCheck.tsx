@@ -15,6 +15,7 @@ import { fileToFoodshotB64 } from '@/lib/foodshot-image';
 import { loadHealthProfile, type StableHealthProfile } from '@/lib/health-profile';
 import { dietScore, worstUpf, type DietScore } from '@/lib/diet-score';
 import { exerciseScore, type ExerciseScore } from '@/lib/exercise-score';
+import { DiaryAttachments } from '@/components/DiaryAttachments';
 import {
   fetchRoutineToday,
   fetchRoutineRange,
@@ -693,6 +694,9 @@ function TodayTab({
         placeholder={S.notePlaceholder}
         className="block w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
       />
+
+      {/* 개인 첨부(사진·PDF) — 다이어리 */}
+      <DiaryAttachments entryDate={todayIso()} editable />
 
       <div className="flex items-center gap-2">
         <button

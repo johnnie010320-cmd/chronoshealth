@@ -5,9 +5,25 @@ import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import { moderateText } from '../../community/moderation.js';
+import { MAX_NOTICE_BYTES, isPdf, resolveNoticeImageType } from '../../notices/files.js';
+import { safeFileName } from '../../messaging/files.js';
+import {
+  deleteDiaryAttachmentRow,
+  insertDiaryAttachment,
+  listDiaryAttachments,
+  readDiaryAttachment,
+} from '../../diary/attachments.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'diary-v0.1.0';
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function attExt(mime: string): string {
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/webp') return 'webp';
+  if (mime === 'application/pdf') return 'pdf';
+  return 'jpg';
+}
 
 const Mood = z.enum(['great', 'good', 'soso', 'tired', 'bad']);
 
@@ -98,4 +114,85 @@ diaryRoute.delete('/:id', authMiddleware, rateLimit(60), async (c) => {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
   return c.json({ deleted: true });
+});
+
+// ── 개인 첨부(사진/PDF) — 오늘의 루틴 다이어리. 본인만 열람, 관리자 미연동 ──
+diaryRoute.post('/attachments', authMiddleware, rateLimit(60), async (c) => {
+  const me = c.get('userPseudonymId');
+  const form = await c.req.formData().catch(() => null);
+  const entryDate = String(form?.get('entryDate') ?? '');
+  const file = form?.get('file');
+  if (!DATE_RE.test(entryDate)) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  if (!(file instanceof File)) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+
+  const imageType = resolveNoticeImageType(file.name, file.type);
+  const pdf = isPdf(file.name, file.type);
+  if (!imageType && !pdf) return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
+  if (file.size <= 0 || file.size > MAX_NOTICE_BYTES) {
+    return c.json({ error: { code: 'FILE_TOO_LARGE' } }, 400);
+  }
+  const kind: 'image' | 'file' = imageType ? 'image' : 'file';
+  const mime = imageType ?? 'application/pdf';
+  const id = crypto.randomUUID();
+  const key = `diary/${me}/${id}.${attExt(mime)}`;
+  try {
+    await c.env.ATTACHMENTS.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: mime },
+    });
+  } catch (err) {
+    console.error('R2 put diary attachment failed', err);
+    return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
+  }
+  const name = safeFileName(file.name);
+  await insertDiaryAttachment(c.env.DB, {
+    id,
+    userPseudonymId: me,
+    entryDate,
+    kind,
+    r2Key: key,
+    name,
+    mime,
+    byteSize: file.size,
+  });
+  return c.json({
+    attachment: { id, entryDate, kind, name, mime, byteSize: file.size },
+    modelVersion: MODEL_VERSION,
+  });
+});
+
+diaryRoute.get('/attachments', authMiddleware, rateLimit(200), async (c) => {
+  const me = c.get('userPseudonymId');
+  const from = c.req.query('from') ?? '';
+  const to = c.req.query('to') ?? '';
+  if (!DATE_RE.test(from) || !DATE_RE.test(to)) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  const attachments = await listDiaryAttachments(c.env.DB, me, from, to);
+  return c.json({ attachments, modelVersion: MODEL_VERSION });
+});
+
+diaryRoute.get('/attachments/:id/file', authMiddleware, rateLimit(200), async (c) => {
+  const me = c.get('userPseudonymId');
+  const att = await readDiaryAttachment(c.env.DB, c.req.param('id'));
+  if (!att) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (att.ownerPseudonymId !== me) return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  const obj = await c.env.ATTACHMENTS.get(att.r2Key);
+  if (!obj) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': att.mime,
+      'Content-Disposition': `${att.kind === 'image' ? 'inline' : 'attachment'}; filename="${att.name}"`,
+      'Cache-Control': 'private, max-age=3600',
+    },
+  });
+});
+
+diaryRoute.delete('/attachments/:id', authMiddleware, rateLimit(60), async (c) => {
+  const me = c.get('userPseudonymId');
+  const att = await readDiaryAttachment(c.env.DB, c.req.param('id'));
+  if (!att) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (att.ownerPseudonymId !== me) return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  await c.env.ATTACHMENTS.delete(att.r2Key).catch(() => {});
+  await deleteDiaryAttachmentRow(c.env.DB, att.id);
+  return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });

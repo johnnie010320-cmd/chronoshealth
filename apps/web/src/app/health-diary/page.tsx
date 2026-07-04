@@ -3,10 +3,11 @@
 // 나의 건강 일기 — 날짜별로 루틴(음식·운동·수면)·컨디션·AI 처방(식단·운동·휴식)을 모아 조회.
 // 데이터: routineRange + diary(mood) + prescriptionHistory 를 날짜로 병합.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
+import { DiaryAttachments } from '@/components/DiaryAttachments';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -28,10 +29,25 @@ import {
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
-function daysAgoIso(n: number): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - n);
-  return d.toISOString().slice(0, 10);
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+// 'YYYY-MM' 의 1일/말일 ISO.
+function monthFirst(ym: string): string {
+  return `${ym}-01`;
+}
+function monthLast(ym: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(Date.UTC(y ?? 2026, m ?? 1, 0)).getUTCDate();
+  return `${ym}-${pad2(last)}`;
+}
+function shiftMonth(ym: string, delta: number): string {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}`;
+}
+function currentYm(): string {
+  return todayIso().slice(0, 7);
 }
 
 const MOOD_EMOJI: Record<DiaryMood, string> = {
@@ -62,6 +78,8 @@ export default function HealthDiaryPage() {
   const S = t.home.selfCheck;
   const [status, setStatus] = useState<'loading' | 'unauth' | 'ok'>('loading');
   const [days, setDays] = useState<DayLog[]>([]);
+  const [monthYm, setMonthYm] = useState<string>(() => currentYm());
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayIso());
 
   // 편집/삭제 — 수정은 upsert(POST /daily) 재사용, 삭제는 DELETE. 모두 DB에 반영되어
   // 건강 그래프·점수 등은 각 화면 재조회 시 자동으로 수정된 데이터를 사용(단일 진실원천).
@@ -172,9 +190,12 @@ export default function HealthDiaryPage() {
         upfTier: editNutri ? editNutri.upfTier : prev?.upfTier ?? null,
       };
       const { entry } = await submitRoutineDaily(body);
-      setDays((ds) =>
-        ds.map((x) => (x.date === d.date ? { ...x, routine: entry ?? body } : x)),
-      );
+      setDays((ds) => {
+        const next = ds.some((x) => x.date === d.date)
+          ? ds.map((x) => (x.date === d.date ? { ...x, routine: entry ?? body } : x))
+          : [...ds, { date: d.date, routine: entry ?? body, mood: null, prescription: null }];
+        return next.sort((a, b) => (a.date < b.date ? 1 : -1));
+      });
       setEditDate(null);
     } catch {
       setRowError('save');
@@ -206,14 +227,16 @@ export default function HealthDiaryPage() {
       setStatus('unauth');
       return;
     }
-    const from = daysAgoIso(29);
-    const to = todayIso();
+    const from = monthFirst(monthYm);
+    const to = monthLast(monthYm);
+    let active = true;
     (async () => {
       const entries = await fetchRoutineRange(from, to)
         .then((r) => r.entries)
         .catch(() => [] as RoutineEntry[]);
       const diary = await fetchDiary().catch(() => []);
       const rx = await fetchPrescriptionHistory(from, to).catch(() => []);
+      if (!active) return;
 
       const map = new Map<string, DayLog>();
       const ensure = (date: string): DayLog => {
@@ -225,13 +248,32 @@ export default function HealthDiaryPage() {
         return cur;
       };
       for (const e of entries) ensure(e.entryDate).routine = e;
-      for (const d of diary) ensure(d.entryDate).mood = d.mood;
+      // 다이어리(mood)는 전체 반환이라 이 달 범위만 반영.
+      for (const d of diary) if (d.entryDate >= from && d.entryDate <= to) ensure(d.entryDate).mood = d.mood;
       for (const p of rx) ensure(p.entryDate).prescription = p.prescription;
 
       setDays([...map.values()].sort((a, b) => (a.date < b.date ? 1 : -1)));
       setStatus('ok');
     })();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [monthYm]);
+
+  // 날짜 → DayLog 조회(내용 유무 판정·상세용).
+  const dayMap = useMemo(() => {
+    const m = new Map<string, DayLog>();
+    for (const d of days) m.set(d.date, d);
+    return m;
+  }, [days]);
+
+  function hasContent(d: DayLog | undefined): boolean {
+    return !!d && (!!d.routine || !!d.mood || !!d.prescription);
+  }
+
+  // 선택일 상세(없으면 빈 DayLog — 첨부 추가 가능하도록).
+  const selected: DayLog =
+    dayMap.get(selectedDate) ?? { date: selectedDate, routine: null, mood: null, prescription: null };
 
   return (
     <AppShell title={D.pageTitle} showBack backHref="/">
@@ -245,13 +287,17 @@ export default function HealthDiaryPage() {
 
       {status === 'ok' && (
         <div className="space-y-3 pb-10 pt-2">
-          <p className="px-1 text-[11px] text-stone-400">{D.rangeNote}</p>
-          {days.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 text-center text-[13px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400">
-              {D.empty}
-            </div>
-          ) : (
-            days.map((d) => (
+          <Calendar
+            monthYm={monthYm}
+            selectedDate={selectedDate}
+            today={todayIso()}
+            weekdays={D.calWeekdays}
+            hasContent={(date) => hasContent(dayMap.get(date))}
+            onSelect={setSelectedDate}
+            onPrev={() => setMonthYm((m) => shiftMonth(m, -1))}
+            onNext={() => setMonthYm((m) => shiftMonth(m, 1))}
+          />
+          {[selected].map((d) => (
               <section
                 key={d.date}
                 className="card-shadow rounded-2xl bg-white p-4 dark:bg-stone-900"
@@ -543,9 +589,13 @@ export default function HealthDiaryPage() {
                     <p className="mt-0.5 text-[12px] text-stone-400">{D.noPrescription}</p>
                   )}
                 </div>
+
+                {/* 개인 첨부(사진·PDF) — 본인만 열람 */}
+                <div className="mt-3 border-t border-stone-100 pt-3 dark:border-stone-800">
+                  <DiaryAttachments entryDate={d.date} editable />
+                </div>
               </section>
-            ))
-          )}
+          ))}
 
           <Link
             href="/care"
@@ -674,6 +724,103 @@ function RxLine({ title, items }: { title: string; items: string[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function Calendar({
+  monthYm,
+  selectedDate,
+  today,
+  weekdays,
+  hasContent,
+  onSelect,
+  onPrev,
+  onNext,
+}: {
+  monthYm: string;
+  selectedDate: string;
+  today: string;
+  weekdays: readonly string[];
+  hasContent: (date: string) => boolean;
+  onSelect: (date: string) => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const [y, m] = monthYm.split('-').map(Number);
+  const year = y ?? 2026;
+  const month = m ?? 1;
+  const firstWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const cells: (string | null)[] = [];
+  for (let i = 0; i < firstWeekday; i += 1) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d += 1) cells.push(`${monthYm}-${d < 10 ? `0${d}` : d}`);
+
+  return (
+    <div className="card-shadow rounded-2xl bg-white p-3 dark:bg-stone-900">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <button
+          type="button"
+          onClick={onPrev}
+          aria-label="prev"
+          className="h-7 w-7 rounded-lg text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800"
+        >
+          ‹
+        </button>
+        <span className="text-sm font-bold text-stone-900 dark:text-stone-100">
+          {year}.{month < 10 ? `0${month}` : month}
+        </span>
+        <button
+          type="button"
+          onClick={onNext}
+          aria-label="next"
+          className="h-7 w-7 rounded-lg text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800"
+        >
+          ›
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {weekdays.map((w, i) => (
+          <div
+            key={i}
+            className={`py-1 text-center text-[10px] font-semibold ${
+              i === 0 ? 'text-rose-400' : i === 6 ? 'text-brand-400' : 'text-stone-400'
+            }`}
+          >
+            {w}
+          </div>
+        ))}
+        {cells.map((date, i) => {
+          if (!date) return <div key={`b${i}`} />;
+          const day = Number(date.slice(-2));
+          const isSel = date === selectedDate;
+          const isToday = date === today;
+          const dot = hasContent(date);
+          return (
+            <button
+              key={date}
+              type="button"
+              onClick={() => onSelect(date)}
+              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-[12px] transition ${
+                isSel
+                  ? 'bg-stone-900 font-bold text-white dark:bg-white dark:text-stone-900'
+                  : isToday
+                    ? 'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
+                    : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
+              }`}
+            >
+              {day}
+              {dot && (
+                <span
+                  className={`absolute bottom-1 h-1 w-1 rounded-full ${
+                    isSel ? 'bg-white/80' : 'bg-brand-500'
+                  }`}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

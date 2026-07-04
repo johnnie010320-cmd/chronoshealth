@@ -1664,6 +1664,71 @@ export async function removeDiary(id: string): Promise<void> {
   if (!res.ok) await throwOnError(res);
 }
 
+// 오늘의 루틴 개인 첨부(사진/PDF) — 본인 전용.
+export type DiaryAttachment = {
+  id: string;
+  entryDate: string;
+  kind: 'image' | 'file';
+  name: string;
+  mime: string;
+  byteSize: number;
+  createdAt?: string;
+};
+
+export async function fetchDiaryAttachments(
+  from: string,
+  to: string,
+): Promise<DiaryAttachment[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const qs = new URLSearchParams({ from, to });
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary/attachments?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { attachments: DiaryAttachment[] }).attachments;
+}
+
+export async function uploadDiaryAttachment(
+  entryDate: string,
+  file: File,
+): Promise<DiaryAttachment> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const form = new FormData();
+  form.append('entryDate', entryDate);
+  form.append('file', file);
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary/attachments`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+    body: form,
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { attachment: DiaryAttachment }).attachment;
+}
+
+export async function deleteDiaryAttachment(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary/attachments/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 첨부 파일을 인증 요청으로 받아 objectURL 반환(비공개 — img src/다운로드용). 실패 시 null.
+export async function fetchDiaryAttachmentObjectUrl(id: string): Promise<string | null> {
+  const session = readSession();
+  if (!session) return null;
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/diary/attachments/${id}/file`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) return null;
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 // Phase 2.5 — Foodshot
 export type FoodshotResult = {
   description: string;
