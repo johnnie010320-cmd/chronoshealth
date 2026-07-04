@@ -148,7 +148,7 @@ export default function HomePage() {
       {signedIn ? (
         <Link
           href={ctaHref}
-          className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white px-5 py-4 transition active:scale-[0.99] dark:bg-stone-900"
+          className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl card-violet px-5 py-4 transition active:scale-[0.99]"
         >
           <span className="min-w-0 flex-1 text-[13px] font-medium text-stone-800 dark:text-stone-100">
             {promptText}
@@ -159,7 +159,7 @@ export default function HomePage() {
           </span>
         </Link>
       ) : (
-        <section className="card-shadow mt-3 rounded-2xl bg-white px-5 py-4 dark:bg-stone-900">
+        <section className="card-shadow mt-3 rounded-2xl card-sky px-5 py-4">
           <p className="text-[13px] font-medium text-stone-800 dark:text-stone-100">
             {promptText}
           </p>
@@ -206,7 +206,7 @@ export default function HomePage() {
       <section className="mt-3 grid grid-cols-2 gap-3">
         <Link
           href="/health-diary"
-          className="card-shadow flex flex-col gap-1 rounded-2xl bg-white px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
+          className="card-shadow flex flex-col gap-1 rounded-2xl card-amber px-4 py-3 transition active:scale-[0.99]"
         >
           <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {H.boxRoutineEyebrow}
@@ -221,7 +221,7 @@ export default function HomePage() {
 
         <Link
           href="/care"
-          className="card-shadow flex flex-col gap-1 rounded-2xl bg-white px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
+          className="card-shadow flex flex-col gap-1 rounded-2xl card-rose px-4 py-3 transition active:scale-[0.99]"
         >
           <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {H.boxCareEyebrow}
@@ -280,7 +280,7 @@ function AgeCard({
   hint: string;
 }) {
   return (
-    <div className="card-shadow flex flex-col rounded-2xl bg-white px-4 py-3 dark:bg-stone-900">
+    <div className="card-shadow flex flex-col rounded-2xl card-emerald px-4 py-3">
       <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
         {eyebrow}
       </span>

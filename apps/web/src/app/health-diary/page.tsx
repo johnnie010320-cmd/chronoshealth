@@ -312,7 +312,7 @@ export default function HealthDiaryPage() {
           {[selected].map((d) => (
               <section
                 key={d.date}
-                className="card-shadow rounded-2xl bg-white p-4 dark:bg-stone-900"
+                className="card-shadow rounded-2xl card-amber p-4"
               >
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">{d.date}</h2>
@@ -771,7 +771,7 @@ function Calendar({
   for (let d = 1; d <= daysInMonth; d += 1) cells.push(`${monthYm}-${d < 10 ? `0${d}` : d}`);
 
   return (
-    <div className="card-shadow rounded-2xl bg-white p-3 dark:bg-stone-900">
+    <div className="card-shadow rounded-2xl card-rose p-3">
       <div className="mb-2 flex items-center justify-between px-1">
         <button
           type="button"

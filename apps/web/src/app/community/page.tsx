@@ -289,7 +289,7 @@ export default function CommunityPage() {
           <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {G.sectionMyTitle}
           </h2>
-          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-sky dark:divide-stone-800">
             {mine.map((c) => (
               <CommunityListItem key={c.id} community={c} />
             ))}
@@ -356,7 +356,7 @@ function CommunityCard({
   return (
     <Link
       href={`/community/view?id=${community.id}`}
-      className="card-shadow flex flex-col rounded-2xl bg-white p-3 transition active:scale-[0.98] dark:bg-stone-900"
+      className="card-shadow flex flex-col rounded-2xl card-amber p-3 transition active:scale-[0.98]"
     >
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
         <UsersIcon className="h-5 w-5" />
@@ -423,7 +423,7 @@ function CommunityListItem({ community }: { community: CommunitySummary }) {
 
 function EmptyCard({ text }: { text: string }) {
   return (
-    <div className="card-shadow rounded-2xl bg-white px-4 py-6 text-center text-[12px] text-stone-500 dark:bg-stone-900 dark:text-stone-400">
+    <div className="card-shadow rounded-2xl card-rose px-4 py-6 text-center text-[12px] text-stone-500 dark:text-stone-400">
       {text}
     </div>
   );
@@ -502,7 +502,7 @@ function SearchResults({
       {result && result.communities.length > 0 && (
         <div>
           <p className="mb-1 px-1 text-[10px] font-semibold text-stone-400">{Co.searchCommsLabel}</p>
-          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-emerald dark:divide-stone-800">
             {result.communities.map((c) => (
               <li key={c.id}>
                 <Link
@@ -531,7 +531,7 @@ function SearchResults({
               <li key={p.id}>
                 <Link
                   href={`/community/post?id=${p.id}`}
-                  className="card-shadow block rounded-2xl bg-white px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
+                  className="card-shadow block rounded-2xl card-violet px-4 py-3 transition active:scale-[0.99]"
                 >
                   <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
                     <Highlight text={p.title} term={query} />

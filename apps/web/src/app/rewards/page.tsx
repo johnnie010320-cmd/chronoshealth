@@ -93,7 +93,7 @@ export default function RewardsPage() {
 
       {data && (
         <>
-          <section className="card-shadow mt-3 rounded-2xl bg-white p-5 dark:bg-stone-900">
+          <section className="card-shadow mt-3 rounded-2xl card-emerald p-5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {R.earnLabel}
             </p>
@@ -145,7 +145,7 @@ export default function RewardsPage() {
                 {R.historyEmpty}
               </div>
             ) : (
-              <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+              <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-violet dark:divide-stone-800">
                 {data.history.map((entry) => (
                   <HistoryItem key={entry.txnId} entry={entry} />
                 ))}
@@ -188,7 +188,7 @@ function SpendCard({
   pointUnit: string;
 }) {
   return (
-    <li className="card-shadow rounded-2xl bg-white p-4 dark:bg-stone-900">
+    <li className="card-shadow rounded-2xl card-sky p-4">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
         {item.partner}
       </p>

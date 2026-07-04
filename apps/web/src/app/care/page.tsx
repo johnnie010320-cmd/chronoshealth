@@ -69,7 +69,7 @@ export default function CarePage() {
       {state.status === 'unauth' && <LoginRequired />}
 
       {state.status === 'noReport' && (
-        <section className="card-shadow mt-6 rounded-3xl bg-white p-8 text-center dark:bg-stone-900">
+        <section className="card-shadow mt-6 rounded-3xl card-amber p-8 text-center">
           <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
             <HeartPulseIcon className="h-7 w-7" />
           </span>
@@ -217,7 +217,7 @@ function CategorySection({
       </div>
 
       {rules.length > 0 && (
-        <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+        <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-rose dark:divide-stone-800">
           {rules.map((rule) => {
             const text = (C.rules as Record<string, string>)[rule.ruleId] ?? rule.ruleId;
             const severityLabel = C.severityLabels[rule.severity];
@@ -250,7 +250,7 @@ function CategorySection({
                   href={a.ctaUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="card-shadow flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
+                  className="card-shadow flex items-center justify-between gap-3 rounded-2xl card-emerald px-4 py-3 transition active:scale-[0.99]"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">

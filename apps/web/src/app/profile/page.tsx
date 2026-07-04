@@ -244,7 +244,7 @@ export default function ProfilePage() {
         </Link>
       )}
 
-      <section className="card-shadow mt-4 flex items-center gap-4 rounded-3xl bg-white p-5 dark:bg-stone-900">
+      <section className="card-shadow mt-4 flex items-center gap-4 rounded-3xl card-sky p-5">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
           {avatarDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -305,7 +305,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <section className="card-shadow mt-4 rounded-3xl bg-white p-5 dark:bg-stone-900">
+      <section className="card-shadow mt-4 rounded-3xl card-amber p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
@@ -482,7 +482,7 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <section className="card-shadow mt-4 rounded-3xl bg-white p-5 dark:bg-stone-900">
+      <section className="card-shadow mt-4 rounded-3xl card-rose p-5">
         <div className="mb-3 flex items-center gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
             <ShieldIcon className="h-5 w-5" />

@@ -56,7 +56,7 @@ export default function ReportsPage() {
       )}
 
       {state.status === 'noReport' && (
-        <section className="card-shadow mt-6 rounded-3xl bg-white p-8 text-center dark:bg-stone-900">
+        <section className="card-shadow mt-6 rounded-3xl card-violet p-8 text-center">
           <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
             <HeartPulseIcon className="h-7 w-7" />
           </span>
@@ -132,7 +132,7 @@ export default function ReportsPage() {
               <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
                 {R.lifetimeCostTitle}
               </h2>
-              <div className="card-shadow rounded-2xl bg-white p-4 dark:bg-stone-900">
+              <div className="card-shadow rounded-2xl card-sky p-4">
                 <div className="flex items-baseline justify-between">
                   <span className="text-[12px] text-stone-500 dark:text-stone-400">
                     {R.lifetimeCostLabel}
@@ -152,7 +152,7 @@ export default function ReportsPage() {
           <section className="grid grid-cols-2 gap-3">
             <Link
               href="/leaderboard"
-              className="card-shadow flex flex-col gap-1 rounded-2xl bg-white p-4 transition active:scale-[0.99] dark:bg-stone-900"
+              className="card-shadow flex flex-col gap-1 rounded-2xl card-amber p-4 transition active:scale-[0.99]"
             >
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
                 <ChartIcon className="h-4 w-4" />
@@ -170,7 +170,7 @@ export default function ReportsPage() {
 
             <Link
               href="/survey"
-              className="card-shadow flex flex-col gap-1 rounded-2xl bg-white p-4 transition active:scale-[0.99] dark:bg-stone-900"
+              className="card-shadow flex flex-col gap-1 rounded-2xl card-rose p-4 transition active:scale-[0.99]"
             >
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-teal-700 dark:bg-teal-900 dark:text-teal-200">
                 <ActivityIcon className="h-4 w-4" />

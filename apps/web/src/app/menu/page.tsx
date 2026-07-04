@@ -121,7 +121,7 @@ export default function MenuPage() {
             <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {M[group.groupKey]}
             </h2>
-            <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+            <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-rose dark:divide-stone-800">
               {group.items.map((item) => {
                 const label = M[item.itemKey] as string;
                 const hint = item.phaseHint ? (M[item.phaseHint] as string) : null;

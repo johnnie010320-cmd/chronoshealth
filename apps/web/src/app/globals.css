@@ -107,6 +107,41 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 섹션 카드 틴트 — 보라 배경 위에서 섹션별로 살짝 다른 색으로 시각 분별력 향상.
+   card-shadow 와 함께 사용. 라이트/다크 각각 아주 옅은 파스텔. */
+.card-violet {
+  background: #f4f0ff;
+}
+.card-sky {
+  background: #edf6ff;
+}
+.card-amber {
+  background: #fff7e9;
+}
+.card-rose {
+  background: #ffeef1;
+}
+.card-emerald {
+  background: #ebfaf1;
+}
+@media (prefers-color-scheme: dark) {
+  .card-violet {
+    background: #1e1a2b;
+  }
+  .card-sky {
+    background: #13202b;
+  }
+  .card-amber {
+    background: #221d11;
+  }
+  .card-rose {
+    background: #271519;
+  }
+  .card-emerald {
+    background: #0f2318;
+  }
+}
+
 /* 카드 부드러운 그림자 */
 .card-shadow {
   box-shadow:
