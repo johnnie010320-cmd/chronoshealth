@@ -137,6 +137,14 @@ function ThreadInner() {
     bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.length]);
 
+  // 입력창 자동 높이 — 텍스트가 길어지면 늘어나고, 최대(약 6줄) 도달 시 스크롤.
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [body]);
+
   function errText(code: string): string {
     const map: Record<string, string> = {
       FORBIDDEN_KEYWORD: M.errorForbiddenKeyword,
@@ -545,7 +553,7 @@ function ThreadInner() {
               maxLength={2000}
               rows={1}
               onChange={(e) => setBody(e.target.value)}
-              className="block max-h-28 w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+              className="block max-h-40 w-full resize-none overflow-y-auto rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
             />
             <button
               type="submit"
