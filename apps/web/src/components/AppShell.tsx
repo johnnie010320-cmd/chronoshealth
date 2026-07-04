@@ -43,7 +43,7 @@ export function AppShell({
     'inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60';
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
+    <div className="app-bg relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
       <MessageToast arrivedAt={unread.arrivedAt} count={unread.count} />
       {decoration === 'dots' && (
         <div

@@ -37,23 +37,32 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* 앱 바깥(데스크톱에서 컬럼 좌우로 보이는 영역) — 중립색(색상 중요치 않음) */
 body {
-  /* 보라 그라데이션 배경 — 카드(흰색)와 대비되어 각 섹션이 부각됨 */
-  background:
-    radial-gradient(120% 60% at 100% 0%, #ddd6fe 0%, transparent 55%),
-    linear-gradient(160deg, #ede9fe 0%, #f5f3ff 45%, #faf5ff 100%);
-  background-attachment: fixed;
+  background: #e7e5e4;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background:
-      radial-gradient(120% 60% at 100% 0%, #4c1d95 0%, transparent 55%),
-      linear-gradient(160deg, #2e1065 0%, #1e1b4b 55%, #0c0a09 100%);
-    background-attachment: fixed;
+    background: #0c0a09;
     color: #fafaf9;
+  }
+}
+
+/* 앱 영역 전용 보라 그라데이션 배경 — 흰 카드와 대비되어 각 섹션이 부각됨 */
+.app-bg {
+  background:
+    radial-gradient(120% 55% at 100% 0%, #ddd6fe 0%, transparent 55%),
+    linear-gradient(160deg, #ede9fe 0%, #f5f3ff 45%, #faf5ff 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-bg {
+    background:
+      radial-gradient(120% 55% at 100% 0%, #4c1d95 0%, transparent 55%),
+      linear-gradient(160deg, #2e1065 0%, #1e1b4b 55%, #0c0a09 100%);
   }
 }
 
