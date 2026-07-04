@@ -3,13 +3,14 @@
 // 나의 건강 일기 — 날짜별로 루틴(음식·운동·수면)·컨디션·AI 처방(식단·운동·휴식)을 모아 조회.
 // 데이터: routineRange + diary(mood) + prescriptionHistory 를 날짜로 병합.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
 import { DiaryAttachments } from '@/components/DiaryAttachments';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
+import { fetchHolidays, type HolidayMap } from '@/lib/holidays';
 import {
   fetchRoutineRange,
   fetchDiary,
@@ -80,6 +81,16 @@ export default function HealthDiaryPage() {
   const [days, setDays] = useState<DayLog[]>([]);
   const [monthYm, setMonthYm] = useState<string>(() => currentYm());
   const [selectedDate, setSelectedDate] = useState<string>(() => todayIso());
+  const [holidays, setHolidays] = useState<HolidayMap>({});
+  const loadedYears = useRef<Set<number>>(new Set());
+
+  // 공휴일(한국·미국) 연도별 로드 — 달력 연도 바뀔 때.
+  useEffect(() => {
+    const year = Number(monthYm.slice(0, 4));
+    if (!Number.isFinite(year) || loadedYears.current.has(year)) return;
+    loadedYears.current.add(year);
+    void fetchHolidays(year).then((m) => setHolidays((prev) => ({ ...prev, ...m })));
+  }, [monthYm]);
 
   // 편집/삭제 — 수정은 upsert(POST /daily) 재사용, 삭제는 DELETE. 모두 DB에 반영되어
   // 건강 그래프·점수 등은 각 화면 재조회 시 자동으로 수정된 데이터를 사용(단일 진실원천).
@@ -293,6 +304,7 @@ export default function HealthDiaryPage() {
             today={todayIso()}
             weekdays={D.calWeekdays}
             hasContent={(date) => hasContent(dayMap.get(date))}
+            holidayName={(date) => holidays[date]}
             onSelect={setSelectedDate}
             onPrev={() => setMonthYm((m) => shiftMonth(m, -1))}
             onNext={() => setMonthYm((m) => shiftMonth(m, 1))}
@@ -734,6 +746,7 @@ function Calendar({
   today,
   weekdays,
   hasContent,
+  holidayName,
   onSelect,
   onPrev,
   onNext,
@@ -743,6 +756,7 @@ function Calendar({
   today: string;
   weekdays: readonly string[];
   hasContent: (date: string) => boolean;
+  holidayName: (date: string) => string | undefined;
   onSelect: (date: string) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -796,20 +810,30 @@ function Calendar({
           const isSel = date === selectedDate;
           const isToday = date === today;
           const dot = hasContent(date);
+          const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+          const holiday = holidayName(date);
+          // 일요일 또는 공휴일(한국/미국)은 빨간색.
+          const isRed = weekday === 0 || !!holiday;
           return (
             <button
               key={date}
               type="button"
               onClick={() => onSelect(date)}
+              title={holiday}
               className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-[12px] transition ${
                 isSel
                   ? 'bg-stone-900 font-bold text-white dark:bg-white dark:text-stone-900'
                   : isToday
                     ? 'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
-                    : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
+                    : isRed
+                      ? 'font-semibold text-rose-500 hover:bg-stone-100 dark:text-rose-400 dark:hover:bg-stone-800'
+                      : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
               }`}
             >
               {day}
+              {holiday && !isSel && (
+                <span className="absolute right-1 top-0.5 h-1 w-1 rounded-full bg-rose-500" />
+              )}
               {dot && (
                 <span
                   className={`absolute bottom-1 h-1 w-1 rounded-full ${

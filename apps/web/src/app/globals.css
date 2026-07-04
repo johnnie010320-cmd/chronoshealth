@@ -1,15 +1,17 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
+  /* Chronos Health 주력 컬러 — 보라색(violet) */
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-500: #8b5cf6;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+  --color-brand-800: #5b21b6;
+  --color-brand-900: #4c1d95;
 
+  /* 대비 강조색 — 로즈/핑크(보라 위에서 역동적으로 부각) */
   --color-accent-500: #f43f5e;
   --color-accent-600: #e11d48;
 }
@@ -36,23 +38,30 @@ body {
 }
 
 body {
-  background: linear-gradient(180deg, #f0fdfa 0%, #fafaf9 35%, #ffffff 100%);
+  /* 보라 그라데이션 배경 — 카드(흰색)와 대비되어 각 섹션이 부각됨 */
+  background:
+    radial-gradient(120% 60% at 100% 0%, #ddd6fe 0%, transparent 55%),
+    linear-gradient(160deg, #ede9fe 0%, #f5f3ff 45%, #faf5ff 100%);
+  background-attachment: fixed;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: linear-gradient(180deg, #042f2e 0%, #0c0a09 50%, #000000 100%);
+    background:
+      radial-gradient(120% 60% at 100% 0%, #4c1d95 0%, transparent 55%),
+      linear-gradient(160deg, #2e1065 0%, #1e1b4b 55%, #0c0a09 100%);
+    background-attachment: fixed;
     color: #fafaf9;
   }
 }
 
-/* 도트 패턴 (의료 차트지 느낌) */
+/* 도트 패턴 (의료 차트지 느낌) — 보라 톤 */
 .bg-dot-pattern {
   background-image: radial-gradient(
     circle,
-    rgba(15, 118, 110, 0.08) 1px,
+    rgba(124, 58, 237, 0.08) 1px,
     transparent 1px
   );
   background-size: 24px 24px;
@@ -62,7 +71,7 @@ body {
   .bg-dot-pattern {
     background-image: radial-gradient(
       circle,
-      rgba(45, 212, 191, 0.06) 1px,
+      rgba(167, 139, 250, 0.07) 1px,
       transparent 1px
     );
   }
@@ -92,8 +101,8 @@ button {
 /* 카드 부드러운 그림자 */
 .card-shadow {
   box-shadow:
-    0 1px 2px 0 rgba(15, 23, 42, 0.04),
-    0 4px 16px -4px rgba(15, 118, 110, 0.08);
+    0 1px 2px 0 rgba(76, 29, 149, 0.05),
+    0 6px 20px -6px rgba(124, 58, 237, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
