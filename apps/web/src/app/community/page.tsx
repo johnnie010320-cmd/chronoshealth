@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
-import { ChevronRightIcon, UsersIcon } from '@/components/HealthIcons';
+import { ChevronRightIcon, UsersIcon, VideoIcon, FlameIcon } from '@/components/HealthIcons';
+import { IconBadge } from '@/components/IconBadge';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -205,9 +206,12 @@ export default function CommunityPage() {
       {/* 추천 영상 히어로 */}
       {shownVideos.length > 0 && (
         <section className="mt-4">
-          <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-            {Co.videoTitle}
-          </h2>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <IconBadge Icon={VideoIcon} tone="rose" size="sm" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              {Co.videoTitle}
+            </h2>
+          </div>
           <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
             {shownVideos.map((v) => {
               const vid = youtubeId(v.videoUrl);
@@ -268,9 +272,12 @@ export default function CommunityPage() {
       {/* 커뮤니티 카드(발견) */}
       {!loading && (
         <section className="mt-4">
-          <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-            {G.sectionDiscoverTitle}
-          </h2>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <IconBadge Icon={UsersIcon} tone="violet" size="sm" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              {G.sectionDiscoverTitle}
+            </h2>
+          </div>
           {shownCommunities.length === 0 ? (
             <EmptyCard text={Co.emptyInGroup} />
           ) : (
@@ -286,9 +293,12 @@ export default function CommunityPage() {
       {/* 내 커뮤니티 */}
       {!loading && mine.length > 0 && (
         <section className="mt-5">
-          <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-            {G.sectionMyTitle}
-          </h2>
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <IconBadge Icon={UsersIcon} tone="emerald" size="sm" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              {G.sectionMyTitle}
+            </h2>
+          </div>
           <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-sky dark:divide-stone-800">
             {mine.map((c) => (
               <CommunityListItem key={c.id} community={c} />
@@ -457,9 +467,12 @@ function Highlight({ text, term }: { text: string; term: string }) {
 function HotPeople({ people, title }: { people: HotPerson[]; title: string }) {
   return (
     <section className="mt-4">
-      <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-        {title}
-      </h2>
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <IconBadge Icon={FlameIcon} tone="amber" size="sm" />
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {title}
+        </h2>
+      </div>
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
         {people.map((p, i) => (
           <div key={i} className="w-16 shrink-0 text-center">

@@ -2,14 +2,40 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import type { ReactElement } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
+import { IconBadge, type BadgeTone } from '@/components/IconBadge';
 import {
   ChevronRightIcon,
   HeartPulseIcon,
-  ChartIcon,
   ActivityIcon,
+  ShieldIcon,
+  ScopeIcon,
+  CoinIcon,
+  TrophyIcon,
+  type IconProps,
 } from '@/components/HealthIcons';
+
+// 섹션 헤더 — 컬러 아이콘 배지 + 제목(삼성 헬스식).
+function SectionHeader({
+  Icon,
+  tone,
+  title,
+}: {
+  Icon: (p: IconProps) => ReactElement;
+  tone: BadgeTone;
+  title: string;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2 px-1">
+      <IconBadge Icon={Icon} tone={tone} size="sm" />
+      <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        {title}
+      </h2>
+    </div>
+  );
+}
 import { VitalityCard } from '@/components/avatar/VitalityCard';
 import { PyrBar } from '@/components/avatar/PyrBar';
 import { FiveAgesGrid } from '@/components/avatar/FiveAgesGrid';
@@ -85,7 +111,7 @@ export default function ReportsPage() {
       {state.status === 'ok' && (
         <div className="space-y-5 pb-10 pt-4">
           {typeof state.data.confidence === 'number' && (
-            <section className="card-shadow rounded-2xl bg-gradient-to-r from-brand-700 to-teal-600 px-4 py-3 text-white">
+            <section className="card-shadow rounded-2xl bg-gradient-to-r from-brand-700 to-brand-500 px-4 py-3 text-white">
               <div className="flex items-baseline justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-widest opacity-90">
                   {R.confidenceLabel}
@@ -99,9 +125,7 @@ export default function ReportsPage() {
           )}
 
           <section>
-            <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {R.vitalitySectionTitle}
-            </h2>
+            <SectionHeader Icon={HeartPulseIcon} tone="rose" title={R.vitalitySectionTitle} />
             <VitalityCard
               name={state.data.name}
               chronologicalAge={state.data.chronologicalAge}
@@ -111,9 +135,7 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {R.pyrSectionTitle}
-            </h2>
+            <SectionHeader Icon={ShieldIcon} tone="emerald" title={R.pyrSectionTitle} />
             <PyrBar
               median={state.data.predictedYearsRemaining.median}
               ci95={state.data.predictedYearsRemaining.ci95}
@@ -121,17 +143,13 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {R.fiveAgesSectionTitle}
-            </h2>
+            <SectionHeader Icon={ScopeIcon} tone="violet" title={R.fiveAgesSectionTitle} />
             <FiveAgesGrid fiveAges={state.data.fiveAges} />
           </section>
 
           {state.data.lifetimeMedicalCost && (
             <section>
-              <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-                {R.lifetimeCostTitle}
-              </h2>
+              <SectionHeader Icon={CoinIcon} tone="amber" title={R.lifetimeCostTitle} />
               <div className="card-shadow rounded-2xl card-sky p-4">
                 <div className="flex items-baseline justify-between">
                   <span className="text-[12px] text-stone-500 dark:text-stone-400">
@@ -154,9 +172,7 @@ export default function ReportsPage() {
               href="/leaderboard"
               className="card-shadow flex flex-col gap-1 rounded-2xl card-amber p-4 transition active:scale-[0.99]"
             >
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
-                <ChartIcon className="h-4 w-4" />
-              </span>
+              <IconBadge Icon={TrophyIcon} tone="amber" size="sm" />
               <span className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
                 {R.leaderboardCtaEyebrow}
               </span>
@@ -172,9 +188,7 @@ export default function ReportsPage() {
               href="/survey"
               className="card-shadow flex flex-col gap-1 rounded-2xl card-rose p-4 transition active:scale-[0.99]"
             >
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-teal-700 dark:bg-teal-900 dark:text-teal-200">
-                <ActivityIcon className="h-4 w-4" />
-              </span>
+              <IconBadge Icon={ActivityIcon} tone="violet" size="sm" />
               <span className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
                 {R.whatIfCtaEyebrow}
               </span>

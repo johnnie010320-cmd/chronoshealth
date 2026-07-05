@@ -3,7 +3,14 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
-import { ShieldIcon, ChevronRightIcon } from '@/components/HealthIcons';
+import { IconBadge } from '@/components/IconBadge';
+import {
+  ChevronRightIcon,
+  CoinIcon,
+  GiftIcon,
+  TargetIcon,
+  ClockIcon,
+} from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -73,9 +80,14 @@ export default function RewardsPage() {
   return (
     <AppShell title={R.pageTitle} decoration="dots">
       <section className="card-shadow mt-4 rounded-3xl bg-gradient-to-br from-amber-500 via-amber-600 to-rose-500 px-6 py-6 text-white">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-90">
-          {R.balanceLabel}
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
+            <CoinIcon className="h-4 w-4" />
+          </span>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-90">
+            {R.balanceLabel}
+          </p>
+        </div>
         <div className="mt-2 flex items-baseline gap-2">
           <span className="text-4xl font-bold tracking-tight tabular-nums">
             {data ? data.balance : '—'}
@@ -94,9 +106,12 @@ export default function RewardsPage() {
       {data && (
         <>
           <section className="card-shadow mt-3 rounded-2xl card-emerald p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {R.earnLabel}
-            </p>
+            <div className="flex items-center gap-2">
+              <IconBadge Icon={TargetIcon} tone="emerald" size="sm" />
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                {R.earnLabel}
+              </p>
+            </div>
             <ul className="mt-3 space-y-2">
               {Object.entries(data.earnRules).map(([kind, amount]) => (
                 <li
@@ -105,7 +120,7 @@ export default function RewardsPage() {
                 >
                   <span className="flex items-center gap-2">
                     <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200">
-                      <ShieldIcon className="h-3 w-3" />
+                      <CoinIcon className="h-3 w-3" />
                     </span>
                     {R.earnKindLabel[kind as LedgerKind] ?? kind}
                   </span>
@@ -118,9 +133,12 @@ export default function RewardsPage() {
           </section>
 
           <section className="mt-3">
-            <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {R.spendCatalogTitle}
-            </h2>
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <IconBadge Icon={GiftIcon} tone="rose" size="sm" />
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                {R.spendCatalogTitle}
+              </h2>
+            </div>
             <ul className="space-y-2">
               {data.spendCatalog.map((item) => (
                 <SpendCard
@@ -137,9 +155,12 @@ export default function RewardsPage() {
           </section>
 
           <section className="mt-3">
-            <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-              {R.historyTitle}
-            </h2>
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <IconBadge Icon={ClockIcon} tone="violet" size="sm" />
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                {R.historyTitle}
+              </h2>
+            </div>
             {data.history.length === 0 ? (
               <div className="rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[12px] text-stone-500 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
                 {R.historyEmpty}

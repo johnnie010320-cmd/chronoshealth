@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import type { ReactElement } from 'react';
 import { AppShell } from '@/components/AppShell';
+import { IconBadge, type BadgeTone } from '@/components/IconBadge';
 import {
   ChevronRightIcon,
   HeartPulseIcon,
-  LeafIcon,
-  ShieldIcon,
+  UtensilsIcon,
+  DumbbellIcon,
+  StethoscopeIcon,
+  type IconProps,
 } from '@/components/HealthIcons';
 import { LoginRequired } from '@/components/LoginRequired';
 import { useI18n } from '@/lib/i18n';
@@ -127,21 +131,24 @@ export default function CarePage() {
           />
 
           <CategorySection
-            Icon={LeafIcon}
+            Icon={UtensilsIcon}
+            tone="amber"
             sectionTitle={C.dietSectionTitle}
             rules={state.data.diet.rules}
             affiliates={state.data.diet.affiliates}
           />
 
           <CategorySection
-            Icon={HeartPulseIcon}
+            Icon={DumbbellIcon}
+            tone="emerald"
             sectionTitle={C.exerciseSectionTitle}
             rules={state.data.exercise.rules}
             affiliates={state.data.exercise.affiliates}
           />
 
           <CategorySection
-            Icon={ShieldIcon}
+            Icon={StethoscopeIcon}
+            tone="rose"
             sectionTitle={C.medicalSectionTitle}
             rules={state.data.medical.rules}
             affiliates={state.data.medical.affiliates}
@@ -161,7 +168,7 @@ function ContextCard({ data }: { data: CareResponse }) {
   const C = t.care;
   const { context } = data;
   return (
-    <section className="card-shadow rounded-2xl bg-gradient-to-br from-brand-700 via-teal-600 to-emerald-500 px-5 py-4 text-white">
+    <section className="card-shadow rounded-2xl bg-gradient-to-br from-brand-700 via-brand-500 to-emerald-500 px-5 py-4 text-white">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-90">
         {C.contextTitle}
       </p>
@@ -194,11 +201,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function CategorySection({
   Icon,
+  tone,
   sectionTitle,
   rules,
   affiliates,
 }: {
-  Icon: (p: { className?: string }) => React.ReactElement;
+  Icon: (p: IconProps) => ReactElement;
+  tone: BadgeTone;
   sectionTitle: string;
   rules: CareRule[];
   affiliates: CareAffiliate[];
@@ -208,9 +217,7 @@ function CategorySection({
   return (
     <section>
       <div className="mb-2 flex items-center gap-2 px-1">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
-          <Icon className="h-3.5 w-3.5" />
-        </span>
+        <IconBadge Icon={Icon} tone={tone} size="sm" />
         <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
           {sectionTitle}
         </h2>
