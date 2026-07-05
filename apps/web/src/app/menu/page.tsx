@@ -1,13 +1,74 @@
 'use client';
 
+import type { ReactElement } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { ChevronRightIcon } from '@/components/HealthIcons';
+import { IconBadge, type BadgeTone } from '@/components/IconBadge';
+import {
+  ChevronRightIcon,
+  ClipboardIcon,
+  SparkleIcon,
+  ChartIcon,
+  WatchIcon,
+  TargetIcon,
+  HeartPulseIcon,
+  LeafIcon,
+  DropletIcon,
+  ActivityIcon,
+  UtensilsIcon,
+  DumbbellIcon,
+  StethoscopeIcon,
+  VideoIcon,
+  ChatBubbleIcon,
+  FlameIcon,
+  TrophyIcon,
+  UsersIcon,
+  GiftIcon,
+  CoinIcon,
+  BellIcon,
+  UserCircleIcon,
+  BookIcon,
+  FileTextIcon,
+  LogoutIcon,
+} from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { useUnseenNotice } from '@/lib/notice-state';
 import type { Dictionary } from '@/locales/ko';
 
+type IconCmp = (p: { className?: string; strokeWidth?: number }) => ReactElement;
 type ItemKey = keyof Dictionary['menu'];
+
+// 항목별 컬러 아이콘 배지(삼성 헬스식) — 도메인 색으로 시각 식별 강화.
+const ITEM_VISUAL: Partial<Record<ItemKey, { Icon: IconCmp; tone: BadgeTone }>> = {
+  itemData1: { Icon: ClipboardIcon, tone: 'violet' },
+  itemData2: { Icon: SparkleIcon, tone: 'violet' },
+  itemData3: { Icon: ChartIcon, tone: 'stone' },
+  itemWearable: { Icon: WatchIcon, tone: 'sky' },
+  itemRoutineDaily: { Icon: TargetIcon, tone: 'emerald' },
+  itemBioAge: { Icon: HeartPulseIcon, tone: 'rose' },
+  itemYouthAge: { Icon: LeafIcon, tone: 'emerald' },
+  itemSkinAge: { Icon: DropletIcon, tone: 'sky' },
+  itemJointAge: { Icon: ActivityIcon, tone: 'amber' },
+  itemCareDiet: { Icon: UtensilsIcon, tone: 'amber' },
+  itemCareExercise: { Icon: DumbbellIcon, tone: 'emerald' },
+  itemCareMedical: { Icon: StethoscopeIcon, tone: 'rose' },
+  itemCommunityVideo: { Icon: VideoIcon, tone: 'rose' },
+  itemCommunityComment: { Icon: ChatBubbleIcon, tone: 'sky' },
+  itemCommunityHot: { Icon: FlameIcon, tone: 'amber' },
+  itemCommunityRanking: { Icon: TrophyIcon, tone: 'amber' },
+  itemMessagesDm: { Icon: ChatBubbleIcon, tone: 'sky' },
+  itemMessagesRoom: { Icon: UsersIcon, tone: 'violet' },
+  itemAffiliatesAll: { Icon: GiftIcon, tone: 'violet' },
+  itemRewardsBalance: { Icon: CoinIcon, tone: 'amber' },
+  itemRewardsEarn: { Icon: TargetIcon, tone: 'emerald' },
+  itemRewardsSpend: { Icon: GiftIcon, tone: 'rose' },
+  itemNotices: { Icon: BellIcon, tone: 'rose' },
+  itemProfileEdit: { Icon: UserCircleIcon, tone: 'violet' },
+  itemProfileDiary: { Icon: BookIcon, tone: 'amber' },
+  itemProfileMyPosts: { Icon: FileTextIcon, tone: 'sky' },
+  itemProfileMyComments: { Icon: ChatBubbleIcon, tone: 'sky' },
+  itemProfileLogout: { Icon: LogoutIcon, tone: 'stone' },
+};
 type GroupKey =
   | 'groupTwin'
   | 'groupRoutine'
@@ -121,17 +182,21 @@ export default function MenuPage() {
             <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {M[group.groupKey]}
             </h2>
-            <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-rose dark:divide-stone-800">
+            <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white/95 dark:divide-stone-800 dark:bg-stone-900">
               {group.items.map((item) => {
                 const label = M[item.itemKey] as string;
                 const hint = item.phaseHint ? (M[item.phaseHint] as string) : null;
+                const visual = ITEM_VISUAL[item.itemKey];
                 if (item.disabled) {
                   return (
                     <li
                       key={item.itemKey}
                       aria-disabled="true"
-                      className="flex items-center justify-between gap-3 px-4 py-3 text-stone-400 dark:text-stone-500"
+                      className="flex items-center gap-3 px-4 py-3 text-stone-400 dark:text-stone-500"
                     >
+                      {visual && (
+                        <IconBadge Icon={visual.Icon} tone="stone" size="sm" className="opacity-70" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium">{label}</p>
                         {hint && (
@@ -151,9 +216,10 @@ export default function MenuPage() {
                   <li key={item.itemKey}>
                     <Link
                       href={item.href}
-                      className="flex items-center justify-between gap-3 px-4 py-3 text-stone-700 transition active:bg-stone-50 dark:text-stone-200 dark:active:bg-stone-800"
+                      className="flex items-center gap-3 px-4 py-3 text-stone-700 transition active:bg-stone-50 dark:text-stone-200 dark:active:bg-stone-800"
                     >
-                      <span className="flex min-w-0 items-center gap-2">
+                      {visual && <IconBadge Icon={visual.Icon} tone={visual.tone} size="sm" />}
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
                         <span className="truncate text-[13px] font-medium">{label}</span>
                         {showNoticeDot && (
                           <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">

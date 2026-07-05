@@ -1,13 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { TodaySelfCheck } from '@/components/TodaySelfCheck';
+import { IconBadge, type BadgeTone } from '@/components/IconBadge';
 import {
   ChevronRightIcon,
   UsersIcon,
+  HeartPulseIcon,
+  LeafIcon,
+  TargetIcon,
+  StethoscopeIcon,
+  type IconProps,
 } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
@@ -190,6 +196,8 @@ export default function HomePage() {
           yearUnit={H.cardAgeYearUnit}
           monthUnit={H.cardAgeMonthUnit}
           hint={H.cardNoReportHint}
+          Icon={HeartPulseIcon}
+          tone="rose"
         />
         <AgeCard
           eyebrow={H.cardYouthAgeEyebrow}
@@ -198,6 +206,8 @@ export default function HomePage() {
           yearUnit={H.cardAgeYearUnit}
           monthUnit={H.cardAgeMonthUnit}
           hint={H.cardNoReportHint}
+          Icon={LeafIcon}
+          tone="emerald"
         />
       </section>
 
@@ -208,6 +218,7 @@ export default function HomePage() {
           href="/health-diary"
           className="card-shadow flex flex-col gap-1 rounded-2xl card-amber px-4 py-3 transition active:scale-[0.99]"
         >
+          <IconBadge Icon={TargetIcon} tone="amber" size="sm" className="mb-1" />
           <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {H.boxRoutineEyebrow}
           </span>
@@ -223,6 +234,7 @@ export default function HomePage() {
           href="/care"
           className="card-shadow flex flex-col gap-1 rounded-2xl card-rose px-4 py-3 transition active:scale-[0.99]"
         >
+          <IconBadge Icon={StethoscopeIcon} tone="rose" size="sm" className="mb-1" />
           <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {H.boxCareEyebrow}
           </span>
@@ -271,6 +283,8 @@ function AgeCard({
   yearUnit,
   monthUnit,
   hint,
+  Icon,
+  tone,
 }: {
   eyebrow: string;
   label: string;
@@ -278,12 +292,17 @@ function AgeCard({
   yearUnit: string;
   monthUnit: string;
   hint: string;
+  Icon: (p: IconProps) => ReactElement;
+  tone: BadgeTone;
 }) {
   return (
     <div className="card-shadow flex flex-col rounded-2xl card-emerald px-4 py-3">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-        {eyebrow}
-      </span>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {eyebrow}
+        </span>
+        <IconBadge Icon={Icon} tone={tone} size="sm" />
+      </div>
       {pair ? (
         <div className="mt-1 flex items-baseline gap-1">
           <span className="text-2xl font-bold leading-tight tracking-tight text-stone-900 dark:text-stone-100">

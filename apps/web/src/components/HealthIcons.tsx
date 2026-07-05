@@ -1,7 +1,7 @@
 // 헬스/예방의학 테마 인라인 SVG 아이콘 라이브러리.
 // Lucide 호환 24px viewBox + currentColor 사용.
 
-type IconProps = {
+export type IconProps = {
   className?: string;
   strokeWidth?: number;
 };
@@ -211,6 +211,214 @@ export function EyeOffIcon({ className, strokeWidth }: IconProps) {
       <path d="M9.9 4.24A9 9 0 0 1 12 4c7 0 10 8 10 8a18 18 0 0 1-2.16 3.19" />
       <path d="M9.9 9.9a3 3 0 1 0 4.2 4.2" />
       <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
+// ── 도메인 아이콘 (삼성 헬스 스타일 컬러 배지용) ─────────────────────────────
+
+export function SparkleIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+      <circle cx="12" cy="12" r="3.2" />
+    </svg>
+  );
+}
+
+export function ClipboardIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <rect x="8" y="3" width="8" height="4" rx="1" />
+      <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+      <path d="M8.5 12h7M8.5 16h5" />
+    </svg>
+  );
+}
+
+export function DumbbellIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M6.5 6.5 17.5 17.5" />
+      <path d="M4 8 8 4M16 20l4-4" />
+      <path d="M3 11 5 9M19 15l2-2M9 5 11 3M13 21l2-2" />
+    </svg>
+  );
+}
+
+export function UtensilsIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M4 3v6a2 2 0 0 0 2 2v10M8 3v8M6 3v4" />
+      <path d="M18 3c-1.5 0-3 1.5-3 5s1.5 4 3 4v9" />
+    </svg>
+  );
+}
+
+export function StethoscopeIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M4 3v5a4 4 0 0 0 8 0V3" />
+      <path d="M8 14a4 4 0 0 0 4 4h1a4 4 0 0 0 4-4v-2" />
+      <circle cx="18" cy="10" r="2.2" />
+    </svg>
+  );
+}
+
+export function CoinIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v10M9.5 9.2c0-1 1.1-1.7 2.5-1.7s2.5.7 2.5 1.7-.9 1.5-2.5 1.8-2.5.8-2.5 1.8 1.1 1.7 2.5 1.7 2.5-.7 2.5-1.7" />
+    </svg>
+  );
+}
+
+export function TrophyIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3" />
+      <path d="M10 15h4M9 21h6M12 15v6" />
+    </svg>
+  );
+}
+
+export function VideoIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+      <path d="m16 10 6-3v10l-6-3" />
+    </svg>
+  );
+}
+
+export function BellIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  );
+}
+
+export function BookIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+    </svg>
+  );
+}
+
+export function GiftIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <rect x="3" y="8" width="18" height="4" rx="1" />
+      <path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+      <path d="M12 8S10.5 3 8 4.5 9 8 12 8Zm0 0s1.5-5 4-3.5S15 8 12 8Z" />
+    </svg>
+  );
+}
+
+export function WatchIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <circle cx="12" cy="12" r="5" />
+      <path d="M12 9.5v2.5l1.5 1M8.5 7 8 3h8l-.5 4M8.5 17l-.5 4h8l-.5-4" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M8 2v4M16 2v4M3 10h18" />
+    </svg>
+  );
+}
+
+export function PencilIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </svg>
+  );
+}
+
+export function FlameIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <path d="M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1 .3-1.8.8-2.5C9 8 9 6 9 6c-2 1.5-4 4-4 7a7 7 0 0 0 14 0c0-4.5-4-7.5-7-11Z" />
+    </svg>
+  );
+}
+
+export function TargetIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.5" />
+    </svg>
+  );
+}
+
+// ── 채워진(filled) 아이콘 — 하단 네비 활성 상태(삼성 헬스식) ─────────────────
+
+const filledProps = (className?: string) => ({
+  viewBox: '0 0 24 24',
+  fill: 'currentColor' as const,
+  className: className ?? 'w-5 h-5',
+  'aria-hidden': true,
+});
+
+export function HomeFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M11.3 2.3a1 1 0 0 1 1.4 0l8.3 7.4a1 1 0 0 1 .3.75V20a2 2 0 0 1-2 2h-4v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H5a2 2 0 0 1-2-2v-9.55a1 1 0 0 1 .3-.75Z" />
+    </svg>
+  );
+}
+
+export function FileTextFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 0v5h5Z" />
+    </svg>
+  );
+}
+
+export function HeartFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M12 21s-7.6-4.6-10-9.3C.8 9.1 1.6 5.9 4.6 4.8 6.8 4 9.1 4.7 10.5 6.4L12 8.2l1.5-1.8C14.9 4.7 17.2 4 19.4 4.8c3 1.1 3.8 4.3 2.6 6.9C19.6 16.4 12 21 12 21Z" />
+    </svg>
+  );
+}
+
+export function UsersFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-3.4 0-6.2 1.8-6.2 4.2V20h12.4v-3.2c0-2.4-2.8-4.2-6.2-4.2Zm7.7-1.1a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Zm.3 1.6c-.6 0-1.1.07-1.6.2 1.1.95 1.8 2.2 1.8 3.7V20H22v-2.7c0-2.2-2.2-3.6-4.7-3.6Z" />
+    </svg>
+  );
+}
+
+export function UserCircleFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4.2a3.2 3.2 0 1 1 0 6.4 3.2 3.2 0 0 1 0-6.4Zm0 13.5a7.7 7.7 0 0 1-5.5-2.3c.6-2 2.9-3.4 5.5-3.4s4.9 1.4 5.5 3.4A7.7 7.7 0 0 1 12 19.7Z" />
+    </svg>
+  );
+}
+
+export function GridFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M4 4h7v7H4Zm9 0h7v7h-7ZM4 13h7v7H4Zm9 0h7v7h-7Z" />
     </svg>
   );
 }

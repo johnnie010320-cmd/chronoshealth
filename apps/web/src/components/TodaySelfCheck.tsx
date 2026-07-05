@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRightIcon } from '@/components/HealthIcons';
+import { ProgressRing, type RingTone } from '@/components/ProgressRing';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fileToFoodshotB64 } from '@/lib/foodshot-image';
@@ -796,6 +797,8 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
         : todayScore >= 40
           ? 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/30'
           : 'text-rose-700 bg-rose-50 dark:text-rose-300 dark:bg-rose-900/30';
+  const ringTone: RingTone =
+    todayScore >= 80 ? 'emerald' : todayScore >= 60 ? 'brand' : todayScore >= 40 ? 'amber' : 'rose';
   const avg = summary?.averages;
   const recordDays = (entries ?? []).filter((e) =>
     (e.exerciseMinutes ?? 0) > 0 || (e.sleepHours ?? 0) > 0 || (e.caloriesKcal ?? 0) > 0,
@@ -806,18 +809,27 @@ function GraphTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
       {/* 오늘의 팁 — 가장 개선 여지가 큰 항목 기준 맞춤 안내 */}
       <WellnessTip parts={todayParts} S={S} />
 
-      {/* 오늘 점수 + tier */}
-      <div className="flex items-end justify-between">
-        <div>
+      {/* 오늘 점수 링 + tier — 삼성 헬스식 액티비티 링 */}
+      <div className="flex items-center gap-4">
+        <ProgressRing
+          value={todayScore}
+          max={100}
+          size={78}
+          stroke={8}
+          tone={ringTone}
+          label={`${todayScore}`}
+          sublabel={S.scoreUnit}
+        />
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
             {S.scoreLabel}
           </p>
-          <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-stone-100">
-            {todayScore}
-            <span className="ml-1 text-sm font-medium text-stone-400">{S.scoreUnit}</span>
-          </p>
+          <span
+            className={`mt-1.5 inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold ${tierColor}`}
+          >
+            {tier}
+          </span>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${tierColor}`}>{tier}</span>
       </div>
 
       {/* 추세: 지표 전환(통합·운동·수면·음식) + 기간(7·14·30일) + 스파크라인 + 평균·최고 */}
@@ -939,21 +951,21 @@ function TrendChart({
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-16 w-full" preserveAspectRatio="none">
         <defs>
           <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(13 148 136)" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="rgb(13 148 136)" stopOpacity="0" />
+            <stop offset="0%" stopColor="rgb(124 58 237)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="rgb(124 58 237)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <polygon points={area} fill="url(#scoreFill)" />
         <polyline
           points={line}
           fill="none"
-          stroke="rgb(13 148 136)"
+          stroke="rgb(124 58 237)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
         {pts.map(([x, y], i) =>
-          series[i]?.has ? <circle key={i} cx={x} cy={y} r="2" fill="rgb(13 148 136)" /> : null,
+          series[i]?.has ? <circle key={i} cx={x} cy={y} r="2" fill="rgb(124 58 237)" /> : null,
         )}
       </svg>
 
