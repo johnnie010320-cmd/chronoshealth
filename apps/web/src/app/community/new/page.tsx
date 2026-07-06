@@ -23,6 +23,7 @@ function NewCommunityPostInner() {
   const params = useSearchParams();
   const communityId = params?.get('cid') ?? '_lounge';
   const editId = params?.get('edit') ?? null;
+  const isRecipe = communityId === '_recipe';
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [bodyRich, setBodyRich] = useState<RichSegment[]>([]);
@@ -122,13 +123,23 @@ function NewCommunityPostInner() {
     }
   }
 
+  // 라운지·레시피(특수 게시판)에서 온 글쓰기는 커뮤니티 메인으로 복귀.
   const backHref =
-    communityId === '_lounge' ? '/community' : `/community/view?id=${communityId}`;
+    communityId === '_lounge' || isRecipe
+      ? '/community'
+      : `/community/view?id=${communityId}`;
+
+  // 레시피 게시판이면 페이지 타이틀을 '레시피 올리기'로.
+  const pageTitle = editId
+    ? Co.new.editTitle
+    : isRecipe
+      ? Co.recipe.newTitle
+      : Co.new.pageTitle;
 
   const positions: ImagePosition[] = ['top', 'middle', 'bottom'];
 
   return (
-    <AppShell title={editId ? Co.new.editTitle : Co.new.pageTitle} showBack backHref={backHref} decoration="dots">
+    <AppShell title={pageTitle} showBack backHref={backHref} decoration="dots">
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <Field
           label={Co.new.titleField.label}

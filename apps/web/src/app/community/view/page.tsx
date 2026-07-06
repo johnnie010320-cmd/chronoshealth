@@ -156,7 +156,11 @@ function CommunityViewPageInner() {
   }
 
   const c = detail.community;
-  const canPost = detail.isOwner || detail.myStatus === 'active' || c.id === '_lounge';
+  const canPost =
+    detail.isOwner ||
+    detail.myStatus === 'active' ||
+    c.id === '_lounge' ||
+    c.id === '_recipe';
   const isPending = detail.myStatus === 'pending';
   let followLabel = G.followCta;
   if (isPending) followLabel = G.pendingCta;
@@ -194,7 +198,7 @@ function CommunityViewPageInner() {
           </div>
         </div>
 
-        {!detail.isOwner && c.id !== '_lounge' && (
+        {!detail.isOwner && c.id !== '_lounge' && c.id !== '_recipe' && (
           <button
             type="button"
             onClick={handleFollow}

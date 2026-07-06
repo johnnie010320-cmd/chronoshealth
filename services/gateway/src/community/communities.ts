@@ -118,7 +118,7 @@ export async function readCommunity(
   return row ? mapRow(row) : null;
 }
 
-// 공개 라운지를 제외한 공개 커뮤니티 발견 목록.
+// 공개 라운지·레시피 게시판(특수 커뮤니티)을 제외한 공개 커뮤니티 발견 목록.
 export async function listPublicCommunities(
   db: D1Database,
   limit: number,
@@ -126,7 +126,8 @@ export async function listPublicCommunities(
   const result = await db
     .prepare(
       `${SELECT_COMMUNITY}
-        WHERE c.visibility = 'public' AND c.deleted_at IS NULL AND c.id != '_lounge'
+        WHERE c.visibility = 'public' AND c.deleted_at IS NULL
+          AND c.id NOT IN ('_lounge', '_recipe')
         ORDER BY follower_count DESC, c.created_at DESC
         LIMIT ?`,
     )
@@ -135,7 +136,7 @@ export async function listPublicCommunities(
   return (result.results ?? []).map(mapRow);
 }
 
-// 내가 소유했거나 active 팔로워인 커뮤니티 (라운지 제외).
+// 내가 소유했거나 active 팔로워인 커뮤니티 (라운지·레시피 특수 게시판 제외).
 export async function listMyCommunities(
   db: D1Database,
   pseudonymId: string,
@@ -143,7 +144,7 @@ export async function listMyCommunities(
   const result = await db
     .prepare(
       `${SELECT_COMMUNITY}
-        WHERE c.deleted_at IS NULL AND c.id != '_lounge'
+        WHERE c.deleted_at IS NULL AND c.id NOT IN ('_lounge', '_recipe')
           AND (
             c.owner_pseudonym_id = ?
             OR EXISTS (
@@ -175,7 +176,7 @@ export async function softDeleteCommunity(
   db: D1Database,
   id: string,
 ): Promise<boolean> {
-  if (id === '_lounge') return false;
+  if (id === '_lounge' || id === '_recipe') return false;
   const res = await db
     .prepare(
       `UPDATE communities SET deleted_at = datetime('now')

@@ -608,6 +608,7 @@ export const en: Dictionary = {
   },
   community: {
     groupTabs: { overcome: 'Overcome together', manage: 'Manage together', talk: 'Talk together' },
+    recipeTab: 'Kemabody Recipes',
     searchPh: 'Search communities',
     catAll: 'All',
     videoTitle: 'Featured videos',
@@ -762,6 +763,13 @@ export const en: Dictionary = {
       sectionTitle: 'Post options',
       allowLikes: 'Allow likes',
       allowComments: 'Allow comments',
+    },
+    recipe: {
+      title: 'Kemabody Recipes',
+      intro: 'Share healthy food recipes and collect likes.',
+      composeCta: 'Post a recipe',
+      empty: 'No recipes yet. Be the first to share one!',
+      newTitle: 'Post a recipe',
     },
   },
   admin: {

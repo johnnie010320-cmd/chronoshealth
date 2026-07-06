@@ -62,6 +62,10 @@ import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'community-v0.2.0';
 
+// 특수(시스템) 커뮤니티 — 누구나 자유롭게 글을 올릴 수 있는 공개 게시판.
+// '_lounge'=자유 라운지, '_recipe'=케마바디 레시피. 팔로우 없이 게시 허용.
+const OPEN_COMMUNITY_IDS = new Set(['_lounge', '_recipe']);
+
 export const communityRoute = new Hono<{
   Bindings: Bindings;
   Variables: AuthVariables;
@@ -113,8 +117,8 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
   if (!community) {
     return c.json({ error: { code: 'COMMUNITY_NOT_FOUND' } }, 404);
   }
-  // 라운지는 자유, 그 외 커뮤니티는 owner 또는 active follower 만 게시.
-  if (community.id !== '_lounge' && community.ownerPseudonymId !== pseudonymId) {
+  // 특수 게시판(라운지·레시피)은 자유, 그 외 커뮤니티는 owner 또는 active follower 만 게시.
+  if (!OPEN_COMMUNITY_IDS.has(community.id) && community.ownerPseudonymId !== pseudonymId) {
     const follower = await readFollower(c.env.DB, community.id, pseudonymId);
     if (!follower || follower.status !== 'active') {
       return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);

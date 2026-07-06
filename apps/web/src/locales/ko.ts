@@ -601,6 +601,7 @@ export const ko = {
   },
   community: {
     groupTabs: { overcome: '같이 이겨내요', manage: '같이 관리해요', talk: '같이 얘기해요' },
+    recipeTab: '케마바디 레시피',
     searchPh: '커뮤니티 검색',
     catAll: '전체',
     videoTitle: '추천 영상',
@@ -755,6 +756,13 @@ export const ko = {
       sectionTitle: '이 게시물 옵션',
       allowLikes: '좋아요 허용',
       allowComments: '댓글 허용',
+    },
+    recipe: {
+      title: '케마바디 레시피',
+      intro: '건강에 좋은 음식 레시피를 공유하고 좋아요를 받아보세요.',
+      composeCta: '레시피 올리기',
+      empty: '아직 올라온 레시피가 없어요. 첫 레시피를 공유해 보세요!',
+      newTitle: '레시피 올리기',
     },
   },
   admin: {

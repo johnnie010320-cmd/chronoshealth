@@ -4,24 +4,30 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
-import { ChevronRightIcon, UsersIcon, VideoIcon, FlameIcon } from '@/components/HealthIcons';
+import { ChevronRightIcon, UsersIcon, VideoIcon, FlameIcon, UtensilsIcon } from '@/components/HealthIcons';
 import { IconBadge } from '@/components/IconBadge';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
   fetchCommunities,
   fetchCommunityCategories,
+  fetchCommunityPosts,
   fetchFeaturedVideos,
   fetchHotPeople,
   searchCommunity,
   COMMUNITY_GROUP_KEYS,
+  RECIPE_COMMUNITY_ID,
   type CommunitySummary,
   type CommunityCategory,
   type CommunityFeaturedVideo,
   type CommunityGroupKey,
+  type CommunityPost,
   type CommunitySearchResult,
   type HotPerson,
 } from '@/lib/api-client';
+
+// 커뮤니티 메인의 표시 모드 — 일반 게시판(그룹 탭) vs 케마바디 레시피 피드.
+type CommunityView = 'board' | 'recipe';
 
 // YouTube/Vimeo URL → 영상 ID (썸네일·임베드용). 실패 시 null.
 function youtubeId(url: string): string | null {
@@ -45,11 +51,33 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
 
   const [group, setGroup] = useState<CommunityGroupKey>('overcome');
+  const [view, setView] = useState<CommunityView>('board');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [playing, setPlaying] = useState<string | null>(null);
   const [hot, setHot] = useState<HotPerson[]>([]);
   const [searchResult, setSearchResult] = useState<CommunitySearchResult | null>(null);
+  // 케마바디 레시피 피드 — 레시피 탭 최초 진입 시 지연 로드.
+  const [recipes, setRecipes] = useState<CommunityPost[]>([]);
+  const [recipeLoading, setRecipeLoading] = useState(false);
+  const [recipeLoaded, setRecipeLoaded] = useState(false);
+
+  function openRecipeTab() {
+    setView('recipe');
+    setPlaying(null);
+    if (!recipeLoaded && !recipeLoading) {
+      setRecipeLoading(true);
+      fetchCommunityPosts(null, 20, RECIPE_COMMUNITY_ID)
+        .then((r) => {
+          setRecipes(r.posts);
+          setRecipeLoaded(true);
+        })
+        .catch(() => {
+          /* noop — 다음 진입 시 재시도 */
+        })
+        .finally(() => setRecipeLoading(false));
+    }
+  }
 
   useEffect(() => {
     if (!readSession()) {
@@ -159,19 +187,20 @@ export default function CommunityPage() {
 
       {!searching && (
         <>
-      {/* 그룹 탭 */}
+      {/* 그룹 탭 + 케마바디 레시피 탭 */}
       <div className="mt-3 flex gap-1.5">
         {COMMUNITY_GROUP_KEYS.map((g) => (
           <button
             key={g}
             type="button"
             onClick={() => {
+              setView('board');
               setGroup(g);
               setCategoryId(null);
               setPlaying(null);
             }}
-            className={`flex-1 rounded-xl px-2 py-2 text-[12px] font-bold transition active:scale-[0.98] ${
-              group === g
+            className={`flex-1 whitespace-nowrap rounded-xl px-1 py-2 text-[11px] font-bold transition active:scale-[0.98] ${
+              view === 'board' && group === g
                 ? 'bg-stone-900 text-white shadow-sm dark:bg-white dark:text-stone-900'
                 : 'bg-white text-stone-600 dark:bg-stone-900 dark:text-stone-300'
             }`}
@@ -179,7 +208,31 @@ export default function CommunityPage() {
             {Co.groupTabs[g]}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={openRecipeTab}
+          className={`flex-1 whitespace-nowrap rounded-xl px-1 py-2 text-[11px] font-bold transition active:scale-[0.98] ${
+            view === 'recipe'
+              ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:text-white'
+              : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+          }`}
+        >
+          {Co.recipeTab}
+        </button>
       </div>
+
+      {view === 'recipe' && (
+        <RecipeFeed
+          posts={recipes}
+          loading={recipeLoading}
+          R={Co.recipe}
+          likeLabel={Co.likeLabel}
+          commentLabel={Co.commentLabel}
+        />
+      )}
+
+      {view === 'board' && (
+        <>
 
       {/* 카테고리 칩(가로 스크롤) */}
       <div className="mt-2 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
@@ -324,11 +377,102 @@ export default function CommunityPage() {
       </Link>
         </>
       )}
+        </>
+      )}
 
       <div className="mt-4 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
         {Co.disclaimer}
       </div>
     </AppShell>
+  );
+}
+
+// 케마바디 레시피 피드 — '_recipe' 특수 커뮤니티의 게시물을 노출.
+// 업로드/좋아요/댓글은 일반 커뮤니티 게시물과 100% 동일한 경로(/community/new·/community/post)를 사용.
+function RecipeFeed({
+  posts,
+  loading,
+  R,
+  likeLabel,
+  commentLabel,
+}: {
+  posts: CommunityPost[];
+  loading: boolean;
+  R: { title: string; intro: string; composeCta: string; empty: string };
+  likeLabel: string;
+  commentLabel: string;
+}) {
+  return (
+    <section className="mt-4">
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <IconBadge Icon={UtensilsIcon} tone="emerald" size="sm" />
+          <h2 className="truncate text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+            {R.title}
+          </h2>
+        </div>
+        <Link
+          href={`/community/new?cid=${RECIPE_COMMUNITY_ID}`}
+          className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-[12px] font-semibold text-white transition active:scale-[0.98] dark:bg-emerald-500"
+        >
+          <span>{R.composeCta}</span>
+          <ChevronRightIcon className="h-3 w-3" />
+        </Link>
+      </div>
+      <p className="mb-3 px-1 text-[12px] leading-relaxed text-stone-500 dark:text-stone-400">
+        {R.intro}
+      </p>
+
+      {loading && posts.length === 0 ? (
+        <div className="mt-8 flex justify-center">
+          <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-emerald-600 dark:border-stone-700 dark:border-t-emerald-400" />
+        </div>
+      ) : posts.length === 0 ? (
+        <EmptyCard text={R.empty} />
+      ) : (
+        <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+          {posts.map((p) => (
+            <li key={p.id}>
+              <Link
+                href={`/community/post?id=${p.id}`}
+                className="flex items-start gap-3 px-4 py-3 transition active:bg-stone-50 dark:active:bg-stone-800/50"
+              >
+                {p.imageData && p.imageMime ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`data:${p.imageMime};base64,${p.imageData}`}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                  />
+                ) : (
+                  <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <UtensilsIcon className="h-6 w-6" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    {p.title}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-[12px] leading-relaxed text-stone-600 dark:text-stone-400">
+                    {p.body}
+                  </p>
+                  <div className="mt-1 flex items-center gap-3 text-[10px] font-medium text-stone-500 dark:text-stone-400">
+                    <span>
+                      {likeLabel} {p.likeCount}
+                    </span>
+                    <span>
+                      {commentLabel} {p.commentCount}
+                    </span>
+                    {p.videoUrl && <span>▶</span>}
+                  </div>
+                </div>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 self-center text-stone-400 dark:text-stone-500" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

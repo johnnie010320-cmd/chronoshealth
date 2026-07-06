@@ -608,6 +608,7 @@ export const es: Dictionary = {
   },
   community: {
     groupTabs: { overcome: 'Superémoslo juntos', manage: 'Gestionémoslo juntos', talk: 'Hablemos juntos' },
+    recipeTab: 'Recetas Kemabody',
     searchPh: 'Buscar comunidades',
     catAll: 'Todo',
     videoTitle: 'Vídeos destacados',
@@ -762,6 +763,13 @@ export const es: Dictionary = {
       sectionTitle: 'Opciones de esta publicación',
       allowLikes: 'Permitir "me gusta"',
       allowComments: 'Permitir comentarios',
+    },
+    recipe: {
+      title: 'Recetas Kemabody',
+      intro: 'Comparte recetas de comida saludable y recibe "me gusta".',
+      composeCta: 'Publicar receta',
+      empty: 'Aún no hay recetas. ¡Sé el primero en compartir una!',
+      newTitle: 'Publicar receta',
     },
   },
   admin: {

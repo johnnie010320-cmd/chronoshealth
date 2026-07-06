@@ -610,6 +610,10 @@ export type CommunityPost = {
   allowComments: boolean;
 };
 
+// '케마바디 레시피' 전용 특수 커뮤니티 id — 레시피 피드/업로드가 이 커뮤니티의 게시물로 저장됨.
+// '_lounge' 와 동일하게 팔로우 없이 누구나 게시 가능한 공개 게시판(서버 OPEN_COMMUNITY_IDS).
+export const RECIPE_COMMUNITY_ID = '_recipe';
+
 export type CommunityComment = {
   id: string;
   postId: string;

@@ -605,6 +605,7 @@ export const ja: Dictionary = {
   },
   community: {
     groupTabs: { overcome: '一緒に乗り越えよう', manage: '一緒に管理しよう', talk: '一緒に話そう' },
+    recipeTab: 'ケマバディレシピ',
     searchPh: 'コミュニティを検索',
     catAll: 'すべて',
     videoTitle: 'おすすめ動画',
@@ -759,6 +760,13 @@ export const ja: Dictionary = {
       sectionTitle: 'この投稿の設定',
       allowLikes: 'いいね許可',
       allowComments: 'コメント許可',
+    },
+    recipe: {
+      title: 'ケマバディレシピ',
+      intro: '健康に良い料理レシピを共有して、いいねを集めましょう。',
+      composeCta: 'レシピを投稿',
+      empty: 'まだレシピがありません。最初のレシピを共有しましょう！',
+      newTitle: 'レシピを投稿',
     },
   },
   admin: {
