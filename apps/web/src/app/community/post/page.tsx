@@ -45,7 +45,8 @@ function CommunityDetailPage() {
 
   const id = params?.get('id') ?? '';
   const [post, setPost] = useState<CommunityPost | null>(null);
-  const [isAuthor, setIsAuthor] = useState(false);
+  // 작성자 본인 또는 사이트 관리자면 수정/삭제 가능.
+  const [canManage, setCanManage] = useState(false);
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [errCode, setErrCode] = useState<string | null>(null);
@@ -70,7 +71,7 @@ function CommunityDetailPage() {
     void fetchCommunityPost(id)
       .then((data) => {
         setPost(data.post);
-        setIsAuthor(data.isAuthor);
+        setCanManage(data.canManage ?? data.isAuthor);
         setComments(data.comments);
       })
       .catch((e) => {
@@ -206,7 +207,7 @@ function CommunityDetailPage() {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {Co.detail.authorLabel} · {author}
             </p>
-            {isAuthor && (
+            {canManage && (
               <div className="flex shrink-0 items-center gap-2">
                 <Link
                   href={`/community/new?edit=${post.id}&cid=${post.communityId}`}

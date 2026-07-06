@@ -633,6 +633,8 @@ export type ListPostsResponse = {
 export type PostDetailResponse = {
   post: CommunityPost;
   isAuthor: boolean;
+  // 작성자 본인 또는 사이트 관리자 — 수정/삭제(관리) 가능 여부.
+  canManage?: boolean;
   comments: CommunityComment[];
   modelVersion: string;
 };

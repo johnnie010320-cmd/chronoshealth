@@ -151,6 +151,52 @@ export async function updatePost(
   return (res.meta?.changes ?? 0) > 0;
 }
 
+// 사이트 관리자용 본문 수정 — 작성자 제약 없이 임의의 글 수정(레시피 등 큐레이션 콘텐츠 관리).
+// 권한 검사(isAdmin)는 라우트에서 선행. owner 조건만 뺀 것 외 updatePost 와 동일.
+export async function adminUpdatePost(
+  db: D1Database,
+  postId: string,
+  fields: {
+    title: string;
+    body: string;
+    videoUrl: string | null;
+    snsUrl: string | null;
+    videoUrls: string[];
+    snsUrls: string[];
+    imageData: string | null;
+    imageMime: string | null;
+    imagePosition: 'top' | 'middle' | 'bottom';
+    bodyRich: RichBodySegment[] | null;
+    allowLikes: boolean;
+    allowComments: boolean;
+  },
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE community_posts SET
+         title = ?, body = ?, video_url = ?, sns_url = ?, image_data = ?, image_mime = ?,
+         allow_likes = ?, allow_comments = ?, body_rich = ?, image_position = ?, video_urls = ?, sns_urls = ?
+       WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(
+      fields.title,
+      fields.body,
+      fields.videoUrl,
+      fields.snsUrl,
+      fields.imageData,
+      fields.imageMime,
+      fields.allowLikes ? 1 : 0,
+      fields.allowComments ? 1 : 0,
+      fields.bodyRich ? JSON.stringify(fields.bodyRich) : null,
+      fields.imagePosition,
+      fields.videoUrls.length ? JSON.stringify(fields.videoUrls) : null,
+      fields.snsUrls.length ? JSON.stringify(fields.snsUrls) : null,
+      postId,
+    )
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
 // 작성자 댓글 수정 — 본인 댓글만.
 export async function updateComment(
   db: D1Database,

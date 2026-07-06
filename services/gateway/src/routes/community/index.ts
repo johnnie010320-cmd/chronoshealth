@@ -11,6 +11,7 @@ import {
   UpdatePostRequest,
 } from '../../schemas/community.js';
 import {
+  adminUpdatePost,
   insertComment,
   insertPost,
   listComments,
@@ -211,18 +212,32 @@ communityRoute.get('/posts/:id', authMiddleware, rateLimit(200), async (c) => {
     authorNickname: nicks.get(cm.userPseudonymId) ?? null,
     isSelf: cm.userPseudonymId === me,
   }));
+  const isAuthor = post.userPseudonymId === me;
+  // 사이트 관리자는 작성자가 아니어도 수정/삭제(관리) 가능.
+  const canManage = isAuthor || (await isAdmin(c.env, me));
   return c.json({
     post,
-    isAuthor: post.userPseudonymId === me,
+    isAuthor,
+    canManage,
     comments: enriched,
     modelVersion: MODEL_VERSION,
   });
 });
 
-// 작성자 본문 수정 — 본인 글만.
+// 본문 수정 — 작성자 본인 또는 사이트 관리자.
 communityRoute.patch('/posts/:id', authMiddleware, rateLimit(50), async (c) => {
   const pseudonymId = c.get('userPseudonymId');
   const postId = c.req.param('id');
+  // 대상 글 존재 + 권한 판정(작성자 | 관리자).
+  const target = await readPost(c.env.DB, postId);
+  if (!target) {
+    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  const isOwner = target.userPseudonymId === pseudonymId;
+  const asAdmin = isOwner ? false : await isAdmin(c.env, pseudonymId);
+  if (!isOwner && !asAdmin) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
   let raw: unknown;
   try {
     raw = await c.req.json();
@@ -258,7 +273,7 @@ communityRoute.patch('/posts/:id', authMiddleware, rateLimit(50), async (c) => {
   if ((parsed.data.imageB64 === null) !== (parsed.data.imageMime === null)) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   }
-  const ok = await updatePost(c.env.DB, postId, pseudonymId, {
+  const fields = {
     title: parsed.data.title,
     body: parsed.data.body,
     videoUrl: videoUrls[0] ?? null,
@@ -271,7 +286,11 @@ communityRoute.patch('/posts/:id', authMiddleware, rateLimit(50), async (c) => {
     bodyRich: parsed.data.bodyRich,
     allowLikes: parsed.data.allowLikes,
     allowComments: parsed.data.allowComments,
-  });
+  } as Parameters<typeof updatePost>[3];
+  // 작성자는 owner-scoped, 관리자는 작성자 제약 없이 수정.
+  const ok = asAdmin
+    ? await adminUpdatePost(c.env.DB, postId, fields)
+    : await updatePost(c.env.DB, postId, pseudonymId, fields);
   if (!ok) {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
@@ -390,13 +409,23 @@ communityRoute.post('/posts/:id/like', authMiddleware, rateLimit(200), async (c)
   return c.json({ ...result, modelVersion: MODEL_VERSION });
 });
 
+// 삭제 — 작성자 본인 또는 사이트 관리자.
 communityRoute.delete('/posts/:id', authMiddleware, rateLimit(50), async (c) => {
   const pseudonymId = c.get('userPseudonymId');
   const postId = c.req.param('id');
-  const ok = await softDeletePost(c.env.DB, postId, pseudonymId);
-  if (!ok) {
+  // 먼저 작성자 본인 삭제 시도. 실패(내 글 아님)하면 관리자 여부 확인 후 모더레이터 삭제.
+  const ownDeleted = await softDeletePost(c.env.DB, postId, pseudonymId);
+  if (ownDeleted) {
+    return c.json({ deleted: true });
+  }
+  const target = await readPost(c.env.DB, postId);
+  if (!target) {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
+  if (!(await isAdmin(c.env, pseudonymId))) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  await moderatorDeletePost(c.env.DB, postId);
   return c.json({ deleted: true });
 });
 
