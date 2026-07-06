@@ -68,7 +68,16 @@ function ThreadInner() {
     try {
       const res = await fetchMessages(id);
       // 폴링/최초 로드: 최신 페이지를 기존 목록과 병합(이미 불러온 과거 메시지 유지).
-      setMessages((prev) => (prev.length === 0 ? res.messages : mergeAsc(prev, res.messages)));
+      // 단, 이번에 받아온 최신 페이지 구간(oldestFetched 이후)은 서버 응답을 '정본'으로
+      // 삼아 재조정한다 — 삭제된 메시지가 prev 에 남아 화면에서 사라지지 않는 버그 방지.
+      // 그보다 과거(페이지네이션으로 불러온 옛 기록)는 이번 응답에 없으므로 그대로 보존.
+      setMessages((prev) => {
+        if (prev.length === 0) return res.messages;
+        const oldestFetched = res.messages[0]?.createdAt;
+        if (oldestFetched === undefined) return prev;
+        const olderHistory = prev.filter((m) => m.createdAt < oldestFetched);
+        return mergeAsc(olderHistory, res.messages);
+      });
       // '더 보기' 여부는 최초 로드의 hasMore로만 초기화(이후엔 loadOlder가 갱신).
       if (!initedRef.current) {
         initedRef.current = true;
@@ -160,6 +169,8 @@ function ThreadInner() {
     if (typeof window !== 'undefined' && !window.confirm(M.deleteMessageConfirm)) return;
     try {
       await deleteMessage(id, messageId);
+      // 낙관적 제거 — 재조정(loadMessages) 전에도 즉시 화면에서 사라지게.
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
       await loadMessages();
     } catch (err) {
       setErrCode(err instanceof Error ? err.message : 'generic');
