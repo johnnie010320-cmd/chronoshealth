@@ -22,6 +22,8 @@ export type StableHealthProfile = {
   familyHistoryDiabetes: boolean;
   familyHistoryHypertension: boolean;
   familyHistoryCardiovascular: boolean;
+  // 기타 가족력 자유 입력(복수) — 가족력은 변화가 거의 없어 프리필 대상.
+  familyHistoryOther: string[];
 };
 
 type StoredProfile = StableHealthProfile & {
@@ -47,6 +49,9 @@ export function loadHealthProfile(): StableHealthProfile | null {
       familyHistoryDiabetes: Boolean(p.familyHistoryDiabetes),
       familyHistoryHypertension: Boolean(p.familyHistoryHypertension),
       familyHistoryCardiovascular: Boolean(p.familyHistoryCardiovascular),
+      familyHistoryOther: Array.isArray(p.familyHistoryOther)
+        ? p.familyHistoryOther.filter((s): s is string => typeof s === 'string')
+        : [],
     };
   } catch {
     window.localStorage.removeItem(STORAGE_KEY);

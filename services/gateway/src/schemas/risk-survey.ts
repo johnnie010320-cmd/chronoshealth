@@ -26,7 +26,27 @@ export const RiskSurveyRequest = z.object({
   weightKg: z.number().min(20).max(300),
 
   smoking: z.enum(['never', 'former', 'current']),
+  // 현재 흡연이면 주당 흡연량(갑/주). 비흡연·과거흡연이면 null.
+  smokingPacksPerWeek: z.number().min(0).max(140).nullable().default(null),
+
+  // 음주: 주종 + 주량(잔/주). alcoholDrinksPerWeek(표준잔/주)은 클라이언트가 파생 전송(계산 입력, 역호환).
+  alcoholType: z
+    .enum(['none', 'beer', 'soju', 'wine', 'spirits', 'makgeolli', 'other'])
+    .default('none'),
+  alcoholAmountPerWeek: z.number().min(0).max(200).default(0),
   alcoholDrinksPerWeek: z.number().int().min(0).max(100),
+
+  // 운동: (유산소/근력/기타)×(강/중/약)×시간 목록. exerciseMinutesPerWeek(강도가중 유효분)은 클라이언트 파생.
+  exercises: z
+    .array(
+      z.object({
+        kind: z.enum(['aerobic', 'strength', 'other']),
+        intensity: z.enum(['high', 'medium', 'low']),
+        minutesPerWeek: z.number().int().min(0).max(2000),
+      }),
+    )
+    .max(10)
+    .default([]),
   exerciseMinutesPerWeek: z.number().int().min(0).max(2000),
   sleepHoursPerNight: z.number().min(0).max(24),
 
@@ -39,6 +59,8 @@ export const RiskSurveyRequest = z.object({
   familyHistoryDiabetes: z.boolean(),
   familyHistoryHypertension: z.boolean(),
   familyHistoryCardiovascular: z.boolean(),
+  // 기타 가족력 자유 입력(복수). 계산엔 미반영, 저장·표시용.
+  familyHistoryOther: z.array(z.string().trim().min(1).max(60)).max(10).default([]),
 
   stressLevel: z.enum(['low', 'medium', 'high']),
   selfRatedHealth: z.enum(['excellent', 'good', 'fair', 'poor']),

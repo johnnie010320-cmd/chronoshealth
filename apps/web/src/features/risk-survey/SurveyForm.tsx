@@ -11,6 +11,14 @@ import {
   type StableHealthProfile,
 } from '@/lib/health-profile';
 import {
+  deriveAlcoholDrinksPerWeek,
+  deriveExerciseMinutesPerWeek,
+  type AlcoholType,
+  type ExerciseEntry,
+  type ExerciseKind,
+  type ExerciseIntensity,
+} from '@/lib/survey-derive';
+import {
   UsersIcon,
   ActivityIcon,
   DropletIcon,
@@ -34,16 +42,39 @@ export function SurveyForm({ onSuccess }: Props) {
   const [profile, setProfile] = useState<StableHealthProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  // 세분화 입력 — 흡연 갑수 표시 토글용 smoking, 음주 주종, 운동 목록, 기타 가족력.
+  const [smoking, setSmoking] = useState('');
+  const [alcoholType, setAlcoholType] = useState<AlcoholType>('none');
+  const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
+  const [familyOther, setFamilyOther] = useState<string[]>([]);
 
   useEffect(() => {
-    setProfile(loadHealthProfile());
+    const loaded = loadHealthProfile();
+    setProfile(loaded);
+    setFamilyOther(loaded?.familyHistoryOther ?? []);
     setProfileLoaded(true);
   }, []);
 
   function handleClearProfile() {
     clearHealthProfile();
     setProfile(null);
+    setFamilyOther([]);
+    setExercises([]);
+    setSmoking('');
+    setAlcoholType('none');
     setFormKey((k) => k + 1);
+  }
+
+  function addExercise() {
+    setExercises((xs) =>
+      xs.length >= 10 ? xs : [...xs, { kind: 'aerobic', intensity: 'medium', minutesPerWeek: 0 }],
+    );
+  }
+  function updateExercise(idx: number, patch: Partial<ExerciseEntry>) {
+    setExercises((xs) => xs.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  }
+  function removeExercise(idx: number) {
+    setExercises((xs) => xs.filter((_, i) => i !== idx));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,14 +84,27 @@ export function SurveyForm({ onSuccess }: Props) {
 
     try {
       const fd = new FormData(e.currentTarget);
+      const smokingVal = fd.get('smoking') as string;
+      const alcoholTypeVal = (fd.get('alcoholType') as string as AlcoholType) || 'none';
+      const alcoholAmount = nullableNum(fd.get('alcoholAmountPerWeek')) ?? 0;
+      // 운동 목록·기타 가족력은 상태에서 정제(빈 항목 제거).
+      const cleanExercises = exercises.filter((x) => x.minutesPerWeek > 0);
+      const cleanFamilyOther = familyOther.map((s) => s.trim()).filter((s) => s !== '');
       const raw = {
         birthYear: numOrNaN(fd.get('birthYear')),
         sex: fd.get('sex') as string,
         heightCm: numOrNaN(fd.get('heightCm')),
         weightKg: numOrNaN(fd.get('weightKg')),
-        smoking: fd.get('smoking') as string,
-        alcoholDrinksPerWeek: numOrNaN(fd.get('alcoholDrinksPerWeek')),
-        exerciseMinutesPerWeek: numOrNaN(fd.get('exerciseMinutesPerWeek')),
+        smoking: smokingVal,
+        smokingPacksPerWeek:
+          smokingVal === 'current' ? nullableNum(fd.get('smokingPacksPerWeek')) : null,
+        alcoholType: alcoholTypeVal,
+        alcoholAmountPerWeek: alcoholAmount,
+        // 계산 입력(표준잔/주)은 주종·주량에서 파생.
+        alcoholDrinksPerWeek: deriveAlcoholDrinksPerWeek(alcoholTypeVal, alcoholAmount),
+        exercises: cleanExercises,
+        // 계산 입력(강도가중 유효분/주)은 운동 목록에서 파생.
+        exerciseMinutesPerWeek: deriveExerciseMinutesPerWeek(cleanExercises),
         sleepHoursPerNight: numOrNaN(fd.get('sleepHoursPerNight')),
         systolicBp: nullableNum(fd.get('systolicBp')),
         diastolicBp: nullableNum(fd.get('diastolicBp')),
@@ -70,6 +114,7 @@ export function SurveyForm({ onSuccess }: Props) {
         familyHistoryDiabetes: fd.has('familyHistoryDiabetes'),
         familyHistoryHypertension: fd.has('familyHistoryHypertension'),
         familyHistoryCardiovascular: fd.has('familyHistoryCardiovascular'),
+        familyHistoryOther: cleanFamilyOther,
         stressLevel: fd.get('stressLevel') as string,
         selfRatedHealth: fd.get('selfRatedHealth') as string,
         consentToStore: fd.has('consentToStore'),
@@ -97,6 +142,7 @@ export function SurveyForm({ onSuccess }: Props) {
         familyHistoryDiabetes: parsed.data.familyHistoryDiabetes,
         familyHistoryHypertension: parsed.data.familyHistoryHypertension,
         familyHistoryCardiovascular: parsed.data.familyHistoryCardiovascular,
+        familyHistoryOther: parsed.data.familyHistoryOther,
       });
 
       const data = await submitRiskEstimate(parsed.data);
@@ -216,30 +262,61 @@ export function SurveyForm({ onSuccess }: Props) {
           label={F.smoking.label}
           name="smoking"
           required
+          onChange={setSmoking}
           options={[
             { value: 'never', label: F.smoking.options.never },
             { value: 'former', label: F.smoking.options.former },
             { value: 'current', label: F.smoking.options.current },
           ]}
         />
-        <Field
-          label={F.alcoholDrinksPerWeek.label}
-          name="alcoholDrinksPerWeek"
-          type="number"
+        {smoking === 'current' && (
+          <Field
+            label={F.smokingPacks.label}
+            name="smokingPacksPerWeek"
+            type="number"
+            step="0.5"
+            min={0}
+            max={140}
+            placeholder={F.smokingPacks.placeholder}
+          />
+        )}
+
+        <SelectField
+          label={F.alcoholType.label}
+          name="alcoholType"
           required
-          min={0}
-          max={100}
-          defaultValue={0}
+          defaultValue="none"
+          onChange={(v) => setAlcoholType(v as AlcoholType)}
+          options={[
+            { value: 'none', label: F.alcoholType.options.none },
+            { value: 'beer', label: F.alcoholType.options.beer },
+            { value: 'soju', label: F.alcoholType.options.soju },
+            { value: 'wine', label: F.alcoholType.options.wine },
+            { value: 'spirits', label: F.alcoholType.options.spirits },
+            { value: 'makgeolli', label: F.alcoholType.options.makgeolli },
+            { value: 'other', label: F.alcoholType.options.other },
+          ]}
         />
-        <Field
-          label={F.exerciseMinutesPerWeek.label}
-          name="exerciseMinutesPerWeek"
-          type="number"
-          required
-          min={0}
-          max={2000}
-          defaultValue={150}
+        {alcoholType !== 'none' && (
+          <Field
+            label={F.alcoholAmount.label}
+            name="alcoholAmountPerWeek"
+            type="number"
+            min={0}
+            max={200}
+            defaultValue={0}
+            placeholder={F.alcoholAmount.placeholder}
+          />
+        )}
+
+        <ExerciseList
+          exercises={exercises}
+          onAdd={addExercise}
+          onUpdate={updateExercise}
+          onRemove={removeExercise}
+          labels={F.exercise}
         />
+
         <Field
           label={F.sleepHoursPerNight.label}
           name="sleepHoursPerNight"
@@ -319,6 +396,11 @@ export function SurveyForm({ onSuccess }: Props) {
           name="familyHistoryCardiovascular"
           label={F.familyHistoryCardiovascular.label}
           defaultChecked={p?.familyHistoryCardiovascular}
+        />
+        <FamilyOtherList
+          items={familyOther}
+          onChange={setFamilyOther}
+          labels={F.familyHistoryOther}
         />
       </Section>
 
@@ -489,12 +571,14 @@ function SelectField({
   required,
   options,
   defaultValue = '',
+  onChange,
 }: {
   label: string;
   name: string;
   required?: boolean;
   options: Array<{ value: string; label: string }>;
   defaultValue?: string;
+  onChange?: (v: string) => void;
 }) {
   return (
     <label className="block">
@@ -510,6 +594,7 @@ function SelectField({
         name={name}
         required={required}
         defaultValue={defaultValue}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:focus:bg-stone-900"
       >
         <option value="" disabled>
@@ -546,5 +631,163 @@ function Checkbox({
         {label}
       </span>
     </label>
+  );
+}
+
+// 주당 운동 — (유산소/근력/기타)×(강/중/약)×분 목록. 복수 입력.
+function ExerciseList({
+  exercises,
+  onAdd,
+  onUpdate,
+  onRemove,
+  labels,
+}: {
+  exercises: ExerciseEntry[];
+  onAdd: () => void;
+  onUpdate: (idx: number, patch: Partial<ExerciseEntry>) => void;
+  onRemove: (idx: number) => void;
+  labels: {
+    label: string;
+    addCta: string;
+    empty: string;
+    remove: string;
+    minutesLabel: string;
+    kinds: Record<ExerciseKind, string>;
+    intensities: Record<ExerciseIntensity, string>;
+  };
+}) {
+  const rowSelect =
+    'min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-2 py-2.5 text-[13px] text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100';
+  const kinds: ExerciseKind[] = ['aerobic', 'strength', 'other'];
+  const intensities: ExerciseIntensity[] = ['high', 'medium', 'low'];
+  return (
+    <div className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
+        {labels.label}
+      </span>
+      {exercises.length === 0 ? (
+        <p className="mb-2 text-[12px] text-stone-400 dark:text-stone-500">{labels.empty}</p>
+      ) : (
+        <div className="space-y-2">
+          {exercises.map((ex, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border border-stone-200 bg-stone-50/60 p-2.5 dark:border-stone-800 dark:bg-stone-950/60"
+            >
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label={labels.label}
+                  value={ex.kind}
+                  onChange={(e) => onUpdate(idx, { kind: e.target.value as ExerciseKind })}
+                  className={rowSelect}
+                >
+                  {kinds.map((k) => (
+                    <option key={k} value={k}>
+                      {labels.kinds[k]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label={labels.label}
+                  value={ex.intensity}
+                  onChange={(e) => onUpdate(idx, { intensity: e.target.value as ExerciseIntensity })}
+                  className={rowSelect}
+                >
+                  {intensities.map((it) => (
+                    <option key={it} value={it}>
+                      {labels.intensities[it]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={2000}
+                  inputMode="numeric"
+                  value={ex.minutesPerWeek || ''}
+                  onChange={(e) =>
+                    onUpdate(idx, { minutesPerWeek: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
+                  }
+                  placeholder={labels.minutesLabel}
+                  className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-[14px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+                />
+                <span className="shrink-0 text-[12px] text-stone-500 dark:text-stone-400">
+                  {labels.minutesLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(idx)}
+                  aria-label={labels.remove}
+                  className="shrink-0 rounded-lg px-2 py-1 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                >
+                  {labels.remove}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onAdd}
+        disabled={exercises.length >= 10}
+        className="mt-2 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[13px] font-semibold text-stone-700 transition active:scale-[0.98] disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+      >
+        {labels.addCta}
+      </button>
+    </div>
+  );
+}
+
+// 기타 가족력 — 자유 입력 복수.
+function FamilyOtherList({
+  items,
+  onChange,
+  labels,
+}: {
+  items: string[];
+  onChange: (items: string[]) => void;
+  labels: { label: string; placeholder: string; addCta: string; remove: string };
+}) {
+  return (
+    <div className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
+        {labels.label}
+      </span>
+      {items.length > 0 && (
+        <div className="space-y-2">
+          {items.map((val, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                type="text"
+                maxLength={60}
+                value={val}
+                onChange={(e) => onChange(items.map((v, i) => (i === idx ? e.target.value : v)))}
+                placeholder={labels.placeholder}
+                className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-[14px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+              />
+              <button
+                type="button"
+                onClick={() => onChange(items.filter((_, i) => i !== idx))}
+                aria-label={labels.remove}
+                className="shrink-0 rounded-lg px-2 py-1 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+              >
+                {labels.remove}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => (items.length >= 10 ? null : onChange([...items, '']))}
+        disabled={items.length >= 10}
+        className="mt-2 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[13px] font-semibold text-stone-700 transition active:scale-[0.98] disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+      >
+        {labels.addCta}
+      </button>
+    </div>
   );
 }
