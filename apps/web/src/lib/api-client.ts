@@ -1635,19 +1635,37 @@ export type SymptomAssessment = {
   selfCare: string[];
   seeDoctor: string[];
 };
-export async function symptomCheck(
-  symptoms: string,
-  locale: 'ko' | 'en' | 'ja' | 'es',
-): Promise<SymptomAssessment> {
+export type TriageLevel = 'self_care' | 'observe' | 'see_doctor' | 'emergency';
+export type SymptomBodyRegion =
+  | 'head' | 'chest' | 'abdomen' | 'back' | 'limbs' | 'joint' | 'skin' | 'whole' | 'mind' | 'other';
+export type SymptomDuration = 'today' | 'days' | 'week' | 'chronic';
+export type SymptomFrequency = 'constant' | 'intermittent';
+// 자가 진단 구조화 입력(모두 선택). followUp 은 대화형 2차 호출용.
+export type SymptomInput = {
+  symptoms: string;
+  locale: 'ko' | 'en' | 'ja' | 'es';
+  bodyRegion?: SymptomBodyRegion | null;
+  duration?: SymptomDuration | null;
+  severity?: number | null;
+  characteristics?: string[];
+  frequency?: SymptomFrequency | null;
+  followUp?: { q: string; a: string }[];
+};
+export type SymptomResult = {
+  assessment: SymptomAssessment;
+  triageLevel: TriageLevel;
+  followUpQuestions: string[];
+};
+export async function symptomCheck(input: SymptomInput): Promise<SymptomResult> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const res = await fetch(`${GATEWAY_URL}/api/v1/ai/symptom-check`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
-    body: JSON.stringify({ symptoms, locale }),
+    body: JSON.stringify(input),
   });
   if (!res.ok) await throwOnError(res);
-  return ((await res.json()) as { assessment: SymptomAssessment }).assessment;
+  return (await res.json()) as SymptomResult;
 }
 
 // Phase 2.2 — MY DIARY

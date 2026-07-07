@@ -17,6 +17,7 @@ import { loadHealthProfile, type StableHealthProfile } from '@/lib/health-profil
 import { dietScore, worstUpf, type DietScore } from '@/lib/diet-score';
 import { exerciseScore, type ExerciseScore } from '@/lib/exercise-score';
 import { DiaryAttachments } from '@/components/DiaryAttachments';
+import { MoodFace, MOOD_TONE, MOOD_ACTIVE } from '@/components/MoodIcons';
 import {
   fetchRoutineToday,
   fetchRoutineRange,
@@ -30,10 +31,15 @@ import {
   type DiaryMood,
   type ExerciseIntensity,
   type ExerciseType,
-  type SymptomAssessment,
   type CalorieEstimateLine,
   type FoodItem,
   type UpfTier,
+  type SymptomResult,
+  type SymptomInput,
+  type SymptomBodyRegion,
+  type SymptomDuration,
+  type SymptomFrequency,
+  type TriageLevel,
 } from '@/lib/api-client';
 
 type TabKey = 'today' | 'graph' | 'guide';
@@ -148,13 +154,6 @@ function pickTipKey(parts: DayScoreParts | null): TipKey {
 }
 
 const MOODS: DiaryMood[] = ['great', 'good', 'soso', 'tired', 'bad'];
-const MOOD_EMOJI: Record<DiaryMood, string> = {
-  great: '😄',
-  good: '🙂',
-  soso: '😐',
-  tired: '😪',
-  bad: '😣',
-};
 
 export function TodaySelfCheck() {
   const { t } = useI18n();
@@ -393,15 +392,17 @@ function TodayTab({
             <button
               key={m}
               type="button"
-              onClick={() => setMood(m)}
+              onClick={() => setMood((cur) => (cur === m ? null : m))}
               aria-label={S.mood[m]}
-              className={`flex h-10 flex-1 items-center justify-center rounded-xl border text-xl transition ${
+              aria-pressed={mood === m}
+              className={`flex flex-1 flex-col items-center gap-1 rounded-xl border py-2 transition active:scale-[0.97] ${
                 mood === m
-                  ? 'border-brand-500 bg-brand-50 dark:border-brand-500 dark:bg-brand-900/40'
-                  : 'border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900'
+                  ? MOOD_ACTIVE[MOOD_TONE[m]]
+                  : 'border-stone-200 bg-white text-stone-400 hover:text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-500 dark:hover:text-stone-300'
               }`}
             >
-              {MOOD_EMOJI[m]}
+              <MoodFace mood={m} className="h-6 w-6" />
+              <span className="text-[9px] font-semibold leading-none">{S.mood[m]}</span>
             </button>
           ))}
         </div>
@@ -1157,42 +1158,227 @@ function Metric({ label, value, unit }: { label: string; value: string; unit: st
 }
 
 // ── 탭3: 자가 진단 ──────────────────────────────────────────────────────────
-// 네이버/구글 수준의 일반 건강 정보. 단정 진단 아님 + 필수 경고문 항상 노출.
-function SymptomTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
-  const { locale } = useI18n();
-  const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(false);
-  const [result, setResult] = useState<SymptomAssessment | null>(null);
+// 증상 자가체크(구조화 입력 + 긴급도 + AI 후속질문 + 사진/동영상) & 정신건강 간이 체크.
+// 단정 진단 아님 + 필수 경고문 항상 노출.
+type SymptomMode = 'symptom' | 'mind';
 
-  async function run() {
+function SymptomTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) {
+  const [mode, setMode] = useState<SymptomMode>('symptom');
+  if (!signedIn) return <LoginPrompt S={S} />;
+  const Sy = S.symptom;
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1.5">
+        {([['symptom', Sy.modeSymptom], ['mind', Sy.modeMind]] as [SymptomMode, string][]).map(
+          ([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setMode(k)}
+              className={`flex-1 rounded-xl border px-2 py-2 text-[12px] font-semibold transition ${
+                mode === k
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/40 dark:text-brand-200'
+                  : 'border-stone-200 bg-white text-stone-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400'
+              }`}
+            >
+              {label}
+            </button>
+          ),
+        )}
+      </div>
+      {mode === 'symptom' ? <SymptomChecker S={S} /> : <MindScreener S={S} />}
+    </div>
+  );
+}
+
+// 자가진단 칩(다중/단일 선택 공용).
+function SymChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition active:scale-[0.97] ${
+        active
+          ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-900/40 dark:text-brand-200'
+          : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+const TRIAGE_TONE: Record<TriageLevel, string> = {
+  self_care: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200',
+  observe: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200',
+  see_doctor: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200',
+  emergency: 'border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-100',
+};
+const TRIAGE_DOT: Record<TriageLevel, string> = {
+  self_care: 'bg-emerald-500',
+  observe: 'bg-sky-500',
+  see_doctor: 'bg-amber-500',
+  emergency: 'bg-rose-500',
+};
+
+// 긴급도 신호등 배너 — 4단계 색상.
+function TriageBanner({ level, S }: { level: TriageLevel; S: SelfCheckLabels }) {
+  const Sy = S.symptom;
+  return (
+    <div className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 ${TRIAGE_TONE[level]}`}>
+      <span aria-hidden className={`mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${TRIAGE_DOT[level]}`} />
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">{Sy.triageTitle}</p>
+        <p className="text-[13px] font-bold leading-tight">{Sy.triage[level]}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed opacity-90">{Sy.triageDesc[level]}</p>
+      </div>
+    </div>
+  );
+}
+
+const REGIONS: SymptomBodyRegion[] = [
+  'head', 'chest', 'abdomen', 'back', 'limbs', 'joint', 'skin', 'whole', 'mind', 'other',
+];
+const DURATIONS: SymptomDuration[] = ['today', 'days', 'week', 'chronic'];
+const FREQS: SymptomFrequency[] = ['constant', 'intermittent'];
+
+function SymptomChecker({ S }: { S: SelfCheckLabels }) {
+  const { locale } = useI18n();
+  const Sy = S.symptom;
+  const [region, setRegion] = useState<SymptomBodyRegion | null>(null);
+  const [duration, setDuration] = useState<SymptomDuration | null>(null);
+  const [severity, setSeverity] = useState<number | null>(null);
+  const [chars, setChars] = useState<string[]>([]);
+  const [frequency, setFrequency] = useState<SymptomFrequency | null>(null);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<SymptomResult | null>(null);
+  const [fuAnswers, setFuAnswers] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [err, setErr] = useState(false);
+
+  async function run(followUp: { q: string; a: string }[] = []) {
     const q = text.trim();
     if (q.length < 2) return;
-    setBusy(true);
+    const isRefine = followUp.length > 0;
+    if (isRefine) setRefining(true);
+    else {
+      setBusy(true);
+      setResult(null);
+    }
     setErr(false);
-    setResult(null);
     try {
-      setResult(await symptomCheck(q, locale));
+      const input: SymptomInput = {
+        symptoms: q,
+        locale,
+        bodyRegion: region,
+        duration,
+        severity,
+        characteristics: chars,
+        frequency,
+        followUp,
+      };
+      const r = await symptomCheck(input);
+      setResult(r);
+      if (!isRefine) setFuAnswers(r.followUpQuestions.map(() => ''));
     } catch {
       setErr(true);
     } finally {
       setBusy(false);
+      setRefining(false);
     }
   }
 
-  if (!signedIn) return <LoginPrompt S={S} />;
+  function toggleChar(c: string) {
+    setChars((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : prev.length >= 8 ? prev : [...prev, c],
+    );
+  }
 
-  const Sy = S.symptom;
   return (
     <div className="space-y-3">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        maxLength={500}
-        rows={2}
-        placeholder={Sy.placeholder}
-        className="block w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
-      />
+      {/* 구조화 입력 */}
+      <div className="rounded-xl border border-stone-200 bg-stone-50/60 px-3 py-2.5 dark:border-stone-800 dark:bg-stone-800/30">
+        <p className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">{Sy.structuredTitle}</p>
+
+        <p className="mt-2 text-[10px] font-semibold text-stone-500 dark:text-stone-400">{Sy.regionLabel}</p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {REGIONS.map((r) => (
+            <SymChip key={r} active={region === r} onClick={() => setRegion((c) => (c === r ? null : r))}>
+              {Sy.region[r]}
+            </SymChip>
+          ))}
+        </div>
+
+        <p className="mt-2 text-[10px] font-semibold text-stone-500 dark:text-stone-400">{Sy.durationLabel}</p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {DURATIONS.map((d) => (
+            <SymChip key={d} active={duration === d} onClick={() => setDuration((c) => (c === d ? null : d))}>
+              {Sy.duration[d]}
+            </SymChip>
+          ))}
+        </div>
+
+        <p className="mt-2 text-[10px] font-semibold text-stone-500 dark:text-stone-400">
+          {Sy.severityLabel} <span className="font-normal text-stone-400">· {Sy.severityHint}</span>
+        </p>
+        <div className="mt-1 flex gap-1.5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setSeverity((c) => (c === n ? null : n))}
+              className={`h-8 flex-1 rounded-lg border text-[12px] font-bold transition ${
+                severity === n
+                  ? 'border-brand-500 bg-brand-600 text-white'
+                  : 'border-stone-200 bg-white text-stone-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-2 text-[10px] font-semibold text-stone-500 dark:text-stone-400">{Sy.characteristicsLabel}</p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {Sy.characteristics.map((c) => (
+            <SymChip key={c} active={chars.includes(c)} onClick={() => toggleChar(c)}>
+              {c}
+            </SymChip>
+          ))}
+        </div>
+
+        <p className="mt-2 text-[10px] font-semibold text-stone-500 dark:text-stone-400">{Sy.frequencyLabel}</p>
+        <div className="mt-1 flex gap-1.5">
+          {FREQS.map((f) => (
+            <SymChip key={f} active={frequency === f} onClick={() => setFrequency((c) => (c === f ? null : f))}>
+              {Sy.frequency[f]}
+            </SymChip>
+          ))}
+        </div>
+      </div>
+
+      {/* 자유 텍스트 */}
+      <label className="block">
+        <span className="mb-1 block text-[10px] font-semibold text-stone-500 dark:text-stone-400">{Sy.freeTextLabel}</span>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          maxLength={500}
+          rows={2}
+          placeholder={Sy.placeholder}
+          className="block w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+        />
+      </label>
+
       <button
         type="button"
         onClick={() => void run()}
@@ -1209,19 +1395,155 @@ function SymptomTab({ signedIn, S }: { signedIn: boolean; S: SelfCheckLabels }) 
 
       {result && (
         <div className="space-y-2.5">
-          <SymptomSection title={Sy.possibleCauses} items={result.possibleCauses} tone="neutral" />
-          <SymptomSection title={Sy.selfCare} items={result.selfCare} tone="brand" />
-          <SymptomSection title={Sy.seeDoctor} items={result.seeDoctor} tone="warn" />
+          <TriageBanner level={result.triageLevel} S={S} />
+          <SymptomSection title={Sy.possibleCauses} items={result.assessment.possibleCauses} tone="neutral" />
+          <SymptomSection title={Sy.selfCare} items={result.assessment.selfCare} tone="brand" />
+          <SymptomSection title={Sy.seeDoctor} items={result.assessment.seeDoctor} tone="warn" />
+
+          {result.followUpQuestions.length > 0 && (
+            <div className="rounded-xl border border-brand-200 bg-brand-50/50 px-3 py-2.5 dark:border-brand-900 dark:bg-brand-950/30">
+              <p className="text-[11px] font-semibold text-brand-700 dark:text-brand-300">{Sy.followUpTitle}</p>
+              <p className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-400">{Sy.followUpHint}</p>
+              <div className="mt-2 space-y-2">
+                {result.followUpQuestions.map((q, i) => (
+                  <div key={i}>
+                    <p className="text-[12px] text-stone-700 dark:text-stone-200">{q}</p>
+                    <input
+                      type="text"
+                      value={fuAnswers[i] ?? ''}
+                      maxLength={300}
+                      onChange={(e) =>
+                        setFuAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))
+                      }
+                      placeholder={Sy.answerPlaceholder}
+                      className="mt-1 block w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[13px] text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  void run(
+                    result.followUpQuestions
+                      .map((q, i) => ({ q, a: (fuAnswers[i] ?? '').trim() }))
+                      .filter((x) => x.a !== ''),
+                  )
+                }
+                disabled={refining || fuAnswers.every((a) => a.trim() === '')}
+                className="mt-2 rounded-lg bg-brand-700 px-3 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97] disabled:opacity-60"
+              >
+                {refining ? Sy.refining : Sy.refineCta}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* 필수 경고문 — 결과 유무와 무관하게 항상 노출 */}
+      {/* 증상 사진·동영상 첨부(본인 전용) */}
+      <div>
+        <p className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">{Sy.attachLabel}</p>
+        <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500 dark:text-stone-400">{Sy.attachHint}</p>
+        <div className="mt-1.5">
+          <DiaryAttachments entryDate={todayIso()} editable />
+        </div>
+      </div>
+
+      {/* 필수 경고문 — 항상 노출 */}
       <div className="space-y-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 dark:border-rose-900/50 dark:bg-rose-950/30">
         <p className="text-[11px] font-semibold leading-relaxed text-rose-800 dark:text-rose-200">
           ⚠️ {Sy.disclaimer}
         </p>
         <p className="text-[10px] leading-relaxed text-rose-700 dark:text-rose-300">{Sy.emergency}</p>
       </div>
+    </div>
+  );
+}
+
+// 정신건강 간이 체크 — 5문항 4점 척도(선별용, 비진단). 신호 있으면 위기 핫라인 노출.
+const MIND_SCALE = [
+  ['none', 0],
+  ['some', 1],
+  ['half', 2],
+  ['most', 3],
+] as const;
+
+function MindScreener({ S }: { S: SelfCheckLabels }) {
+  const M = S.mind;
+  const [scores, setScores] = useState<(number | null)[]>(() => M.questions.map(() => null));
+  const [show, setShow] = useState(false);
+
+  const answered = scores.every((s) => s !== null);
+  const total = scores.reduce<number>((a, b) => a + (b ?? 0), 0);
+  const band: 'low' | 'mild' | 'high' = total >= 9 ? 'high' : total >= 4 ? 'mild' : 'low';
+  const bandTone =
+    band === 'high'
+      ? 'border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/40'
+      : band === 'mild'
+        ? 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40'
+        : 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40';
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[12px] leading-relaxed text-stone-600 dark:text-stone-400">{M.intro}</p>
+
+      <div className="space-y-2.5">
+        {M.questions.map((q, i) => (
+          <div key={i}>
+            <p className="text-[12px] text-stone-800 dark:text-stone-200">
+              {i + 1}. {q}
+            </p>
+            <div className="mt-1 grid grid-cols-4 gap-1.5">
+              {MIND_SCALE.map(([k, v]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => {
+                    setShow(false);
+                    setScores((prev) => prev.map((s, j) => (j === i ? v : s)));
+                  }}
+                  className={`rounded-lg border px-1 py-1.5 text-[11px] font-semibold transition ${
+                    scores[i] === v
+                      ? 'border-brand-500 bg-brand-600 text-white'
+                      : 'border-stone-200 bg-white text-stone-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400'
+                  }`}
+                >
+                  {M.scale[k]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShow(true)}
+        disabled={!answered}
+        className="w-full rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+      >
+        {M.checkCta}
+      </button>
+
+      {show && answered && (
+        <div className={`space-y-1.5 rounded-xl border px-3 py-2.5 ${bandTone}`}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+            {M.resultTitle}
+          </p>
+          <p className="text-[13px] font-semibold leading-relaxed text-stone-800 dark:text-stone-100">
+            {M.bands[band]}
+          </p>
+          {band !== 'low' && (
+            <p className="text-[11px] font-medium leading-relaxed text-rose-700 dark:text-rose-300">
+              {M.hotline}
+            </p>
+          )}
+        </div>
+      )}
+
+      <p className="rounded-lg bg-stone-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-stone-500 dark:bg-stone-800/60 dark:text-stone-400">
+        {M.disclaimer}
+      </p>
     </div>
   );
 }

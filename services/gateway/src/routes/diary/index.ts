@@ -18,10 +18,26 @@ import type { Bindings } from '../../bindings.js';
 const MODEL_VERSION = 'diary-v0.1.0';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// 동영상 첨부 — Workers 메모리·요청 한도 고려한 보수적 상한(30MB). 이미지/PDF 는 MAX_NOTICE_BYTES(10MB).
+const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
+
+// 지원 동영상 MIME(확장자·타입 관대 매칭). 미지원이면 null.
+function resolveVideoType(name: string, type: string): string | null {
+  const t = (type || '').toLowerCase();
+  const n = (name || '').toLowerCase();
+  if (t === 'video/mp4' || n.endsWith('.mp4') || n.endsWith('.m4v')) return 'video/mp4';
+  if (t === 'video/webm' || n.endsWith('.webm')) return 'video/webm';
+  if (t === 'video/quicktime' || n.endsWith('.mov')) return 'video/quicktime';
+  return null;
+}
+
 function attExt(mime: string): string {
   if (mime === 'image/png') return 'png';
   if (mime === 'image/webp') return 'webp';
   if (mime === 'application/pdf') return 'pdf';
+  if (mime === 'video/mp4') return 'mp4';
+  if (mime === 'video/webm') return 'webm';
+  if (mime === 'video/quicktime') return 'mov';
   return 'jpg';
 }
 
@@ -126,13 +142,19 @@ diaryRoute.post('/attachments', authMiddleware, rateLimit(60), async (c) => {
   if (!(file instanceof File)) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
 
   const imageType = resolveNoticeImageType(file.name, file.type);
+  const videoType = resolveVideoType(file.name, file.type);
   const pdf = isPdf(file.name, file.type);
-  if (!imageType && !pdf) return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
-  if (file.size <= 0 || file.size > MAX_NOTICE_BYTES) {
+  if (!imageType && !videoType && !pdf) {
+    return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
+  }
+  // 동영상은 30MB, 그 외(이미지·PDF)는 10MB 상한.
+  const limit = videoType ? MAX_VIDEO_BYTES : MAX_NOTICE_BYTES;
+  if (file.size <= 0 || file.size > limit) {
     return c.json({ error: { code: 'FILE_TOO_LARGE' } }, 400);
   }
+  // 동영상·PDF 는 kind='file'(재생/열기는 UI 가 mime 로 구분), 이미지는 'image'.
   const kind: 'image' | 'file' = imageType ? 'image' : 'file';
-  const mime = imageType ?? 'application/pdf';
+  const mime = imageType ?? videoType ?? 'application/pdf';
   const id = crypto.randomUUID();
   const key = `diary/${me}/${id}.${attExt(mime)}`;
   try {
@@ -178,10 +200,11 @@ diaryRoute.get('/attachments/:id/file', authMiddleware, rateLimit(200), async (c
   if (att.ownerPseudonymId !== me) return c.json({ error: { code: 'FORBIDDEN' } }, 403);
   const obj = await c.env.ATTACHMENTS.get(att.r2Key);
   if (!obj) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  const inline = att.kind === 'image' || att.mime.startsWith('video/');
   return new Response(obj.body, {
     headers: {
       'Content-Type': att.mime,
-      'Content-Disposition': `${att.kind === 'image' ? 'inline' : 'attachment'}; filename="${att.name}"`,
+      'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${att.name}"`,
       'Cache-Control': 'private, max-age=3600',
     },
   });

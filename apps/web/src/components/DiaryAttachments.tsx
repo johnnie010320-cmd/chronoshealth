@@ -44,11 +44,12 @@ export function DiaryAttachments({
     };
   }, [entryDate]);
 
-  // 이미지 첨부는 objectURL 미리 로드(썸네일).
+  // 이미지·동영상 첨부는 objectURL 미리 로드(썸네일·재생).
   useEffect(() => {
     let active = true;
     for (const it of items) {
-      if (it.kind === 'image' && !urlsRef.current[it.id]) {
+      const previewable = it.kind === 'image' || it.mime.startsWith('video/');
+      if (previewable && !urlsRef.current[it.id]) {
         void fetchDiaryAttachmentObjectUrl(it.id).then((u) => {
           if (active && u) setUrls((prev) => ({ ...prev, [it.id]: u }));
         });
@@ -129,6 +130,31 @@ export function DiaryAttachments({
                     </span>
                   )}
                 </button>
+              ) : it.mime.startsWith('video/') ? (
+                <button
+                  type="button"
+                  onClick={() => void openFile(it.id)}
+                  className="relative block h-20 w-20 overflow-hidden rounded-xl border border-stone-200 bg-black dark:border-stone-700"
+                >
+                  {urls[it.id] ? (
+                    <video
+                      src={urls[it.id]}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-[10px] text-stone-400">
+                      …
+                    </span>
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur">
+                      ▶
+                    </span>
+                  </span>
+                </button>
               ) : (
                 <button
                   type="button"
@@ -169,7 +195,7 @@ export function DiaryAttachments({
           <input
             ref={fileRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,application/pdf"
+            accept="image/png,image/jpeg,image/webp,application/pdf,video/mp4,video/webm,video/quicktime"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
