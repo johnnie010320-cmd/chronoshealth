@@ -8,6 +8,7 @@ import { ChevronRightIcon, HeartPulseIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { RichBodyView } from '@/components/RichBodyEditor';
+import { RecipeScoreCard } from '@/components/RecipeScore';
 import {
   addCommunityComment,
   deleteCommunityComment,
@@ -18,6 +19,7 @@ import {
   updateCommunityComment,
   type CommunityPost,
   type CommunityComment,
+  type RecipeScore,
   type RichSegment,
 } from '@/lib/api-client';
 
@@ -47,6 +49,7 @@ function CommunityDetailPage() {
   const [post, setPost] = useState<CommunityPost | null>(null);
   // 작성자 본인 또는 사이트 관리자면 수정/삭제 가능.
   const [canManage, setCanManage] = useState(false);
+  const [recipeScore, setRecipeScore] = useState<RecipeScore | null>(null);
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [errCode, setErrCode] = useState<string | null>(null);
@@ -73,6 +76,7 @@ function CommunityDetailPage() {
         setPost(data.post);
         setCanManage(data.canManage ?? data.isAuthor);
         setComments(data.comments);
+        setRecipeScore(data.recipeScore ?? null);
       })
       .catch((e) => {
         const code = e instanceof Error ? e.message : 'generic';
@@ -295,6 +299,12 @@ function CommunityDetailPage() {
           </span>
         </div>
       </article>
+
+      {recipeScore && (
+        <div className="mt-4">
+          <RecipeScoreCard score={recipeScore} />
+        </div>
+      )}
 
       <section className="mt-6">
         <h2 className="px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">

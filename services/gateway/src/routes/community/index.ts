@@ -56,6 +56,13 @@ import {
   searchCommunities,
   searchPosts,
 } from '../../community/discover.js';
+import { scoreRecipe } from '../../community/recipe_score.js';
+import {
+  listUnscoredPosts,
+  readRecipeScore,
+  readRecipeScores,
+  upsertRecipeScore,
+} from '../../community/recipe_score_store.js';
 import { findPseudonymByNickname, resolveNicknames } from '../../messaging/nickname.js';
 import { isAdmin } from '../../middleware/admin-auth.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
@@ -65,7 +72,22 @@ const MODEL_VERSION = 'community-v0.2.0';
 
 // 특수(시스템) 커뮤니티 — 누구나 자유롭게 글을 올릴 수 있는 공개 게시판.
 // '_lounge'=자유 라운지, '_recipe'=케마바디 레시피. 팔로우 없이 게시 허용.
-const OPEN_COMMUNITY_IDS = new Set(['_lounge', '_recipe']);
+const RECIPE_COMMUNITY_ID = '_recipe';
+const OPEN_COMMUNITY_IDS = new Set(['_lounge', RECIPE_COMMUNITY_ID]);
+
+// 레시피 게시물이면 AI로 채점해 저장(베스트-에포트). 실패는 무시(UI가 "평가 준비 중" 처리).
+async function maybeScoreRecipe(
+  env: Bindings,
+  post: { id: string; communityId: string; title: string; body: string },
+): Promise<void> {
+  if (post.communityId !== RECIPE_COMMUNITY_ID) return;
+  try {
+    const score = await scoreRecipe(env.AI, { title: post.title, body: post.body });
+    if (score) await upsertRecipeScore(env.DB, post.id, score);
+  } catch (err) {
+    console.error('recipe score failed', err);
+  }
+}
 
 export const communityRoute = new Hono<{
   Bindings: Bindings;
@@ -154,8 +176,17 @@ communityRoute.post('/posts', authMiddleware, rateLimit(50), async (c) => {
   } catch (err) {
     console.error('appendLedger community_post failed', err);
   }
+  // 레시피 게시판이면 AI 건강 점수 채점(생성 시점).
+  await maybeScoreRecipe(c.env, {
+    id,
+    communityId: community.id,
+    title: parsed.data.title,
+    body: parsed.data.body,
+  });
   const post = await readPost(c.env.DB, id);
-  return c.json({ post, modelVersion: MODEL_VERSION });
+  const recipeScore =
+    community.id === RECIPE_COMMUNITY_ID ? await readRecipeScore(c.env.DB, id) : null;
+  return c.json({ post, recipeScore, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.get('/posts', authMiddleware, rateLimit(200), async (c) => {
@@ -177,6 +208,12 @@ communityRoute.get('/posts', authMiddleware, rateLimit(200), async (c) => {
     tag: parsed.data.tag ?? null,
     userPseudonymId: parsed.data.mine ? pseudonymId : null,
   });
+  // 레시피 피드면 각 글에 건강 점수 첨부.
+  if (parsed.data.communityId === RECIPE_COMMUNITY_ID && posts.length > 0) {
+    const scores = await readRecipeScores(c.env.DB, posts.map((p) => p.id));
+    const withScores = posts.map((p) => ({ ...p, recipeScore: scores.get(p.id) ?? null }));
+    return c.json({ posts: withScores, modelVersion: MODEL_VERSION });
+  }
   return c.json({ posts, modelVersion: MODEL_VERSION });
 });
 
@@ -215,11 +252,14 @@ communityRoute.get('/posts/:id', authMiddleware, rateLimit(200), async (c) => {
   const isAuthor = post.userPseudonymId === me;
   // 사이트 관리자는 작성자가 아니어도 수정/삭제(관리) 가능.
   const canManage = isAuthor || (await isAdmin(c.env, me));
+  const recipeScore =
+    post.communityId === RECIPE_COMMUNITY_ID ? await readRecipeScore(c.env.DB, id) : null;
   return c.json({
     post,
     isAuthor,
     canManage,
     comments: enriched,
+    recipeScore,
     modelVersion: MODEL_VERSION,
   });
 });
@@ -294,8 +334,35 @@ communityRoute.patch('/posts/:id', authMiddleware, rateLimit(50), async (c) => {
   if (!ok) {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
+  // 레시피면 수정 내용으로 재채점.
+  await maybeScoreRecipe(c.env, {
+    id: postId,
+    communityId: target.communityId,
+    title: fields.title,
+    body: fields.body,
+  });
   const post = await readPost(c.env.DB, postId);
-  return c.json({ post, modelVersion: MODEL_VERSION });
+  const recipeScore =
+    target.communityId === RECIPE_COMMUNITY_ID ? await readRecipeScore(c.env.DB, postId) : null;
+  return c.json({ post, recipeScore, modelVersion: MODEL_VERSION });
+});
+
+// 레시피 점수 백필/재평가(사이트 관리자) — 아직 점수 없는 레시피를 일괄 채점.
+communityRoute.post('/recipes/backfill', authMiddleware, rateLimit(5), async (c) => {
+  const me = c.get('userPseudonymId');
+  if (!(await isAdmin(c.env, me))) {
+    return c.json({ error: { code: 'FORBIDDEN' } }, 403);
+  }
+  const posts = await listUnscoredPosts(c.env.DB, RECIPE_COMMUNITY_ID, 20);
+  let scored = 0;
+  for (const p of posts) {
+    const s = await scoreRecipe(c.env.AI, { title: p.title, body: p.body });
+    if (s) {
+      await upsertRecipeScore(c.env.DB, p.id, s);
+      scored += 1;
+    }
+  }
+  return c.json({ found: posts.length, scored, modelVersion: MODEL_VERSION });
 });
 
 communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async (c) => {

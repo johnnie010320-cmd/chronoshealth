@@ -588,6 +588,25 @@ export type RichSegment = {
 };
 export type ImagePosition = 'top' | 'middle' | 'bottom';
 
+// 케마바디 레시피 건강 점수(3축) — _recipe 게시물에만 존재.
+export type RecipeGrade = 'excellent' | 'good' | 'fair' | 'caution';
+export type RecipeUpfTier = 'clean' | 'processed' | 'ultra';
+export type RecipeScore = {
+  total: number;
+  grade: RecipeGrade;
+  calorieScore: number;
+  nutritionScore: number;
+  upfScore: number;
+  estKcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  upfTier: RecipeUpfTier;
+  servings: number;
+  summary: string;
+  modelVersion: string;
+};
+
 export type CommunityPost = {
   id: string;
   communityId: string;
@@ -608,6 +627,8 @@ export type CommunityPost = {
   commentCount: number;
   allowLikes: boolean;
   allowComments: boolean;
+  // 레시피 피드 목록에서만 채워짐(_recipe). 그 외/미채점은 null.
+  recipeScore?: RecipeScore | null;
 };
 
 // '케마바디 레시피' 전용 특수 커뮤니티 id — 레시피 피드/업로드가 이 커뮤니티의 게시물로 저장됨.
@@ -636,6 +657,8 @@ export type PostDetailResponse = {
   // 작성자 본인 또는 사이트 관리자 — 수정/삭제(관리) 가능 여부.
   canManage?: boolean;
   comments: CommunityComment[];
+  // 레시피(_recipe) 상세에서만 채워짐. 미채점이면 null.
+  recipeScore?: RecipeScore | null;
   modelVersion: string;
 };
 

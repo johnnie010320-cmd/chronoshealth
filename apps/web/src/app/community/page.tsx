@@ -6,6 +6,7 @@ import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
 import { ChevronRightIcon, UsersIcon, VideoIcon, FlameIcon, UtensilsIcon } from '@/components/HealthIcons';
 import { IconBadge } from '@/components/IconBadge';
+import { RecipeScoreBadge, RecipeScorePending } from '@/components/RecipeScore';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -450,9 +451,18 @@ function RecipeFeed({
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">
-                    {p.title}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-sm font-semibold text-stone-900 dark:text-stone-100">
+                      {p.title}
+                    </p>
+                    <span className="shrink-0">
+                      {p.recipeScore ? (
+                        <RecipeScoreBadge score={p.recipeScore} />
+                      ) : (
+                        <RecipeScorePending />
+                      )}
+                    </span>
+                  </div>
                   <p className="mt-0.5 line-clamp-2 text-[12px] leading-relaxed text-stone-600 dark:text-stone-400">
                     {p.body}
                   </p>
