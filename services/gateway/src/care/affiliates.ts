@@ -1,4 +1,8 @@
 import type { CareCategory } from './heuristics.js';
+import type {
+  CardI18n,
+  UpdateCareAffiliateInput,
+} from '../schemas/care-affiliates.js';
 
 export type Locale = 'ko' | 'en' | 'ja' | 'es';
 
@@ -10,197 +14,67 @@ export type AffiliateCard = {
   body: string;
   ctaLabel: string;
   ctaUrl: string;
-  // 실제 제휴 미연동(자리표시자 URL) 여부 — UI 가 "준비중" 안내로 처리.
+  // 실제 제휴 미연동 여부 — UI 가 "준비중" 안내로 처리하고 링크를 열지 않는다.
   comingSoon: boolean;
 };
 
-type CardI18n = Record<Locale, { title: string; body: string; ctaLabel: string }>;
-
-type CardRow = {
+/** 관리자 화면용 원본 행 (로케일 미적용). */
+export type AffiliateRow = {
   slug: string;
   category: CareCategory;
   partner: string;
   ctaUrl: string;
+  /** 실제 노출에 쓰이는 값 = 저장값 OR 자리표시자 URL 강제 */
+  comingSoon: boolean;
+  /** DB 에 저장된 값 그대로 (관리자 토글 상태) */
+  comingSoonStored: boolean;
+  sortOrder: number;
+  active: boolean;
   i18n: CardI18n;
+  updatedAt: string;
 };
 
+// 자기 도메인(/care) 을 가리키면 아직 실제 제휴처가 연결되지 않은 자리표시자다.
+// 관리자가 comingSoon=false 로 바꿔도 URL 이 자리표시자면 게이트웨이가 준비중으로 강제한다.
 const PLACEHOLDER_URL = 'https://chronoshealth.ever-day.com/care';
 
-// 시범 운영 카탈로그 (P1).
-// 실제 제휴 데이터는 D1 care_affiliates 테이블에서 확장 가능.
-const SEED: CardRow[] = [
-  {
-    slug: 'diet-mediterranean-plan',
-    category: 'diet',
-    partner: 'Chronos Lab',
-    ctaUrl: `${PLACEHOLDER_URL}#diet-med`,
-    i18n: {
-      ko: {
-        title: '지중해식 식단 7일 플랜',
-        body: '주 5회 채소·전곡·올리브유 중심. 체중·LDL 동시 관리.',
-        ctaLabel: '자세히 보기',
-      },
-      en: {
-        title: 'Mediterranean 7-day plan',
-        body: 'Veggies, whole grains, olive oil 5x/week. Helps weight + LDL.',
-        ctaLabel: 'Details',
-      },
-      ja: {
-        title: '地中海食 7日プラン',
-        body: '週5回の野菜・全粒穀物・オリーブオイル。体重とLDLを同時管理。',
-        ctaLabel: '詳細を見る',
-      },
-      es: {
-        title: 'Plan mediterráneo de 7 días',
-        body: 'Vegetales, granos integrales y aceite de oliva 5 veces/semana. Peso + LDL.',
-        ctaLabel: 'Detalles',
-      },
-    },
-  },
-  {
-    slug: 'diet-low-glycemic-pack',
-    category: 'diet',
-    partner: 'Glucose-Friendly Kitchen',
-    ctaUrl: `${PLACEHOLDER_URL}#diet-gi`,
-    i18n: {
-      ko: {
-        title: '저GI 도시락 (가족력 당뇨 대비)',
-        body: '주 3회 배송. 식후 혈당 변동 감소를 돕는 메뉴.',
-        ctaLabel: '제휴 페이지',
-      },
-      en: {
-        title: 'Low-GI meal box (diabetes family history)',
-        body: '3x/week delivery. Designed to soften postprandial glucose swings.',
-        ctaLabel: 'Partner page',
-      },
-      ja: {
-        title: '低GI弁当(糖尿家族歴向け)',
-        body: '週3回配送。食後血糖変動を抑える献立。',
-        ctaLabel: 'パートナー',
-      },
-      es: {
-        title: 'Comida bajo IG (antecedentes de diabetes)',
-        body: 'Reparto 3x/semana. Diseñado para suavizar la glucosa postprandial.',
-        ctaLabel: 'Socio',
-      },
-    },
-  },
-  {
-    slug: 'exercise-home-cardio-30',
-    category: 'exercise',
-    partner: 'Chronos Move',
-    ctaUrl: `${PLACEHOLDER_URL}#exercise-cardio`,
-    i18n: {
-      ko: {
-        title: '집에서 30분 유산소 루틴',
-        body: '주 5일·30분. 별도 장비 없이 활력 점수 개선 기대.',
-        ctaLabel: '루틴 받기',
-      },
-      en: {
-        title: '30-min home cardio routine',
-        body: '5 days/week, 30 min, no equipment. Aims to lift Vitality.',
-        ctaLabel: 'Get routine',
-      },
-      ja: {
-        title: '自宅で30分有酸素ルーティン',
-        body: '週5日30分、器具不要。活力スコア改善を目指す。',
-        ctaLabel: 'ルーティン取得',
-      },
-      es: {
-        title: 'Rutina cardio en casa 30 min',
-        body: '5 días/semana, 30 min, sin equipo. Mejora la vitalidad.',
-        ctaLabel: 'Obtener',
-      },
-    },
-  },
-  {
-    slug: 'exercise-strength-bands',
-    category: 'exercise',
-    partner: 'Chronos Move',
-    ctaUrl: `${PLACEHOLDER_URL}#exercise-strength`,
-    i18n: {
-      ko: {
-        title: '관절 친화 저강도 근력 (밴드)',
-        body: '관절 부담 줄이며 근력 보강. 주 3회 15분.',
-        ctaLabel: '시작하기',
-      },
-      en: {
-        title: 'Joint-friendly band strength',
-        body: 'Builds strength with low joint load. 3x/week, 15 min.',
-        ctaLabel: 'Start',
-      },
-      ja: {
-        title: '関節にやさしい低強度筋力 (バンド)',
-        body: '関節負担を抑えながら筋力強化。週3回15分。',
-        ctaLabel: '開始',
-      },
-      es: {
-        title: 'Fuerza con bandas (suave para articulaciones)',
-        body: 'Fuerza con baja carga articular. 3x/semana, 15 min.',
-        ctaLabel: 'Empezar',
-      },
-    },
-  },
-  {
-    slug: 'medical-annual-checkup-kr',
-    category: 'medical',
-    partner: 'Health Screening Partner',
-    ctaUrl: `${PLACEHOLDER_URL}#medical-checkup`,
-    i18n: {
-      ko: {
-        title: '연 1회 건강검진 예약',
-        body: '40세 이상 권장. 혈압·당·콜레스테롤 기본 패키지.',
-        ctaLabel: '파트너 안내',
-      },
-      en: {
-        title: 'Annual health screening',
-        body: 'Recommended 40+. BP · glucose · cholesterol basic package.',
-        ctaLabel: 'Partner info',
-      },
-      ja: {
-        title: '年1回の健康診断予約',
-        body: '40歳以上推奨。血圧・血糖・コレステロール基本パック。',
-        ctaLabel: 'パートナー',
-      },
-      es: {
-        title: 'Chequeo anual',
-        body: 'Recomendado a partir de los 40. Paquete básico TA · glucosa · colesterol.',
-        ctaLabel: 'Información',
-      },
-    },
-  },
-  {
-    slug: 'medical-smoking-cessation',
-    category: 'medical',
-    partner: 'Chronos Lab',
-    ctaUrl: `${PLACEHOLDER_URL}#medical-quit-smoking`,
-    i18n: {
-      ko: {
-        title: '금연 보조 프로그램',
-        body: '주간 체크인 + 행동 변화 자료. 외부 클리닉 연계.',
-        ctaLabel: '프로그램 안내',
-      },
-      en: {
-        title: 'Smoking-cessation support',
-        body: 'Weekly check-ins + behaviour-change materials. Clinic partner ties.',
-        ctaLabel: 'Program info',
-      },
-      ja: {
-        title: '禁煙サポートプログラム',
-        body: '週次チェック+行動変容資料。外部クリニック連携。',
-        ctaLabel: 'プログラム',
-      },
-      es: {
-        title: 'Programa de cese tabáquico',
-        body: 'Revisiones semanales + materiales de cambio de hábito. Clínicas asociadas.',
-        ctaLabel: 'Programa',
-      },
-    },
-  },
-];
+function isPlaceholder(url: string): boolean {
+  return url.startsWith(PLACEHOLDER_URL);
+}
 
-function localize(row: CardRow, locale: Locale): AffiliateCard {
-  const i = row.i18n[locale];
+type DbRow = {
+  slug: string;
+  category: string;
+  partner: string;
+  cta_url: string;
+  coming_soon: number;
+  sort_order: number;
+  active: number;
+  i18n_json: string;
+  updated_at: string;
+};
+
+function toCategory(v: string): CareCategory {
+  return v === 'diet' || v === 'exercise' || v === 'medical' ? v : 'diet';
+}
+
+function toRow(r: DbRow): AffiliateRow {
+  return {
+    slug: r.slug,
+    category: toCategory(r.category),
+    partner: r.partner,
+    ctaUrl: r.cta_url,
+    comingSoon: r.coming_soon === 1 || isPlaceholder(r.cta_url),
+    comingSoonStored: r.coming_soon === 1,
+    sortOrder: r.sort_order,
+    active: r.active === 1,
+    i18n: JSON.parse(r.i18n_json) as CardI18n,
+    updatedAt: r.updated_at,
+  };
+}
+
+function localize(row: AffiliateRow, locale: Locale): AffiliateCard {
+  const i = row.i18n[locale] ?? row.i18n.ko;
   return {
     slug: row.slug,
     category: row.category,
@@ -209,14 +83,158 @@ function localize(row: CardRow, locale: Locale): AffiliateCard {
     body: i.body,
     ctaLabel: i.ctaLabel,
     ctaUrl: row.ctaUrl,
-    // 자리표시자(자기 도메인 /care) URL 이면 아직 실제 제휴 미연동 → 준비중.
-    comingSoon: row.ctaUrl.startsWith(PLACEHOLDER_URL),
+    comingSoon: row.comingSoon,
   };
 }
 
-// Future: read from analysisDb.care_affiliates. Current: in-memory seed.
-export function listAffiliates(category: CareCategory, locale: Locale): AffiliateCard[] {
-  return SEED.filter((r) => r.category === category).map((r) => localize(r, locale));
+/**
+ * 공개 조회 — 활성 카드를 카테고리별로 묶어 반환. 1회 질의.
+ * migration 0037 이전(테이블 부재/빈 상태)이면 빈 목록을 반환한다.
+ */
+export async function listAffiliatesByCategory(
+  analysisDb: D1Database,
+  locale: Locale,
+): Promise<Record<CareCategory, AffiliateCard[]>> {
+  const grouped: Record<CareCategory, AffiliateCard[]> = {
+    diet: [],
+    exercise: [],
+    medical: [],
+  };
+
+  const { results } = await analysisDb
+    .prepare(
+      `SELECT slug, category, partner, cta_url, coming_soon, sort_order, active, i18n_json, updated_at
+         FROM care_affiliates
+        WHERE active = 1
+        ORDER BY category ASC, sort_order ASC, slug ASC`,
+    )
+    .all<DbRow>();
+
+  for (const r of results ?? []) {
+    const row = toRow(r);
+    grouped[row.category].push(localize(row, locale));
+  }
+  return grouped;
+}
+
+/** 관리자 목록 — 비활성 포함 전체. */
+export async function listAllAffiliates(
+  analysisDb: D1Database,
+): Promise<AffiliateRow[]> {
+  const { results } = await analysisDb
+    .prepare(
+      `SELECT slug, category, partner, cta_url, coming_soon, sort_order, active, i18n_json, updated_at
+         FROM care_affiliates
+        ORDER BY category ASC, sort_order ASC, slug ASC`,
+    )
+    .all<DbRow>();
+  return (results ?? []).map(toRow);
+}
+
+export async function readAffiliate(
+  analysisDb: D1Database,
+  slug: string,
+): Promise<AffiliateRow | null> {
+  const row = await analysisDb
+    .prepare(
+      `SELECT slug, category, partner, cta_url, coming_soon, sort_order, active, i18n_json, updated_at
+         FROM care_affiliates WHERE slug = ? LIMIT 1`,
+    )
+    .bind(slug)
+    .first<DbRow>();
+  return row ? toRow(row) : null;
+}
+
+export async function insertAffiliate(
+  analysisDb: D1Database,
+  args: {
+    slug: string;
+    category: CareCategory;
+    partner: string;
+    ctaUrl: string;
+    comingSoon: boolean;
+    sortOrder: number;
+    active: boolean;
+    i18n: CardI18n;
+    updatedByPseudonymId: string;
+  },
+): Promise<void> {
+  await analysisDb
+    .prepare(
+      `INSERT INTO care_affiliates
+         (slug, category, partner, cta_url, coming_soon, sort_order, active, i18n_json, updated_at, updated_by_pseudonym_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      args.slug,
+      args.category,
+      args.partner,
+      args.ctaUrl,
+      args.comingSoon ? 1 : 0,
+      args.sortOrder,
+      args.active ? 1 : 0,
+      JSON.stringify(args.i18n),
+      new Date().toISOString(),
+      args.updatedByPseudonymId,
+    )
+    .run();
+}
+
+export async function updateAffiliate(
+  analysisDb: D1Database,
+  slug: string,
+  patch: UpdateCareAffiliateInput,
+  updatedByPseudonymId: string,
+): Promise<boolean> {
+  const existing = await readAffiliate(analysisDb, slug);
+  if (!existing) return false;
+
+  const next = {
+    category: patch.category ?? existing.category,
+    partner: patch.partner ?? existing.partner,
+    ctaUrl: patch.ctaUrl ?? existing.ctaUrl,
+    // 명시 지정이 없으면 관리자 토글 "저장값"을 유지한다.
+    // existing.comingSoon 은 자리표시자 강제가 섞인 파생값이라 그대로 쓰면
+    // URL 을 실제 제휴처로 바꿔도 준비중이 풀리지 않는다.
+    comingSoon: patch.comingSoon ?? existing.comingSoonStored,
+    sortOrder: patch.sortOrder ?? existing.sortOrder,
+    active: patch.active ?? existing.active,
+    i18n: patch.i18n ?? existing.i18n,
+  };
+
+  const res = await analysisDb
+    .prepare(
+      `UPDATE care_affiliates
+          SET category = ?, partner = ?, cta_url = ?, coming_soon = ?,
+              sort_order = ?, active = ?, i18n_json = ?,
+              updated_at = ?, updated_by_pseudonym_id = ?
+        WHERE slug = ?`,
+    )
+    .bind(
+      next.category,
+      next.partner,
+      next.ctaUrl,
+      next.comingSoon ? 1 : 0,
+      next.sortOrder,
+      next.active ? 1 : 0,
+      JSON.stringify(next.i18n),
+      new Date().toISOString(),
+      updatedByPseudonymId,
+      slug,
+    )
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function deleteAffiliate(
+  analysisDb: D1Database,
+  slug: string,
+): Promise<boolean> {
+  const res = await analysisDb
+    .prepare('DELETE FROM care_affiliates WHERE slug = ?')
+    .bind(slug)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
 }
 
 export const AFFILIATE_LOCALES: Locale[] = ['ko', 'en', 'ja', 'es'];

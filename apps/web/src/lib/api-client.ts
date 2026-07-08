@@ -1359,6 +1359,105 @@ export async function fetchUserLedger(id: string): Promise<AdminLedgerEntry[]> {
 }
 
 // 개발 로그(releases).
+// ── 케어 제휴 카드 관리 (관리자) — migration 0037 ─────────────────────────
+
+export type AffiliateCardText = { title: string; body: string; ctaLabel: string };
+export type AffiliateI18n = {
+  ko: AffiliateCardText;
+  en: AffiliateCardText;
+  ja: AffiliateCardText;
+  es: AffiliateCardText;
+};
+
+export type CareAffiliateRow = {
+  slug: string;
+  category: 'diet' | 'exercise' | 'medical';
+  partner: string;
+  ctaUrl: string;
+  /** 실제 노출값 (자리표시자 URL 이면 강제 true) */
+  comingSoon: boolean;
+  /** 관리자 토글 저장값 */
+  comingSoonStored: boolean;
+  sortOrder: number;
+  active: boolean;
+  i18n: AffiliateI18n;
+  updatedAt: string;
+};
+
+export async function fetchCareAffiliates(): Promise<CareAffiliateRow[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/care-affiliates`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { affiliates: CareAffiliateRow[] }).affiliates;
+}
+
+export async function createCareAffiliate(body: {
+  slug: string;
+  category: 'diet' | 'exercise' | 'medical';
+  partner: string;
+  ctaUrl: string;
+  comingSoon: boolean;
+  sortOrder: number;
+  active: boolean;
+  i18n: AffiliateI18n;
+}): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/care-affiliates`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.sessionToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function updateCareAffiliate(
+  slug: string,
+  patch: Partial<{
+    category: 'diet' | 'exercise' | 'medical';
+    partner: string;
+    ctaUrl: string;
+    comingSoon: boolean;
+    sortOrder: number;
+    active: boolean;
+    i18n: AffiliateI18n;
+  }>,
+): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/admin/care-affiliates/${encodeURIComponent(slug)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session.sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(patch),
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+}
+
+export async function deleteCareAffiliate(slug: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/admin/care-affiliates/${encodeURIComponent(slug)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+}
+
 export async function fetchReleases(): Promise<ReleaseEntry[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');

@@ -179,12 +179,14 @@
 ## 9. 광고 메뉴 + 정산
 
 - **스토리보드**: p7 메뉴 트리의 "7. 광고", p27/p28 — "영양제 판매 수수료", "피트니스센터 광고 수수료"
-- **현재 상태**: care 페이지에 affiliates 카드 일부 노출. 별도 광고 메뉴 + 정산 시스템 미구현
+- **현재 상태**: care 페이지에 affiliates 카드 노출. 카드 자체는 **D1 `care_affiliates` + 관리자 CRUD 완료**
+  (migration 0037, `/admin/care-affiliates` — 실 제휴 URL 입력 시 "준비중" 자동 해제).
+  **미구현: 별도 광고 메뉴 + 노출/클릭 추적 + 정산 파이프라인.**
 - **차단 사유**:
   - affiliates 테이블 + 노출 카운터 + 클릭 추적 + 정산 파이프라인 미구현
   - 광고주(파트너) 관리 admin UI 필요
 - **선행 작업 (내부)**:
-  1. **`affiliates` 테이블 확장** — 노출 노이즈 + 정산 추적
+  1. **`care_affiliates` 테이블 확장** — 노출 카운터 + 정산 추적 컬럼 (테이블 자체는 0037 로 존재)
   2. **`affiliate_impressions`, `affiliate_clicks` 테이블** 신설
   3. **광고주 admin** — partner_accounts (이미 있음) 와 affiliates 결합
   4. **정산** — 월 단위 정산 리포트 자동 생성

@@ -705,6 +705,20 @@ type ReleaseMockRow = {
   created_at: string;
 };
 
+// migration 0037 — 케어 제휴 카드 (코드 SEED → D1 이관).
+type CareAffiliateMockRow = {
+  slug: string;
+  category: string;
+  partner: string;
+  cta_url: string;
+  coming_soon: number;
+  sort_order: number;
+  active: number;
+  i18n_json: string;
+  updated_at: string;
+  updated_by_pseudonym_id: string | null;
+};
+
 // migration 0036 — 리더보드 실측 ECDF 표본 (사용자당 1행).
 type VitalitySnapshotMockRow = {
   user_pseudonym_id: string;
@@ -735,7 +749,55 @@ export type MockAnalysisState = {
   notices: NoticeMockRow[];
   releases: ReleaseMockRow[];
   vitalitySnapshots: VitalitySnapshotMockRow[];
+  careAffiliates: CareAffiliateMockRow[];
 };
+
+// migration 0037 시드와 동일한 6건. 프로덕션에 마이그레이션이 적용된 상태를 재현한다.
+// (실제 제휴 미연동 → cta_url 은 자기 도메인 자리표시자, coming_soon = 1)
+function seedCareAffiliates(): CareAffiliateMockRow[] {
+  const at = '2026-07-08T00:00:00.000Z';
+  const card = (
+    slug: string,
+    category: string,
+    partner: string,
+    hash: string,
+    sort: number,
+    ko: string,
+    en: string,
+    ja: string,
+    es: string,
+  ): CareAffiliateMockRow => ({
+    slug,
+    category,
+    partner,
+    cta_url: `https://chronoshealth.ever-day.com/care#${hash}`,
+    coming_soon: 1,
+    sort_order: sort,
+    active: 1,
+    i18n_json: JSON.stringify({
+      ko: { title: ko, body: `${ko} 안내`, ctaLabel: '자세히 보기' },
+      en: { title: en, body: `${en} details`, ctaLabel: 'Details' },
+      ja: { title: ja, body: `${ja} の案内`, ctaLabel: '詳細を見る' },
+      es: { title: es, body: `${es} detalles`, ctaLabel: 'Detalles' },
+    }),
+    updated_at: at,
+    updated_by_pseudonym_id: null,
+  });
+  return [
+    card('diet-mediterranean-plan', 'diet', 'Chronos Lab', 'diet-med', 0,
+      '지중해식 식단 7일 플랜', 'Mediterranean 7-day plan', '地中海食 7日プラン', 'Plan mediterraneo de 7 dias'),
+    card('diet-low-glycemic-pack', 'diet', 'Glucose-Friendly Kitchen', 'diet-gi', 1,
+      '저GI 도시락', 'Low-GI meal box', '低GI弁当', 'Comida bajo IG'),
+    card('exercise-home-cardio-30', 'exercise', 'Chronos Move', 'exercise-cardio', 0,
+      '집에서 30분 유산소 루틴', '30-min home cardio routine', '自宅で30分有酸素ルーティン', 'Rutina cardio en casa 30 min'),
+    card('exercise-strength-bands', 'exercise', 'Chronos Move', 'exercise-strength', 1,
+      '관절 친화 저강도 근력', 'Joint-friendly band strength', '関節にやさしい低強度筋力', 'Fuerza con bandas'),
+    card('medical-annual-checkup-kr', 'medical', 'Health Screening Partner', 'medical-checkup', 0,
+      '연 1회 건강검진 예약', 'Annual health screening', '年1回の健康診断予約', 'Chequeo anual'),
+    card('medical-smoking-cessation', 'medical', 'Chronos Lab', 'medical-quit-smoking', 1,
+      '금연 보조 프로그램', 'Smoking-cessation support', '禁煙サポートプログラム', 'Programa de cese tabaquico'),
+  ];
+}
 
 export function makeMockAnalysisDb(): {
   db: D1Database;
@@ -774,6 +836,7 @@ export function makeMockAnalysisDb(): {
     notices: [],
     releases: [],
     vitalitySnapshots: [],
+    careAffiliates: seedCareAffiliates(),
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -831,6 +894,49 @@ export function makeMockAnalysisDb(): {
         },
       });
       return { success: true, meta: { last_row_id: id } };
+    }
+
+    // migration 0037 — care_affiliates CRUD.
+    if (trimmed.startsWith('INSERT INTO care_affiliates')) {
+      const [
+        slug, category, partner, cta_url, coming_soon,
+        sort_order, active, i18n_json, updated_at, updated_by_pseudonym_id,
+      ] = args as [
+        string, string, string, string, number,
+        number, number, string, string, string | null,
+      ];
+      if (state.careAffiliates.some((r) => r.slug === slug)) {
+        return { success: true, meta: { changes: 0 } };
+      }
+      state.careAffiliates.push({
+        slug, category, partner, cta_url, coming_soon,
+        sort_order, active, i18n_json, updated_at, updated_by_pseudonym_id,
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('UPDATE care_affiliates')) {
+      const [
+        category, partner, cta_url, coming_soon,
+        sort_order, active, i18n_json, updated_at, updated_by_pseudonym_id, slug,
+      ] = args as [
+        string, string, string, number,
+        number, number, string, string, string | null, string,
+      ];
+      const row = state.careAffiliates.find((r) => r.slug === slug);
+      if (!row) return { success: true, meta: { changes: 0 } };
+      Object.assign(row, {
+        category, partner, cta_url, coming_soon,
+        sort_order, active, i18n_json, updated_at, updated_by_pseudonym_id,
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (trimmed.startsWith('DELETE FROM care_affiliates')) {
+      const [slug] = args as [string];
+      const before = state.careAffiliates.length;
+      state.careAffiliates = state.careAffiliates.filter((r) => r.slug !== slug);
+      return { success: true, meta: { changes: before - state.careAffiliates.length } };
     }
 
     // migration 0036 — vitality_snapshots upsert (사용자당 1행).
@@ -1580,6 +1686,15 @@ export function makeMockAnalysisDb(): {
         ? { '1': 1 }
         : null;
     }
+    // migration 0037 — care_affiliates 단건 조회.
+    if (
+      trimmed.includes('FROM care_affiliates') &&
+      trimmed.includes('WHERE slug = ?')
+    ) {
+      const [slug] = args as [string];
+      return state.careAffiliates.find((r) => r.slug === slug) ?? null;
+    }
+
     // migration 0036 — ECDF 셀 집계 (연령대 × 성별).
     // bind 순서: score, score, excellent, good, excellent, fair, good, fair, age_band, sex
     if (trimmed.includes('FROM vitality_snapshots')) {
@@ -1833,6 +1948,20 @@ export function makeMockAnalysisDb(): {
 
   function allStmtAnalysis(sql: string, args: unknown[]): { results: unknown[] } {
     const trimmed = sql.trim();
+
+    // migration 0037 — care_affiliates 목록 (공개=active만 / 관리자=전체).
+    if (trimmed.includes('FROM care_affiliates')) {
+      const activeOnly = trimmed.includes('WHERE active = 1');
+      const rows = state.careAffiliates
+        .filter((r) => (activeOnly ? r.active === 1 : true))
+        .sort(
+          (a, b) =>
+            a.category.localeCompare(b.category) ||
+            a.sort_order - b.sort_order ||
+            a.slug.localeCompare(b.slug),
+        );
+      return { results: rows };
+    }
 
     const postRowToWire = (post: CommunityPostRow, recentOnly: boolean) => {
       const likeFilter = (l: CommunityLikeRow) => {

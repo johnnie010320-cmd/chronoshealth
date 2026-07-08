@@ -160,7 +160,7 @@ describe('GET /api/v1/care/me', () => {
     expect(data.exercise.rules.length).toBeGreaterThan(0);
     expect(data.diet.affiliates.length).toBeGreaterThan(0);
     expect(data.context.bmi).toBeGreaterThan(0);
-    expect(data.modelVersion).toBe('care-v0.1.0');
+    expect(data.modelVersion).toBe('care-v0.2.0');
   });
 
   it('404 NO_REPORT — 설문 없는 사용자', async () => {

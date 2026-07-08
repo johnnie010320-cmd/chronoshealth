@@ -151,10 +151,10 @@ export default function AdminDashboardPage() {
     },
     {
       key: 'affiliates',
-      href: null,
+      href: '/admin/care-affiliates',
       title: D.actionAffiliates,
       desc: D.actionAffiliatesDesc,
-      status: 'soon',
+      status: 'active',
     },
     {
       key: 'featureRequests',
