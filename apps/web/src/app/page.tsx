@@ -17,7 +17,6 @@ import {
 } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
-import { useIsAdmin } from '@/lib/admin-state';
 import { getNoticeLastSeen } from '@/lib/notice-state';
 import {
   fetchAvatarMe,
@@ -40,14 +39,12 @@ function splitYearMonths(value: number): AgePair {
 export default function HomePage() {
   const { t } = useI18n();
   const H = t.home;
-  const A = t.admin;
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
   const [avatar, setAvatar] = useState<AvatarResponse | null>(null);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [noticeHasNew, setNoticeHasNew] = useState(false);
-  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     const session = readSession();
@@ -99,26 +96,6 @@ export default function HomePage() {
 
   return (
     <AppShell decoration="dots">
-      <section className="mt-2 flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-stone-900 px-3 py-1 text-[11px] font-bold tracking-wide text-white dark:bg-white dark:text-stone-900">
-            {H.plusBadge}
-          </span>
-          {isAdmin === true && (
-            <Link
-              href="/admin"
-              className="inline-flex items-center rounded-full bg-gradient-to-r from-rose-600 to-amber-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.15em] text-white transition active:scale-[0.97]"
-              aria-label={A.accessCta}
-            >
-              {A.modeBadge}
-            </Link>
-          )}
-        </div>
-        <span className="text-[13px] font-bold tracking-[0.18em] text-stone-700 dark:text-stone-200">
-          {H.brandLine}
-        </span>
-      </section>
-
       {/* caremybody 브랜드 히어로 — 앱 제목과 설문 메뉴 사이 (2026-06-20 리브랜딩) */}
       <section className="card-shadow mt-3 overflow-hidden rounded-2xl">
         {/* eslint-disable-next-line @next/next/no-img-element */}

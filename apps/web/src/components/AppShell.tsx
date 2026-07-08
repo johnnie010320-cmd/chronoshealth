@@ -10,6 +10,7 @@ import { BottomNav } from './BottomNav';
 import { useI18n } from '@/lib/i18n';
 import { useTwinNickname } from '@/lib/profile-state';
 import { useUnreadMessages } from '@/lib/messages-state';
+import { useIsAdmin } from '@/lib/admin-state';
 
 type Props = {
   children: ReactNode;
@@ -32,6 +33,7 @@ export function AppShell({
   const nickname = useTwinNickname();
   const unread = useUnreadMessages();
   const pathname = usePathname();
+  const isAdmin = useIsAdmin();
 
   // 결정적 상위(부모) 경로 — 브라우저 히스토리(back) 대신 메뉴 계층을 따라 이동(ping-pong 방지).
   const parentHref = resolveParent(pathname, showBack === true ? backHref : undefined);
@@ -65,21 +67,33 @@ export function AppShell({
             )}
           </div>
         ) : (
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-stone-900 dark:text-stone-100"
-            aria-label={t.brand}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand-mark.png"
-              alt=""
-              className="h-9 w-9 rounded-full object-cover shadow-sm"
-            />
-            <span className="text-sm font-semibold tracking-tight">
-              {t.brand}
-            </span>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-stone-900 dark:text-stone-100"
+              aria-label={t.brand}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand-mark.png"
+                alt=""
+                className="h-9 w-9 rounded-full object-cover shadow-sm"
+              />
+              <span className="text-sm font-semibold tracking-tight">
+                {t.brand}
+              </span>
+            </Link>
+            {/* 관리자에게만 보이는 ADMIN 진입 배지 — 앱 이름 우측. */}
+            {isAdmin === true && (
+              <Link
+                href="/admin"
+                aria-label={t.admin.accessCta}
+                className="inline-flex shrink-0 items-center rounded-full bg-gradient-to-r from-rose-600 to-amber-500 px-2 py-0.5 text-[9px] font-bold tracking-[0.15em] text-white transition active:scale-[0.97]"
+              >
+                {t.admin.modeBadge}
+              </Link>
+            )}
+          </div>
         )}
 
         <div className="flex min-w-0 items-center gap-1">
@@ -91,6 +105,12 @@ export function AppShell({
           {!title && nickname && (
             <span className="mr-0.5 max-w-[7.5rem] truncate rounded-full bg-brand-50 px-2.5 py-1 text-[12px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
               {nickname}
+            </span>
+          )}
+          {/* DID AI 브랜드 표기 — 홈 상단 톡(메시지) 아이콘 좌측. */}
+          {!showHeaderBack && (
+            <span className="mr-0.5 shrink-0 text-[11px] font-bold tracking-[0.16em] text-stone-500 dark:text-stone-400">
+              {t.home.brandLine}
             </span>
           )}
           <MessageBell count={unread.count} />
