@@ -19,7 +19,6 @@ import { exerciseScore, type ExerciseScore } from '@/lib/exercise-score';
 import { DiaryAttachments } from '@/components/DiaryAttachments';
 import { MoodFace, MOOD_TONE, MOOD_ACTIVE } from '@/components/MoodIcons';
 import {
-  fetchRoutineToday,
   fetchRoutineRange,
   submitRoutineDaily,
   addDiary,
@@ -237,42 +236,95 @@ function TodayTab({
   const [photoErr, setPhotoErr] = useState<string | null>(null);
   const [photoApplied, setPhotoApplied] = useState(false);
   const [nutri, setNutri] = useState<DayNutri>(EMPTY_NUTRI); // 식단 점수용 매크로+UPF
+  // 기록 대상 날짜 — 오늘/전날 등 과거 누락일 입력 지원. 미래는 불가(max=오늘).
+  const [entryDate, setEntryDate] = useState<string>(() => todayIso());
+  const [missing, setMissing] = useState<string[]>([]); // 최근 2주 누락일
+  const [refreshTick, setRefreshTick] = useState(0); // 저장 후 누락 목록 재계산 트리거
 
+  // 선택 날짜의 기록을 불러와 프리필(날짜 변경 시 초기화 후 재적용).
   useEffect(() => {
     if (!signedIn) return;
-    fetchRoutineToday()
+    let active = true;
+    setMood(null);
+    setExercise('');
+    setIntensity(null);
+    setExType(null);
+    setDidStretch(null);
+    setSleep('');
+    setNote('');
+    setCalories('');
+    setFoodRows([{ name: '', amount: '' }]);
+    setEstimateLines(null);
+    setEstimateErr(null);
+    setNutri(EMPTY_NUTRI);
+    setPhotoApplied(false);
+    setPhotoErr(null);
+    setDone(false);
+    fetchRoutineRange(entryDate, entryDate)
       .then((r) => {
-        if (r.entry) {
-          if (r.entry.exerciseMinutes != null) setExercise(String(r.entry.exerciseMinutes));
-          if (r.entry.exerciseIntensity) setIntensity(r.entry.exerciseIntensity);
-          if (r.entry.exerciseType) setExType(r.entry.exerciseType);
-          if (r.entry.didStretch != null) setDidStretch(r.entry.didStretch);
-          if (r.entry.sleepHours != null) setSleep(String(r.entry.sleepHours));
-          if (r.entry.note) setNote(r.entry.note);
-          if (r.entry.caloriesKcal != null) setCalories(String(r.entry.caloriesKcal));
-          setNutri({
-            proteinG: r.entry.proteinG ?? null,
-            carbG: r.entry.carbG ?? null,
-            fatG: r.entry.fatG ?? null,
-            upfTier: r.entry.upfTier ?? null,
-          });
-          // 입력했던 음식 항목 복원(재진입 시에도 그대로 보이도록).
-          if (r.entry.foodItems && r.entry.foodItems.length > 0) {
-            setFoodRows(r.entry.foodItems.map((it) => ({ name: it.name, amount: it.amount })));
-            if (r.entry.foodItems.every((it) => it.calories != null)) {
-              setEstimateLines(
-                r.entry.foodItems.map((it) => ({
-                  name: it.name,
-                  amount: it.amount,
-                  calories: it.calories as number,
-                })),
-              );
-            }
+        if (!active) return;
+        const e = r.entries[0];
+        if (!e) return;
+        if (e.exerciseMinutes != null) setExercise(String(e.exerciseMinutes));
+        if (e.exerciseIntensity) setIntensity(e.exerciseIntensity);
+        if (e.exerciseType) setExType(e.exerciseType);
+        if (e.didStretch != null) setDidStretch(e.didStretch);
+        if (e.sleepHours != null) setSleep(String(e.sleepHours));
+        if (e.note) setNote(e.note);
+        if (e.caloriesKcal != null) setCalories(String(e.caloriesKcal));
+        setNutri({
+          proteinG: e.proteinG ?? null,
+          carbG: e.carbG ?? null,
+          fatG: e.fatG ?? null,
+          upfTier: e.upfTier ?? null,
+        });
+        if (e.foodItems && e.foodItems.length > 0) {
+          setFoodRows(e.foodItems.map((it) => ({ name: it.name, amount: it.amount })));
+          if (e.foodItems.every((it) => it.calories != null)) {
+            setEstimateLines(
+              e.foodItems.map((it) => ({
+                name: it.name,
+                amount: it.amount,
+                calories: it.calories as number,
+              })),
+            );
           }
         }
       })
       .catch(() => {});
-  }, [signedIn]);
+    return () => {
+      active = false;
+    };
+  }, [signedIn, entryDate]);
+
+  // 최근 2주(어제까지 14일) 중 기록 누락일 계산.
+  useEffect(() => {
+    if (!signedIn) return;
+    let active = true;
+    fetchRoutineRange(daysAgoIso(14), daysAgoIso(1))
+      .then((r) => {
+        if (!active) return;
+        const present = new Set(r.entries.map((e) => e.entryDate));
+        const miss: string[] = [];
+        for (let i = 14; i >= 1; i -= 1) {
+          const d = daysAgoIso(i);
+          if (!present.has(d)) miss.push(d);
+        }
+        setMissing(miss);
+      })
+      .catch(() => {
+        if (active) setMissing([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [signedIn, refreshTick]);
+
+  // 누락일 안내용 날짜 표기(현지화 월/일).
+  const localeTag =
+    locale === 'ko' ? 'ko-KR' : locale === 'ja' ? 'ja-JP' : locale === 'es' ? 'es-ES' : 'en-US';
+  const fmtMD = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(localeTag, { month: 'long', day: 'numeric' });
 
   function num(v: string): number | null {
     const x = v.trim();
@@ -349,7 +401,7 @@ function TodayTab({
     setDone(false);
     try {
       await submitRoutineDaily({
-        entryDate: todayIso(),
+        entryDate,
         caloriesKcal: num(calories), // 음식 입력으로 추정한 칼로리(식단점수·처방 신뢰도 반영)
         exerciseMinutes: num(exercise),
         exerciseIntensity: intensity,
@@ -365,12 +417,13 @@ function TodayTab({
       });
       if (mood) {
         try {
-          await addDiary({ entryDate: todayIso(), mood, body: note.trim() });
+          await addDiary({ entryDate, mood, body: note.trim() });
         } catch {
           /* 다이어리 실패는 무시(루틴은 반영됨) */
         }
       }
       setDone(true);
+      setRefreshTick((v) => v + 1); // 누락 목록 갱신(방금 저장한 날짜 반영)
     } catch {
       /* noop */
     } finally {
@@ -382,6 +435,60 @@ function TodayTab({
 
   return (
     <div className="space-y-3">
+      {/* 기록 날짜 선택 — 과거 누락일 입력 지원(미래 불가). */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
+          {S.dateLabel}
+        </span>
+        <input
+          type="date"
+          value={entryDate}
+          max={todayIso()}
+          onChange={(e) => {
+            if (e.target.value) setEntryDate(e.target.value);
+          }}
+          className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[13px] text-stone-900 focus:border-brand-500 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+        />
+        {entryDate !== todayIso() && (
+          <button
+            type="button"
+            onClick={() => setEntryDate(todayIso())}
+            className="shrink-0 rounded-lg bg-brand-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition active:scale-[0.97]"
+          >
+            {S.dateToday}
+          </button>
+        )}
+      </div>
+
+      {/* 최근 2주 누락일 안내 — 날짜를 누르면 그 날짜 입력으로 전환. */}
+      {missing.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-900/50 dark:bg-amber-950/30">
+          <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">
+            ⚠️ {S.missingTitle}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+            {S.missingBody}
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {missing.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setEntryDate(d)}
+                aria-current={entryDate === d ? 'true' : undefined}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition active:scale-[0.97] ${
+                  entryDate === d
+                    ? 'border-amber-500 bg-amber-500 text-white'
+                    : 'border-amber-300 bg-white text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-stone-900 dark:text-amber-200'
+                }`}
+              >
+                {fmtMD(d)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 컨디션 */}
       <div>
         <p className="mb-1 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
@@ -697,8 +804,8 @@ function TodayTab({
         className="block w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
       />
 
-      {/* 개인 첨부(사진·PDF) — 다이어리 */}
-      <DiaryAttachments entryDate={todayIso()} editable />
+      {/* 개인 첨부(사진·동영상·PDF) — 선택 날짜 기준 */}
+      <DiaryAttachments entryDate={entryDate} editable />
 
       <div className="flex items-center gap-2">
         <button
