@@ -256,6 +256,16 @@ export type AvatarResponse = {
     vascular: number;
     joint: number;
   };
+  /** 항목별 산출 근거 — 'model' 은 실계산, 'heuristic' 은 P1 추정 */
+  fiveAgesBasis?: {
+    life: 'model' | 'heuristic';
+    vitality: 'model' | 'heuristic';
+    skin: 'model' | 'heuristic';
+    vascular: 'model' | 'heuristic';
+    joint: 'model' | 'heuristic';
+  };
+  /** 혈관 나이가 상한(80)에 걸렸는지 — true 면 "80+" 로 표기 */
+  vascularAgeCapped?: boolean;
   confidence?: number;
   lifetimeMedicalCost?: {
     totalKrw: number;

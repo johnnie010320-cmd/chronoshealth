@@ -1582,6 +1582,10 @@ export const es: Dictionary = {
       vascular: 'Edad vascular',
       joint: 'Edad articular',
       unit: 'a',
+      basisModel: 'Calculada',
+      basisHeuristic: 'Estimación P1',
+      basisNote:
+        'La edad vascular se calcula con el modelo de riesgo cardiovascular de Framingham. Las demás son estimaciones P1 derivadas de la edad biológica; los modelos precisos están en preparación. Nada de esto es un diagnóstico médico.',
     },
     lastReportLabel: 'Último reporte',
     modelLabel: 'Modelo',

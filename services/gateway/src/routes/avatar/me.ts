@@ -6,6 +6,10 @@ import { predictedYearsRemaining } from '../../avatar/pyr.js';
 import { listConditions } from '../../medical/storage.js';
 import { listSurgeries } from '../../medical/storage.js';
 import { estimateLifetimeCost } from '../../avatar/medical_cost.js';
+import {
+  risk10yFromRisk5y,
+  vascularAgeFromRisk10y,
+} from '../../avatar/vascular-age.js';
 import { bandFor } from '../../leaderboard/distribution.js';
 import { upsertVitalitySnapshot } from '../../leaderboard/ecdf.js';
 import type { Bindings } from '../../bindings.js';
@@ -80,15 +84,33 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     sex: latest.sex,
   });
 
-  // 5종 나이 P1 한정 — bioAge 기반 휴리스틱 (avatar-chronos.md §9 미해결, P3 정밀화)
+  // 5종 나이.
+  // - vascular: Framingham 10년 CVD 위험에서 역산한 실계산 (D'Agostino 2008).
+  // - skin / joint: 여전히 bioAge 휴리스틱. ML 데이터셋 의존 — pending-features.md #7,
+  //   avatar-chronos.md §9 #4.
+  //
+  // 어느 값이 모델이고 어느 값이 휴리스틱인지 클라이언트가 알 수 있어야
+  // "P1 추정" 배지를 항목별로 정확히 붙일 수 있다 → fiveAgesBasis 를 함께 반환.
   const bioAge = latest.payload.bioAge.value;
+  const cvd5y =
+    latest.payload.diseaseRisk.find((d) => d.code === 'cvd')?.probability5y ?? 0;
+  const vascular = vascularAgeFromRisk10y(latest.sex, risk10yFromRisk5y(cvd5y));
   const fiveAges = {
     life: bioAge,
     vitality: bioAge - Math.round((vitality.value - 70) / 10),
     skin: bioAge,
-    vascular: bioAge,
+    vascular: vascular.value,
     joint: bioAge + (latest.stressLevel === 'high' ? 2 : 0),
   };
+  // 혈관 나이가 상한(80)에 걸렸으면 UI 가 "80+" 로 표시해야 한다 — 단정 금지 (apps/web 규칙 4).
+  const vascularAgeCapped = vascular.capped;
+  const fiveAgesBasis = {
+    life: 'heuristic',
+    vitality: 'heuristic',
+    skin: 'heuristic',
+    vascular: 'model',
+    joint: 'heuristic',
+  } as const;
 
   const lifetimeCost = estimateLifetimeCost({
     chronologicalAge,
@@ -106,6 +128,8 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     vitalityScore: vitality,
     predictedYearsRemaining: pyr,
     fiveAges,
+    fiveAgesBasis,
+    vascularAgeCapped,
     confidence,
     lifetimeMedicalCost: lifetimeCost,
     lastReportAt: latest.generatedAt,

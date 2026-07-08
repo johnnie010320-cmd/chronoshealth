@@ -1576,6 +1576,10 @@ export const ja: Dictionary = {
       vascular: '血管年齢',
       joint: '関節年齢',
       unit: '歳',
+      basisModel: '実計算',
+      basisHeuristic: 'P1 推定',
+      basisNote:
+        '血管年齢はフラミンガム心血管リスクモデルで算出します。その他は生体年齢に基づく P1 推定値で、精密モデルは準備中です。いずれも医学的診断ではありません。',
     },
     lastReportLabel: '最新測定',
     modelLabel: 'モデル',

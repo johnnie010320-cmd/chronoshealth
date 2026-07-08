@@ -38,24 +38,42 @@ export function estimateLifetimeCost(opts: {
   }
   const years = Math.max(0, Math.round(opts.predictedRemainingYears));
   const perYear = Math.round(BASELINE_PER_YEAR_KRW * multiplier);
-  const total = perYear * years;
 
-  // 10년 단위 분해 — 나이 증가에 따라 의료비 증가 곡선 (60대까지 1.0, 70대 1.5, 80대 2.0).
+  // 10년 단위 분해 — 나이 증가에 따라 의료비 증가 곡선 (60대 미만 1.0, 60대 1.2, 70대 1.5, 80대+ 2.0).
+  //
+  // v0.1.0 결함: totalKrw = perYear × years 로 계산해 연령 배수 곡선을 총액에 전혀
+  // 반영하지 않았다. 그래서 화면의 총액이 10년 단위 합보다 작았다.
+  // (예: 40세 · 잔여 40년 → 총액 5,600만원 vs 분해 합 7,280만원)
+  // 총액은 분해 합과 항상 같아야 한다.
+  //
+  // 또 배수를 "10년 구간의 시작 나이" 로 한 번만 정해, 구간 중간에 60/70/80 을 넘어가는
+  // 해들이 통째로 낮은 배수를 받았다. 연 단위로 배수를 매긴 뒤 10년씩 묶는다.
   const perDecade: number[] = [];
-  let remaining = years;
-  let age = opts.chronologicalAge;
-  while (remaining > 0) {
-    const decadeYears = Math.min(10, remaining);
-    const ageMultiplier = age >= 80 ? 2.0 : age >= 70 ? 1.5 : age >= 60 ? 1.2 : 1.0;
-    perDecade.push(Math.round(perYear * ageMultiplier * decadeYears));
-    remaining -= decadeYears;
-    age += decadeYears;
+  let total = 0;
+  for (let start = 0; start < years; start += 10) {
+    const decadeYears = Math.min(10, years - start);
+    let decadeCost = 0;
+    for (let y = 0; y < decadeYears; y += 1) {
+      decadeCost += perYear * ageMultiplier(opts.chronologicalAge + start + y);
+    }
+    // 반올림한 값을 더한다 — 총액이 표시되는 분해 합과 1원도 어긋나지 않도록.
+    const rounded = Math.round(decadeCost);
+    perDecade.push(rounded);
+    total += rounded;
   }
 
   return {
     totalKrw: total,
     perDecadeKrw: perDecade,
     basis: '한국 보건복지부 통계 평균 의료비 ~140만원/년 (1인 기준) 기준 — 예측 추정',
-    modelVersion: 'lifetime-cost-v0.1.0',
+    modelVersion: 'lifetime-cost-v0.2.0',
   };
+}
+
+// 연령대별 의료비 배수 (스토리보드 p26 곡선).
+function ageMultiplier(age: number): number {
+  if (age >= 80) return 2.0;
+  if (age >= 70) return 1.5;
+  if (age >= 60) return 1.2;
+  return 1.0;
 }

@@ -1521,6 +1521,10 @@ export const ko = {
       vascular: '혈관 나이',
       joint: '관절 나이',
       unit: '세',
+      basisModel: '실계산',
+      basisHeuristic: 'P1 추정',
+      basisNote:
+        '혈관 나이는 Framingham 심혈관 위험 모형으로 산출합니다. 나머지는 생체 나이 기반 P1 추정값이며, 정밀 모델은 준비 중입니다. 모두 의학적 진단이 아닙니다.',
     },
     lastReportLabel: '최근 측정',
     modelLabel: '모델',

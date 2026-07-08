@@ -150,8 +150,16 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <SectionHeader Icon={ScopeIcon} tone="violet" title={R.fiveAgesSectionTitle} badge={R.p1Badge} />
-            <FiveAgesGrid fiveAges={state.data.fiveAges} />
+            {/* 섹션 전체에 "P1 추정" 을 붙이면 실계산인 혈관 나이까지 추정으로 읽힌다.
+                근거 배지는 FiveAgesGrid 가 항목별로 표시한다. */}
+            <SectionHeader Icon={ScopeIcon} tone="violet" title={R.fiveAgesSectionTitle} />
+            <FiveAgesGrid
+              fiveAges={state.data.fiveAges}
+              {...(state.data.fiveAgesBasis ? { basis: state.data.fiveAgesBasis } : {})}
+              {...(state.data.vascularAgeCapped !== undefined
+                ? { vascularCapped: state.data.vascularAgeCapped }
+                : {})}
+            />
           </section>
 
           {state.data.lifetimeMedicalCost && (

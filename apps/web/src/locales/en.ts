@@ -1579,6 +1579,10 @@ export const en: Dictionary = {
       vascular: 'Vascular age',
       joint: 'Joint age',
       unit: 'y',
+      basisModel: 'Computed',
+      basisHeuristic: 'P1 estimate',
+      basisNote:
+        'Vascular age is computed from the Framingham cardiovascular risk model. The others are P1 estimates derived from bio age; refined models are in progress. None of these are a medical diagnosis.',
     },
     lastReportLabel: 'Last report',
     modelLabel: 'Model',
