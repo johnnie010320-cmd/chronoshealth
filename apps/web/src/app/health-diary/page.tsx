@@ -279,7 +279,11 @@ export default function HealthDiaryPage() {
   }, [days]);
 
   function hasContent(d: DayLog | undefined): boolean {
-    return !!d && (!!d.routine || !!d.mood || !!d.prescription);
+    if (!d) return false;
+    // 빈 루틴 행은 제외 — 실제 기록(루틴 내용/컨디션/처방)이 있는 날만 "데이터 있음".
+    return (
+      (d.routine != null && hasRoutineContent(d.routine)) || !!d.mood || !!d.prescription
+    );
   }
 
   // 선택일 상세(없으면 빈 DayLog — 첨부 추가 가능하도록).
@@ -305,6 +309,7 @@ export default function HealthDiaryPage() {
             weekdays={D.calWeekdays}
             hasContent={(date) => hasContent(dayMap.get(date))}
             holidayName={(date) => holidays[date]}
+            legend={D.calHasData}
             onSelect={setSelectedDate}
             onPrev={() => setMonthYm((m) => shiftMonth(m, -1))}
             onNext={() => setMonthYm((m) => shiftMonth(m, 1))}
@@ -747,6 +752,7 @@ function Calendar({
   weekdays,
   hasContent,
   holidayName,
+  legend,
   onSelect,
   onPrev,
   onNext,
@@ -757,6 +763,7 @@ function Calendar({
   weekdays: readonly string[];
   hasContent: (date: string) => boolean;
   holidayName: (date: string) => string | undefined;
+  legend: string;
   onSelect: (date: string) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -814,36 +821,43 @@ function Calendar({
           const holiday = holidayName(date);
           // 일요일 또는 공휴일(한국/미국)은 빨간색.
           const isRed = weekday === 0 || !!holiday;
+          // 배경: 선택 > 오늘 > 데이터있음(에메랄드 채움) > 없음.
+          // 데이터 있는 날은 채워진 배경으로 한눈에 구분. 빨강(주말/공휴일) 글자색은 유지.
+          const bg = isSel
+            ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900'
+            : isToday
+              ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
+              : dot
+                ? `bg-emerald-100 ${isRed ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-800 dark:text-emerald-200'} dark:bg-emerald-900/30`
+                : `${isRed ? 'text-rose-500 dark:text-rose-400' : 'text-stone-700 dark:text-stone-300'} hover:bg-stone-100 dark:hover:bg-stone-800`;
           return (
             <button
               key={date}
               type="button"
               onClick={() => onSelect(date)}
               title={holiday}
-              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-[12px] transition ${
-                isSel
-                  ? 'bg-stone-900 font-bold text-white dark:bg-white dark:text-stone-900'
-                  : isToday
-                    ? 'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
-                    : isRed
-                      ? 'font-semibold text-rose-500 hover:bg-stone-100 dark:text-rose-400 dark:hover:bg-stone-800'
-                      : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
-              }`}
+              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-[12px] font-semibold transition ${bg}`}
             >
               {day}
               {holiday && !isSel && (
                 <span className="absolute right-1 top-0.5 h-1 w-1 rounded-full bg-rose-500" />
               )}
-              {dot && (
+              {/* 선택/오늘일 때도 데이터 유무를 알 수 있도록 점 유지(에메랄드 배경일 땐 배경으로 이미 구분). */}
+              {dot && (isSel || isToday) && (
                 <span
-                  className={`absolute bottom-1 h-1 w-1 rounded-full ${
-                    isSel ? 'bg-white/80' : 'bg-brand-500'
+                  className={`absolute bottom-1 h-1.5 w-1.5 rounded-full ${
+                    isSel ? 'bg-emerald-300' : 'bg-emerald-500'
                   }`}
                 />
               )}
             </button>
           );
         })}
+      </div>
+      {/* 범례 — 데이터 있는 날 구분. */}
+      <div className="mt-2 flex items-center justify-end gap-1.5 px-1">
+        <span aria-hidden className="inline-block h-3 w-3 rounded bg-emerald-100 dark:bg-emerald-900/40" />
+        <span className="text-[10px] font-medium text-stone-500 dark:text-stone-400">{legend}</span>
       </div>
     </div>
   );

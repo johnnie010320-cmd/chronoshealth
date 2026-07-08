@@ -527,6 +527,7 @@ export const en: Dictionary = {
     attachHint: 'Image/PDF up to 10MB · Video (MP4/WEBM/MOV) up to 30MB · private',
     attachError: 'Attachment failed.',
     calWeekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    calHasData: 'Has record',
     calToday: 'Today',
   },
   reports: {

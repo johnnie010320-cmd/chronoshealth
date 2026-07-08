@@ -524,6 +524,7 @@ export const ja: Dictionary = {
     attachHint: '写真・PDF 最大10MB・動画(MP4/WEBM/MOV) 最大30MB・本人のみ閲覧',
     attachError: '添付の処理に失敗しました。',
     calWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
+    calHasData: '記録あり',
     calToday: '今日',
   },
   reports: {

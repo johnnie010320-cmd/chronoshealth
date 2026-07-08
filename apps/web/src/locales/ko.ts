@@ -520,6 +520,7 @@ export const ko = {
     attachHint: '사진·PDF 최대 10MB · 동영상(MP4·WEBM·MOV) 최대 30MB · 본인만 열람',
     attachError: '첨부 처리에 실패했어요.',
     calWeekdays: ['일', '월', '화', '수', '목', '금', '토'],
+    calHasData: '기록 있음',
     calToday: '오늘',
   },
   reports: {
