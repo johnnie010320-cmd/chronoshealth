@@ -10,6 +10,8 @@ export type AffiliateCard = {
   body: string;
   ctaLabel: string;
   ctaUrl: string;
+  // 실제 제휴 미연동(자리표시자 URL) 여부 — UI 가 "준비중" 안내로 처리.
+  comingSoon: boolean;
 };
 
 type CardI18n = Record<Locale, { title: string; body: string; ctaLabel: string }>;
@@ -207,6 +209,8 @@ function localize(row: CardRow, locale: Locale): AffiliateCard {
     body: i.body,
     ctaLabel: i.ctaLabel,
     ctaUrl: row.ctaUrl,
+    // 자리표시자(자기 도메인 /care) URL 이면 아직 실제 제휴 미연동 → 준비중.
+    comingSoon: row.ctaUrl.startsWith(PLACEHOLDER_URL),
   };
 }
 

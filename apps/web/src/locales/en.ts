@@ -1381,6 +1381,8 @@ export const en: Dictionary = {
     title: 'Coming soon',
     body: 'This screen will be available shortly.',
     backHome: 'Back to home',
+    serviceMsg: 'This service is coming soon.',
+    badge: 'Soon',
   },
   loginRequired: {
     title: 'Login required',

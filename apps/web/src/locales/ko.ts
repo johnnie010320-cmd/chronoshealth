@@ -1323,6 +1323,8 @@ export const ko = {
     title: '준비 중',
     body: '이 화면은 곧 추가됩니다.',
     backHome: '홈으로 돌아가기',
+    serviceMsg: '이 서비스는 준비중입니다.',
+    badge: '준비중',
   },
   loginRequired: {
     title: '로그인이 필요합니다',

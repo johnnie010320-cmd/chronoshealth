@@ -14,6 +14,7 @@ import {
   type IconProps,
 } from '@/components/HealthIcons';
 import { LoginRequired } from '@/components/LoginRequired';
+import { useComingSoon, ComingSoonBadge } from '@/components/ComingSoon';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -46,6 +47,7 @@ export default function CarePage() {
   const [rx, setRx] = useState<AiPrescription | null>(null);
   const [rxBusy, setRxBusy] = useState(false);
   const [rxErr, setRxErr] = useState<string | null>(null);
+  const comingSoon = useComingSoon();
 
   useEffect(() => {
     if (!readSession()) {
@@ -64,6 +66,7 @@ export default function CarePage() {
 
   return (
     <AppShell title={C.pageTitle} decoration="dots">
+      {comingSoon.node}
       {state.status === 'loading' && (
         <div className="mt-10 flex justify-center">
           <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700 dark:border-stone-700 dark:border-t-brand-400" />
@@ -136,6 +139,7 @@ export default function CarePage() {
             sectionTitle={C.dietSectionTitle}
             rules={state.data.diet.rules}
             affiliates={state.data.diet.affiliates}
+            onComingSoon={comingSoon.trigger}
           />
 
           <CategorySection
@@ -144,6 +148,7 @@ export default function CarePage() {
             sectionTitle={C.exerciseSectionTitle}
             rules={state.data.exercise.rules}
             affiliates={state.data.exercise.affiliates}
+            onComingSoon={comingSoon.trigger}
           />
 
           <CategorySection
@@ -152,6 +157,7 @@ export default function CarePage() {
             sectionTitle={C.medicalSectionTitle}
             rules={state.data.medical.rules}
             affiliates={state.data.medical.affiliates}
+            onComingSoon={comingSoon.trigger}
           />
 
           <div className="rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
@@ -205,12 +211,14 @@ function CategorySection({
   sectionTitle,
   rules,
   affiliates,
+  onComingSoon,
 }: {
   Icon: (p: IconProps) => ReactElement;
   tone: BadgeTone;
   sectionTitle: string;
   rules: CareRule[];
   affiliates: CareAffiliate[];
+  onComingSoon: () => void;
 }) {
   const { t } = useI18n();
   const C = t.care;
@@ -251,14 +259,11 @@ function CategorySection({
             {C.affiliatesLabel}
           </p>
           <ul className="mt-2 space-y-2">
-            {affiliates.map((a) => (
-              <li key={a.slug}>
-                <a
-                  href={a.ctaUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="card-shadow flex items-center justify-between gap-3 rounded-2xl card-emerald px-4 py-3 transition active:scale-[0.99]"
-                >
+            {affiliates.map((a) => {
+              const cardClass =
+                'card-shadow flex w-full items-center justify-between gap-3 rounded-2xl card-emerald px-4 py-3 text-left transition active:scale-[0.99]';
+              const inner = (
+                <>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
                       {a.partner}
@@ -270,13 +275,31 @@ function CategorySection({
                       {a.body}
                     </p>
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
-                    {a.ctaLabel}
-                    <ChevronRightIcon className="h-3 w-3" />
-                  </span>
-                </a>
-              </li>
-            ))}
+                  {a.comingSoon ? (
+                    <ComingSoonBadge />
+                  ) : (
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
+                      {a.ctaLabel}
+                      <ChevronRightIcon className="h-3 w-3" />
+                    </span>
+                  )}
+                </>
+              );
+              return (
+                <li key={a.slug}>
+                  {a.comingSoon ? (
+                    // 미연동 제휴 — 새 탭 이동 대신 "준비중" 안내.
+                    <button type="button" onClick={onComingSoon} className={cardClass}>
+                      {inner}
+                    </button>
+                  ) : (
+                    <a href={a.ctaUrl} target="_blank" rel="noreferrer" className={cardClass}>
+                      {inner}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

@@ -1003,6 +1003,8 @@ export type CareAffiliate = {
   body: string;
   ctaLabel: string;
   ctaUrl: string;
+  // 실제 제휴 미연동(자리표시자)이면 true — UI가 "준비중" 안내로 처리.
+  comingSoon?: boolean;
 };
 
 export type CareContext = {

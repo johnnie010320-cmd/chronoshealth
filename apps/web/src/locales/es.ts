@@ -1383,6 +1383,8 @@ export const es: Dictionary = {
     title: 'Próximamente',
     body: 'Esta pantalla estará disponible próximamente.',
     backHome: 'Volver al inicio',
+    serviceMsg: 'Este servicio estará disponible pronto.',
+    badge: 'Pronto',
   },
   loginRequired: {
     title: 'Inicio de sesión requerido',

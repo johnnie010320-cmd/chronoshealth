@@ -1377,6 +1377,8 @@ export const ja: Dictionary = {
     title: '準備中',
     body: 'この画面は近日公開予定です。',
     backHome: 'ホームに戻る',
+    serviceMsg: 'このサービスは準備中です。',
+    badge: '準備中',
   },
   loginRequired: {
     title: 'ログインが必要です',

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 import { ClockIcon, ChevronRightIcon } from './HealthIcons';
@@ -7,6 +8,39 @@ import { ClockIcon, ChevronRightIcon } from './HealthIcons';
 type Props = {
   customBody?: string;
 };
+
+// 아직 연동되지 않은 기능(자리표시자 링크 등) 클릭 시 "준비중" 토스트.
+// 재사용: const cs = useComingSoon(); … {cs.node} … onClick={cs.trigger}
+export function useComingSoon(): { trigger: () => void; node: ReactNode } {
+  const { t } = useI18n();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!show) return;
+    const id = setTimeout(() => setShow(false), 2500);
+    return () => clearTimeout(id);
+  }, [show]);
+  const trigger = () => setShow(true);
+  const node = show ? (
+    <div
+      role="status"
+      className="fixed inset-x-3 bottom-24 z-50 mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white/95 px-4 py-3 text-[13px] font-semibold text-stone-800 shadow-lg backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:text-stone-100"
+    >
+      <span aria-hidden>🚧</span>
+      {t.comingSoon.serviceMsg}
+    </div>
+  ) : null;
+  return { trigger, node };
+}
+
+// 준비중 배지(작은 라벨) — 미연동 항목 표시용.
+export function ComingSoonBadge() {
+  const { t } = useI18n();
+  return (
+    <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+      {t.comingSoon.badge}
+    </span>
+  );
+}
 
 export function ComingSoon({ customBody }: Props) {
   const { t } = useI18n();
