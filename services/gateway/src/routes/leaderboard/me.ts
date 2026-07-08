@@ -1,6 +1,9 @@
 import { Hono } from 'hono';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { readLatestReport } from '../../avatar/storage.js';
+import { calcVitalityScore } from '../../avatar/vitality.js';
+import { bandFor } from '../../leaderboard/distribution.js';
+import { readEmpiricalCell, upsertVitalitySnapshot } from '../../leaderboard/ecdf.js';
 import { rankUser } from '../../leaderboard/percentile.js';
 import type { Bindings } from '../../bindings.js';
 
@@ -36,13 +39,44 @@ leaderboardMeRoute.get('/', authMiddleware, async (c) => {
   }
 
   const age = new Date().getFullYear() - latest.birthYear;
+  const ageBand = bandFor(age);
+  const stressLevel = latest.stressLevel ?? 'medium';
+
+  const vitality = calcVitalityScore({
+    bioAgeValue: latest.payload.bioAge.value,
+    chronologicalAge: latest.payload.bioAge.chronologicalAge,
+    diseaseProbs: latest.payload.diseaseRisk.map((d) => d.probability5y),
+    stressLevel,
+  });
+
+  // 표본 자기치유 — 조회할 때마다 최신 점수를 반영(사용자당 1행).
+  await upsertVitalitySnapshot(c.env.DB, {
+    userPseudonymId: pseudonymId,
+    vitalityScore: vitality.value,
+    ageBand,
+    sex: latest.sex,
+    updatedAt: new Date().toISOString(),
+  });
+
+  // 실측 ECDF 는 scope=world 만. 국가 스코프는 사용자 국가를 수집하지 않으므로
+  // (ADR 0003 — analysis DB 에 국가 미보유) 모의분포를 유지한다.
+  const empirical =
+    scope === 'world'
+      ? await readEmpiricalCell(c.env.DB, {
+          ageBand,
+          sex: latest.sex,
+          score: vitality.value,
+        })
+      : undefined;
+
   const response = rankUser({
     scope,
     ...(countryCode ? { country: countryCode } : {}),
     age,
     sex: latest.sex,
     report: latest.payload,
-    stressLevel: latest.stressLevel ?? 'medium',
+    stressLevel,
+    ...(empirical ? { empirical } : {}),
   });
 
   return c.json(response);

@@ -42,6 +42,19 @@
 
 P2 진입(베타 1,000명+) 시 D1 `vitality_snapshots` 테이블에서 ECDF 로 대체.
 
+### 3.1 실측 전환 구현 (2026-07-08, `lb-v0.2.0`)
+
+전환은 코드 배포가 아니라 **표본 증가만으로** 일어난다.
+
+- `vitality_snapshots` (migration 0036): `user_pseudonym_id` PK, `vitality_score`, `age_band`, `sex`, `updated_at`. ADR 0003 준수 — PII 0.
+- `/avatar/me` · `/leaderboard/me` 조회 시 본인 행을 upsert (자기치유적 표본 축적, 사용자당 1행).
+- 게이트: 같은 (연령대 × 성별) 셀 표본 ≥ `MIN_SAMPLE_SIZE`(= 30) 이면 ECDF, 미달이면 모의 정규분포.
+  - `percentile = (below + ties / 2) / n × 100` (mid-rank)
+  - `rank = (본인보다 높은 표본 수) + 1` (competition rank)
+- 응답에 `basis: 'modeled' | 'empirical'` + `sampleSize` 추가. UI 배너가 이 값을 그대로 반영.
+- **`scope=country` 는 항상 `modeled`** — analysis DB 에 사용자 국가를 보유하지 않는다 (ADR 0003).
+  국가별 실측을 하려면 국가 수집 여부를 ADR 로 먼저 합의해야 한다. (§9 미해결 #5)
+
 ## 4. API 인터페이스
 
 ```
@@ -133,7 +146,10 @@ WHO 데이터 기반, 출처 footer 명시.
 2. 정규분포 가정의 한국 코호트 보정 계수 (의료 자문 시 갱신)
 3. 도시 단위 P2 진입 시점 (실측 표본 1,000+ 필요)
 4. 등급 분포 시각화 — 도넛 vs 막대 vs 누적바
+5. 국가별 실측 랭킹 — analysis DB 에 국가 미보유. 수집 여부는 ADR 필요 (§3.1)
+6. `MIN_SAMPLE_SIZE` = 30 은 가설값. 의료·통계 자문 시 재검토
 
 ## 10. 변경 이력
 
 - 2026-05-28: 초안 (지니), Draft 상태
+- 2026-07-08: §3.1 실측 ECDF 전환 구현 (`lb-v0.2.0`, migration 0036). §9 미해결 #5·#6 추가

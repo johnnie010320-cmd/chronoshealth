@@ -1594,6 +1594,10 @@ export const en: Dictionary = {
     whatIfLink: 'Try simulation',
     modeledNote:
       'Your rank and percentile are not a comparison against real users yet — your score is placed on a modeled statistical distribution by age group and sex. Real user rankings are coming soon.',
+    empiricalNote:
+      'Your rank and percentile are computed from the score distribution of {n} real users in your age group and sex.',
+    modeledCountryNote:
+      'Country ranking is still a modeled estimate (country is not collected).',
     disclaimer: 'This ranking is based on a mock normal distribution.',
     noReportTitle: 'No report yet',
     noReportBody: 'Ranking is computed after you complete the survey.',

@@ -113,11 +113,21 @@ export default function LeaderboardPage() {
             </p>
           </section>
 
-          {/* 랭킹이 실제 사용자 비교가 아니라 모의 통계 분포 기반임을 명확히 안내. */}
-          <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
-            <span aria-hidden className="mt-0.5">📊</span>
-            <span>{L.modeledNote}</span>
-          </div>
+          {/* 순위 산출 근거를 그대로 노출한다. 표본이 최소치를 넘으면 서버가
+              basis='empirical' 로 자동 전환하고, 아래 문구도 함께 바뀐다. */}
+          {worldState.basis === 'empirical' ? (
+            <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[11px] leading-relaxed text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200">
+              <span aria-hidden className="mt-0.5">✅</span>
+              <span>
+                {L.empiricalNote.replace('{n}', String(worldState.sampleSize ?? 0))}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+              <span aria-hidden className="mt-0.5">📊</span>
+              <span>{L.modeledNote}</span>
+            </div>
+          )}
 
           <RankCard
             scopeLabel={L.scopeWorld}
@@ -151,6 +161,13 @@ export default function LeaderboardPage() {
                 rankTotal={countryState.rankWithin.total}
               />
             </div>
+            {/* 국가 스코프는 사용자 국가를 수집하지 않아 항상 모의분포.
+                전세계 카드가 실측으로 전환된 뒤에도 이 차이를 밝혀둔다. */}
+            {worldState.basis === 'empirical' && countryState.basis === 'modeled' && (
+              <p className="mt-2 px-1 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+                {L.modeledCountryNote}
+              </p>
+            )}
           </section>
 
           <TierBar

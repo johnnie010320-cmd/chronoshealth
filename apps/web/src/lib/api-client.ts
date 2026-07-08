@@ -297,6 +297,10 @@ export type LeaderboardResponse = {
     attention: number;
   };
   delta: { monthOverMonth: null; nextTierGap: number };
+  /** 'empirical' = 같은 연령대·성별 실사용자 표본, 'modeled' = 모의 정규분포 */
+  basis: 'modeled' | 'empirical';
+  /** basis='empirical' 일 때 표본 수. 'modeled' 이면 null */
+  sampleSize: number | null;
   modelVersion: string;
   disclaimer: string;
 };

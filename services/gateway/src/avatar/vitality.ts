@@ -11,10 +11,17 @@ const STRESS_PENALTY: Record<string, number> = {
 };
 
 // 점수 임계 (spec §9 #1 미해결 항목, 현 가설값)
+// 모의분포(percentile.ts)·실측 ECDF(ecdf.ts) 양쪽이 동일 임계를 써야 하므로 export.
+export const VITALITY_TIER_CUTS = {
+  excellent: 85,
+  good: 70,
+  fair: 50,
+} as const;
+
 const TIER_THRESHOLDS: Array<[number, VitalityTier]> = [
-  [85, 'excellent'],
-  [70, 'good'],
-  [50, 'fair'],
+  [VITALITY_TIER_CUTS.excellent, 'excellent'],
+  [VITALITY_TIER_CUTS.good, 'good'],
+  [VITALITY_TIER_CUTS.fair, 'fair'],
   [0, 'attention'],
 ];
 

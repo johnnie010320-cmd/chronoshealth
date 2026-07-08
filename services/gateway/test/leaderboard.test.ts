@@ -94,7 +94,7 @@ describe('GET /api/v1/leaderboard/me', () => {
     expect(data.percentile).toBeGreaterThan(0);
     expect(data.percentile).toBeLessThanOrEqual(100);
     expect(data.rankWithin.value).toBeGreaterThan(0);
-    expect(data.modelVersion).toBe('lb-v0.1.0');
+    expect(data.modelVersion).toBe('lb-v0.2.0');
     const sum =
       data.tierDistribution.excellent +
       data.tierDistribution.good +
@@ -168,5 +168,107 @@ describe('GET /api/v1/leaderboard/me', () => {
     const data = (await res.json()) as { percentile: number; userVitalityScore: number };
     expect(data.userVitalityScore).toBeGreaterThan(70);
     expect(data.percentile).toBeGreaterThan(50);
+  });
+
+  // ── 실측 분포(ECDF) 전환 — spec docs/spec/leaderboard.md §3 ──────────────
+
+  // chronologicalAge 35 → bandFor(35) = '35-39'
+  const BAND = '35-39';
+
+  function seedSnapshots(
+    state: ReturnType<typeof makeMockAnalysisDb>['state'],
+    count: number,
+    score: number,
+    sex: 'male' | 'female' | 'other' = 'male',
+    band = BAND,
+  ) {
+    for (let i = 0; i < count; i += 1) {
+      state.vitalitySnapshots.push({
+        user_pseudonym_id: `peer-${band}-${sex}-${i}`,
+        vitality_score: score,
+        age_band: band,
+        sex,
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }
+
+  it('표본 미달 (본인 1명) → basis=modeled, sampleSize=null', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    seedReport(analysisMock.state, pseudonym, 30, 35);
+    const res = await get('scope=world', token);
+    const data = (await res.json()) as { basis: string; sampleSize: number | null };
+    expect(data.basis).toBe('modeled');
+    expect(data.sampleSize).toBeNull();
+  });
+
+  it('표본 충족 (동일 셀 30+) → basis=empirical, 순위·분포가 표본 기준', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    seedReport(analysisMock.state, pseudonym, 30, 35); // 본인: 활력 점수 높음
+    // 같은 (35-39 × male) 셀에 낮은 점수 34명 → 본인이 1위여야 한다.
+    seedSnapshots(analysisMock.state, 34, 40);
+
+    const res = await get('scope=world', token);
+    const data = (await res.json()) as {
+      basis: string;
+      sampleSize: number;
+      percentile: number;
+      rankWithin: { value: number; total: number };
+      tierDistribution: { excellent: number; good: number; fair: number; attention: number };
+    };
+    expect(data.basis).toBe('empirical');
+    expect(data.sampleSize).toBe(35); // 34 peers + 본인 upsert
+    expect(data.rankWithin.total).toBe(35);
+    expect(data.rankWithin.value).toBe(1); // 최고점
+    expect(data.percentile).toBeGreaterThan(95);
+    const sum =
+      data.tierDistribution.excellent +
+      data.tierDistribution.good +
+      data.tierDistribution.fair +
+      data.tierDistribution.attention;
+    expect(sum).toBe(35);
+  });
+
+  it('표본 충족이라도 다른 셀(성별 상이)이면 집계에 포함되지 않는다', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    seedReport(analysisMock.state, pseudonym, 30, 35, 'male');
+    seedSnapshots(analysisMock.state, 50, 40, 'female'); // 다른 성별 셀
+    const res = await get('scope=world', token);
+    const data = (await res.json()) as { basis: string };
+    expect(data.basis).toBe('modeled'); // male 셀 표본 = 본인 1명뿐
+  });
+
+  it('scope=country 는 표본이 충분해도 modeled (국가 미수집)', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    seedReport(analysisMock.state, pseudonym, 30, 35);
+    seedSnapshots(analysisMock.state, 40, 40);
+    const res = await get('scope=country&country=KR', token);
+    const data = (await res.json()) as { basis: string; sampleSize: number | null };
+    expect(data.basis).toBe('modeled');
+    expect(data.sampleSize).toBeNull();
+  });
+
+  it('upsert 멱등 — 두 번 조회해도 본인 표본은 1행', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    seedReport(analysisMock.state, pseudonym, 30, 35);
+    await get('scope=world', token);
+    await get('scope=world', token);
+    const mine = analysisMock.state.vitalitySnapshots.filter(
+      (r) => r.user_pseudonym_id === pseudonym,
+    );
+    expect(mine).toHaveLength(1);
+  });
+
+  it('PII 회귀 — vitality_snapshots 는 pseudonym 외 식별자를 담지 않는다 (ADR 0003)', async () => {
+    const { token, pseudonym } = issueTestToken(identityMock.state);
+    seedReport(analysisMock.state, pseudonym, 30, 35);
+    await get('scope=world', token);
+    const row = analysisMock.state.vitalitySnapshots.find(
+      (r) => r.user_pseudonym_id === pseudonym,
+    );
+    expect(row).toBeDefined();
+    expect(Object.keys(row ?? {}).sort()).toEqual(
+      ['age_band', 'sex', 'updated_at', 'user_pseudonym_id', 'vitality_score'].sort(),
+    );
   });
 });

@@ -6,6 +6,8 @@ import { predictedYearsRemaining } from '../../avatar/pyr.js';
 import { listConditions } from '../../medical/storage.js';
 import { listSurgeries } from '../../medical/storage.js';
 import { estimateLifetimeCost } from '../../avatar/medical_cost.js';
+import { bandFor } from '../../leaderboard/distribution.js';
+import { upsertVitalitySnapshot } from '../../leaderboard/ecdf.js';
 import type { Bindings } from '../../bindings.js';
 
 // 스토리보드 p25 — Data 입력 수준에 따른 신뢰도 표시.
@@ -60,6 +62,15 @@ avatarMeRoute.get('/', authMiddleware, async (c) => {
     chronologicalAge,
     diseaseProbs,
     stressLevel: latest.stressLevel ?? 'medium',
+  });
+
+  // 리더보드 실측 분포(ECDF) 표본 — 사용자당 1행 upsert. PII 미포함.
+  await upsertVitalitySnapshot(c.env.DB, {
+    userPseudonymId: pseudonymId,
+    vitalityScore: vitality.value,
+    ageBand: bandFor(chronologicalAge),
+    sex: latest.sex,
+    updatedAt: new Date().toISOString(),
   });
 
   const pyr = predictedYearsRemaining({

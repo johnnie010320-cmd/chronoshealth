@@ -705,6 +705,15 @@ type ReleaseMockRow = {
   created_at: string;
 };
 
+// migration 0036 — 리더보드 실측 ECDF 표본 (사용자당 1행).
+type VitalitySnapshotMockRow = {
+  user_pseudonym_id: string;
+  vitality_score: number;
+  age_band: string;
+  sex: string;
+  updated_at: string;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
@@ -725,6 +734,7 @@ export type MockAnalysisState = {
   messageReactions: ReactionMockRow[];
   notices: NoticeMockRow[];
   releases: ReleaseMockRow[];
+  vitalitySnapshots: VitalitySnapshotMockRow[];
 };
 
 export function makeMockAnalysisDb(): {
@@ -763,6 +773,7 @@ export function makeMockAnalysisDb(): {
     messageReactions: [],
     notices: [],
     releases: [],
+    vitalitySnapshots: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -820,6 +831,30 @@ export function makeMockAnalysisDb(): {
         },
       });
       return { success: true, meta: { last_row_id: id } };
+    }
+
+    // migration 0036 — vitality_snapshots upsert (사용자당 1행).
+    if (trimmed.startsWith('INSERT INTO vitality_snapshots')) {
+      const [user_pseudonym_id, vitality_score, age_band, sex, updated_at] =
+        args as [string, number, string, string, string];
+      const existing = state.vitalitySnapshots.find(
+        (r) => r.user_pseudonym_id === user_pseudonym_id,
+      );
+      if (existing) {
+        existing.vitality_score = vitality_score;
+        existing.age_band = age_band;
+        existing.sex = sex;
+        existing.updated_at = updated_at;
+      } else {
+        state.vitalitySnapshots.push({
+          user_pseudonym_id,
+          vitality_score,
+          age_band,
+          sex,
+          updated_at,
+        });
+      }
+      return { success: true, meta: { changes: 1 } };
     }
 
     if (trimmed.startsWith('INSERT INTO risk_survey_reports')) {
@@ -1545,6 +1580,41 @@ export function makeMockAnalysisDb(): {
         ? { '1': 1 }
         : null;
     }
+    // migration 0036 — ECDF 셀 집계 (연령대 × 성별).
+    // bind 순서: score, score, excellent, good, excellent, fair, good, fair, age_band, sex
+    if (trimmed.includes('FROM vitality_snapshots')) {
+      const [
+        score,
+        ,
+        cutExcellent,
+        cutGood,
+        ,
+        cutFair,
+        ,
+        ,
+        age_band,
+        sex,
+      ] = args as [
+        number, number,
+        number, number, number, number, number, number,
+        string, string,
+      ];
+      const rows = state.vitalitySnapshots.filter(
+        (r) => r.age_band === age_band && r.sex === sex,
+      );
+      const count = (pred: (v: number) => boolean): number =>
+        rows.filter((r) => pred(r.vitality_score)).length;
+      return {
+        sample_size: rows.length,
+        below: count((v) => v < score),
+        ties: count((v) => v === score),
+        t_excellent: count((v) => v >= cutExcellent),
+        t_good: count((v) => v >= cutGood && v < cutExcellent),
+        t_fair: count((v) => v >= cutFair && v < cutGood),
+        t_attention: count((v) => v < cutFair),
+      };
+    }
+
     if (
       trimmed.includes('FROM risk_survey_reports r') &&
       trimmed.includes('WHERE r.user_pseudonym_id = ?')
