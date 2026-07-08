@@ -4,7 +4,40 @@
 
 ## 현재 단계
 
-**P0 W21 — 실제 계산식 가동 (0~4주차)** — Slice 02 + 01 + 04 + 03 라이브. `chronoshealth.ever-day.com` 23문항 입력 → 실제 Framingham + 경험적 bio age 결과 즉시 표시. modelVersion `rs-v0.1.0`. 23 필드 i18n 4언어 분리 완료. 다음: identity 도메인 Slice 01 (이름·전화·이메일 가입 + 세션 토큰, ADR 0010) → risk-survey Slice 05 (D1 저장). `docs/work-procedure.txt` 5장
+**P1 — 제품 확장 / 실측 전환 준비** (최종 갱신 2026-07-08, 릴리스 `v0.0.48`)
+
+`chronoshealth.ever-day.com` 라이브. 릴리스 이력은 관리자 `/admin/devlog` (analysis D1 `releases` 테이블)가 정본.
+
+### 라이브 (구현·배포 완료)
+
+- **identity** — 이름·전화·이메일 가입 + 세션 토큰 (ADR 0010/0011). 이메일 대소문자 무관 유니크(`lower(email)`)
+- **risk-survey** — 23문항 → Framingham + 경험적 bio age. D1 저장 + 동의 이력. modelVersion `rs-v0.1.0`. 설문 세분화(흡연 갑수 / 주종·주량 다중입력 / 운동 강도 / 기타 가족력, migration `0035`)
+- **avatar / reports** — 활력 점수, 예측 잔여 연수, 5종 나이, 생애 예상 의료비
+- **simulation** — `/simulate` What-if. 마지막 설문(`GET /simulate/last-input`) 재사용으로 재설문 없이 직접 진입
+- **leaderboard** — `/leaderboard`. **모의 정규분포 기반 추정** (실사용자 랭킹 아님, 화면 배너 고지)
+- **care** — 식이·운동·의료 룰 + 제휴 카드. 제휴는 미연동(`comingSoon` 토스트)
+- **diary / routine** — 오늘의 루틴(날짜 선택 + 최근 2주 누락일 안내), 건강 일기 캘린더(공휴일 한/미), 개인 첨부(사진/PDF, R2, 본인 전용)
+- **self-check** — 구조화 증상 입력, 긴급도 신호등 4단계, AI 후속 질문, 정신건강 간이 스크리너(비진단) + 위기 핫라인 1393 / 1577-0199, 사진·동영상 첨부
+- **community** — 3계층 카테고리, 큐레이션 유튜브, 키워드 검색, 오늘의 핫피플, 케마바디 레시피(AI 건강 점수), 관리자 오버라이드
+- **messaging** — 1:1 / 단체. 대화기록 영구보관, 첨부 90일, 방 삭제 시 전량 purge
+- **notices** — 첨부(이미지·PDF·링크) + 새 공지 뱃지
+- **admin** — 대시보드, 회원, 콘텐츠, 공지, 설문 집계(나이대×성별, PII 배제), 변경 감사 로그, devlog
+- **AI** — Workers AI `llama-3.3-70b-instruct-fp8-fast` (칼로리 추정, 푸드샷, 증상, 레시피 점수). `llama-3.1-8b`는 폐기(5028) — 사용 금지
+- **i18n** — ko / en / ja / es 4언어 전 화면
+
+### 진행 중 / 다음
+
+1. **리더보드 실측 전환** — `vitality_snapshots` + ECDF. 최소표본 게이트 미달 시 모의분포 유지 (`docs/spec/leaderboard.md` §3)
+2. **케어 제휴 D1 이관** — `care_affiliates` 테이블 + 관리자 CRUD (실 제휴 URL 입력 시 `comingSoon` 자동 해제)
+3. **vascular age 실계산** — Framingham 기반 (현재 `bioAge` 복사)
+4. **생애 의료비 총액 정합** — `totalKrw`가 연령 배수 곡선을 반영하도록 수정
+
+### 알려진 한계 (UI에 "P1 추정" 고지)
+
+- 리더보드 순위·백분위 = 모의 정규분포 추정 (프로덕션 고유 사용자 3명)
+- `fiveAges.skin` / `fiveAges.joint` = `bioAge` 휴리스틱 — ML 데이터셋 의존, `docs/spec/pending-features.md` #7
+- 생애 예상 의료비 = 통계 추정 (`lifetime-cost-v0.1.0`), 의료 자문 아님
+- 미구현 항목 전체 목록은 `docs/spec/pending-features.md` (SNS 로그인, 공단 연동, DID, 웨어러블, 푸시 등)
 
 ## 임시 도메인 (ADR 0006)
 
