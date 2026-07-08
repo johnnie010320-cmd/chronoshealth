@@ -113,6 +113,12 @@ export default function LeaderboardPage() {
             </p>
           </section>
 
+          {/* 랭킹이 실제 사용자 비교가 아니라 모의 통계 분포 기반임을 명확히 안내. */}
+          <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <span aria-hidden className="mt-0.5">📊</span>
+            <span>{L.modeledNote}</span>
+          </div>
+
           <RankCard
             scopeLabel={L.scopeWorld}
             percentile={worldState.percentile}

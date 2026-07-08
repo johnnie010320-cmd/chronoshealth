@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { SimulateRequest } from '../schemas/simulate.js';
 import { runSimulation, SimulateError } from '../risk/simulate.js';
+import { readLatestSurveyInput } from '../care/storage.js';
 import { authMiddleware, type AuthVariables } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import type { Bindings } from '../bindings.js';
@@ -14,6 +15,14 @@ export const simulateRoute = new Hono<{
   Bindings: Bindings;
   Variables: AuthVariables;
 }>();
+
+// 마지막 설문 입력을 base 로 반환 — 시뮬레이터 직접 진입용(설문 재제출 불필요).
+// 저장된 설문이 없으면 input=null → 클라이언트가 설문으로 유도.
+simulateRoute.get('/last-input', authMiddleware, rateLimit(120), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const input = await readLatestSurveyInput(c.env.DB, pseudonymId);
+  return c.json({ input });
+});
 
 simulateRoute.post('/', authMiddleware, rateLimit(RATE_LIMIT_PER_DAY), async (c) => {
   let raw: unknown;

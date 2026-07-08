@@ -134,6 +134,7 @@ export function AppShell({
 const PARENT_MAP: Record<string, string> = {
   '/menu': '/',
   '/survey': '/',
+  '/simulate': '/reports',
   '/health-diary': '/',
   '/twin': '/menu',
   '/routine': '/menu',

@@ -229,6 +229,17 @@ export async function submitSimulate(
   return (await res.json()) as SimulateResponse;
 }
 
+// 시뮬레이터 직접 진입용 — 마지막 설문 입력(base)을 조회. 없으면 null.
+export async function fetchLastSurveyInput(): Promise<RiskSurveyRequest | null> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/simulate/last-input`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { input: RiskSurveyRequest | null }).input;
+}
+
 // M8 Avatar
 export type AvatarResponse = {
   name: string;

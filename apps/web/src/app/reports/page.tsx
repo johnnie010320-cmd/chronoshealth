@@ -22,10 +22,12 @@ function SectionHeader({
   Icon,
   tone,
   title,
+  badge,
 }: {
   Icon: (p: IconProps) => ReactElement;
   tone: BadgeTone;
   title: string;
+  badge?: string;
 }) {
   return (
     <div className="mb-2 flex items-center gap-2 px-1">
@@ -33,6 +35,11 @@ function SectionHeader({
       <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
         {title}
       </h2>
+      {badge && (
+        <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-semibold text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+          {badge}
+        </span>
+      )}
     </div>
   );
 }
@@ -143,13 +150,13 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <SectionHeader Icon={ScopeIcon} tone="violet" title={R.fiveAgesSectionTitle} />
+            <SectionHeader Icon={ScopeIcon} tone="violet" title={R.fiveAgesSectionTitle} badge={R.p1Badge} />
             <FiveAgesGrid fiveAges={state.data.fiveAges} />
           </section>
 
           {state.data.lifetimeMedicalCost && (
             <section>
-              <SectionHeader Icon={CoinIcon} tone="amber" title={R.lifetimeCostTitle} />
+              <SectionHeader Icon={CoinIcon} tone="amber" title={R.lifetimeCostTitle} badge={R.p1Badge} />
               <div className="card-shadow rounded-2xl card-sky p-4">
                 <div className="flex items-baseline justify-between">
                   <span className="text-[12px] text-stone-500 dark:text-stone-400">
@@ -182,10 +189,13 @@ export default function ReportsPage() {
               <span className="text-[11px] text-stone-600 dark:text-stone-400">
                 {R.leaderboardCtaBody}
               </span>
+              <span className="mt-0.5 text-[9px] font-medium text-stone-400 dark:text-stone-500">
+                {R.leaderboardCtaNote}
+              </span>
             </Link>
 
             <Link
-              href="/survey"
+              href="/simulate"
               className="card-shadow flex flex-col gap-1 rounded-2xl card-rose p-4 transition active:scale-[0.99]"
             >
               <IconBadge Icon={ActivityIcon} tone="violet" size="sm" />
