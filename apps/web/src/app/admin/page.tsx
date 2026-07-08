@@ -211,7 +211,7 @@ function TileGroup({
       <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
         {title}
       </h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3">
         {tiles.map((tile) => (
           <TileCard key={tile.key} tile={tile} badges={badges} />
         ))}

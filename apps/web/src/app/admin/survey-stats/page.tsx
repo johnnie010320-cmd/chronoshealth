@@ -71,7 +71,7 @@ export default function AdminSurveyStatsPage() {
               {V.empty}
             </div>
           ) : (
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3">
               {sorted.map((r) => (
                 <div
                   key={`${r.ageBucket}-${r.sex}`}
