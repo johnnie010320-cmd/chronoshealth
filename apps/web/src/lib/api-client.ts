@@ -2130,6 +2130,32 @@ export async function fetchNotices(): Promise<Notice[]> {
   return ((await res.json()) as { notices: Notice[] }).notices;
 }
 
+// 관리자 — 설문 기본정보 집계(나이대·성별). PII 없음, 집계값만.
+export type AdminSurveyStatRow = {
+  ageBucket: string;
+  sex: string;
+  n: number;
+  avgBmi: number | null;
+  smokingNever: number;
+  smokingFormer: number;
+  smokingCurrent: number;
+  avgAlcohol: number | null;
+  avgExercise: number | null;
+  avgSleep: number | null;
+  famDiabetes: number;
+  famHypertension: number;
+  famCardio: number;
+};
+export async function fetchAdminSurveyStats(): Promise<AdminSurveyStatRow[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/survey-stats`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { rows: AdminSurveyStatRow[] }).rows;
+}
+
 export async function fetchAdminNotices(): Promise<Notice[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');

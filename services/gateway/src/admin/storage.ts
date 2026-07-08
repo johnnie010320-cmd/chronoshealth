@@ -303,3 +303,92 @@ export async function listAdminBetaSignups(
     createdAt: row.created_at,
   }));
 }
+
+// ── 설문 기본정보 집계(나이대·성별) — PII 완전 배제(가명·개인식별 미포함) ──
+// analysis DB risk_survey_responses 를 나이대(생년→나이)×성별로 그룹 집계.
+// 개인정보는 애초에 이 테이블에 없고(설계상 pseudonym만), 응답에도 집계값만 노출.
+export type SurveyStatRow = {
+  ageBucket: string; // <20 | 20s | 30s | 40s | 50s | 60s | 70+
+  sex: string; // male | female | other
+  n: number;
+  avgBmi: number | null;
+  smokingNever: number;
+  smokingFormer: number;
+  smokingCurrent: number;
+  avgAlcohol: number | null; // 표준잔/주
+  avgExercise: number | null; // 분/주(강도가중 유효분)
+  avgSleep: number | null; // 시간/일
+  famDiabetes: number;
+  famHypertension: number;
+  famCardio: number;
+};
+
+type SurveyStatRaw = {
+  age_bucket: string;
+  sex: string;
+  n: number;
+  avg_bmi: number | null;
+  smk_never: number;
+  smk_former: number;
+  smk_current: number;
+  avg_alcohol: number | null;
+  avg_exercise: number | null;
+  avg_sleep: number | null;
+  fam_diabetes: number;
+  fam_hypertension: number;
+  fam_cardio: number;
+};
+
+function round1OrNull(v: number | null): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 10) / 10 : null;
+}
+
+export async function aggregateSurveyStats(analysisDb: D1Database): Promise<SurveyStatRow[]> {
+  const { results } = await analysisDb
+    .prepare(
+      `SELECT
+         CASE
+           WHEN age < 20 THEN '<20'
+           WHEN age < 30 THEN '20s'
+           WHEN age < 40 THEN '30s'
+           WHEN age < 50 THEN '40s'
+           WHEN age < 60 THEN '50s'
+           WHEN age < 70 THEN '60s'
+           ELSE '70+'
+         END AS age_bucket,
+         sex,
+         COUNT(*) AS n,
+         AVG(weight_kg / ((height_cm / 100.0) * (height_cm / 100.0))) AS avg_bmi,
+         SUM(CASE WHEN smoking = 'never' THEN 1 ELSE 0 END) AS smk_never,
+         SUM(CASE WHEN smoking = 'former' THEN 1 ELSE 0 END) AS smk_former,
+         SUM(CASE WHEN smoking = 'current' THEN 1 ELSE 0 END) AS smk_current,
+         AVG(alcohol_drinks_per_week) AS avg_alcohol,
+         AVG(exercise_minutes_per_week) AS avg_exercise,
+         AVG(sleep_hours_per_night) AS avg_sleep,
+         SUM(family_history_diabetes) AS fam_diabetes,
+         SUM(family_history_hypertension) AS fam_hypertension,
+         SUM(family_history_cardiovascular) AS fam_cardio
+       FROM (
+         SELECT *, (CAST(strftime('%Y', 'now') AS INTEGER) - birth_year) AS age
+           FROM risk_survey_responses
+       )
+       GROUP BY age_bucket, sex
+       ORDER BY age_bucket, sex`,
+    )
+    .all<SurveyStatRaw>();
+  return (results ?? []).map((r) => ({
+    ageBucket: r.age_bucket,
+    sex: r.sex,
+    n: r.n,
+    avgBmi: round1OrNull(r.avg_bmi),
+    smokingNever: r.smk_never,
+    smokingFormer: r.smk_former,
+    smokingCurrent: r.smk_current,
+    avgAlcohol: round1OrNull(r.avg_alcohol),
+    avgExercise: round1OrNull(r.avg_exercise),
+    avgSleep: round1OrNull(r.avg_sleep),
+    famDiabetes: r.fam_diabetes,
+    famHypertension: r.fam_hypertension,
+    famCardio: r.fam_cardio,
+  }));
+}

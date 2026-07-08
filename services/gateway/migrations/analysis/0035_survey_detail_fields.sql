@@ -5,7 +5,6 @@
 -- 배열/목록은 JSON 텍스트로 저장(운동 목록, 기타 가족력).
 
 ALTER TABLE risk_survey_responses ADD COLUMN smoking_packs_per_week REAL;
-ALTER TABLE risk_survey_responses ADD COLUMN alcohol_type TEXT;
-ALTER TABLE risk_survey_responses ADD COLUMN alcohol_amount_per_week REAL;
-ALTER TABLE risk_survey_responses ADD COLUMN exercises_json TEXT;
-ALTER TABLE risk_survey_responses ADD COLUMN family_history_other_json TEXT;
+ALTER TABLE risk_survey_responses ADD COLUMN alcohol_entries_json TEXT;      -- [{type, amountPerWeek}]
+ALTER TABLE risk_survey_responses ADD COLUMN exercises_json TEXT;            -- [{kind, intensity, minutesPerWeek}]
+ALTER TABLE risk_survey_responses ADD COLUMN family_history_other_json TEXT; -- string[]

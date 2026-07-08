@@ -9,6 +9,7 @@ import {
 } from '../../middleware/admin-auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
 import {
+  aggregateSurveyStats,
   listAdminBetaSignups,
   listAdminUsers,
   readAdminStats,
@@ -163,6 +164,12 @@ adminRoute.post(
 );
 
 // 개발 로그(releases) — 관리자 조회/추가/삭제.
+// 설문 기본정보 집계(나이대·성별) — PII 배제, 집계값만.
+adminRoute.get('/survey-stats', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
+  const rows = await aggregateSurveyStats(c.env.DB);
+  return c.json({ rows, modelVersion: MODEL_VERSION });
+});
+
 adminRoute.get('/releases', authMiddleware, adminMiddleware, rateLimit(120), async (c) => {
   const releases = await listReleases(c.env.DB, 200);
   return c.json({ releases, modelVersion: MODEL_VERSION });

@@ -28,9 +28,9 @@ export async function persistSurveyAndReport(
         systolic_bp, diastolic_bp, fasting_glucose, ldl_cholesterol, hdl_cholesterol,
         family_history_diabetes, family_history_hypertension, family_history_cardiovascular,
         stress_level, self_rated_health,
-        smoking_packs_per_week, alcohol_type, alcohol_amount_per_week,
+        smoking_packs_per_week, alcohol_entries_json,
         exercises_json, family_history_other_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       userPseudonymId,
@@ -54,8 +54,7 @@ export async function persistSurveyAndReport(
       input.stressLevel,
       input.selfRatedHealth,
       input.smokingPacksPerWeek,
-      input.alcoholType,
-      input.alcoholAmountPerWeek,
+      JSON.stringify(input.alcoholEntries),
       JSON.stringify(input.exercises),
       JSON.stringify(input.familyHistoryOther),
     )

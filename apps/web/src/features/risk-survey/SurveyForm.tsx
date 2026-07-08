@@ -13,7 +13,9 @@ import {
 import {
   deriveAlcoholDrinksPerWeek,
   deriveExerciseMinutesPerWeek,
+  ALCOHOL_GLASS_ML,
   type AlcoholType,
+  type AlcoholEntry,
   type ExerciseEntry,
   type ExerciseKind,
   type ExerciseIntensity,
@@ -44,7 +46,7 @@ export function SurveyForm({ onSuccess }: Props) {
   const [formKey, setFormKey] = useState(0);
   // 세분화 입력 — 흡연 갑수 표시 토글용 smoking, 음주 주종, 운동 목록, 기타 가족력.
   const [smoking, setSmoking] = useState('');
-  const [alcoholType, setAlcoholType] = useState<AlcoholType>('none');
+  const [alcohols, setAlcohols] = useState<AlcoholEntry[]>([]);
   const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
   const [familyOther, setFamilyOther] = useState<string[]>([]);
 
@@ -60,9 +62,19 @@ export function SurveyForm({ onSuccess }: Props) {
     setProfile(null);
     setFamilyOther([]);
     setExercises([]);
+    setAlcohols([]);
     setSmoking('');
-    setAlcoholType('none');
     setFormKey((k) => k + 1);
+  }
+
+  function addAlcohol() {
+    setAlcohols((xs) => (xs.length >= 10 ? xs : [...xs, { type: 'beer', amountPerWeek: 0 }]));
+  }
+  function updateAlcohol(idx: number, patch: Partial<AlcoholEntry>) {
+    setAlcohols((xs) => xs.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  }
+  function removeAlcohol(idx: number) {
+    setAlcohols((xs) => xs.filter((_, i) => i !== idx));
   }
 
   function addExercise() {
@@ -85,9 +97,8 @@ export function SurveyForm({ onSuccess }: Props) {
     try {
       const fd = new FormData(e.currentTarget);
       const smokingVal = fd.get('smoking') as string;
-      const alcoholTypeVal = (fd.get('alcoholType') as string as AlcoholType) || 'none';
-      const alcoholAmount = nullableNum(fd.get('alcoholAmountPerWeek')) ?? 0;
-      // 운동 목록·기타 가족력은 상태에서 정제(빈 항목 제거).
+      // 음주·운동 목록·기타 가족력은 상태에서 정제(빈 항목 제거).
+      const cleanAlcohols = alcohols.filter((a) => a.amountPerWeek > 0);
       const cleanExercises = exercises.filter((x) => x.minutesPerWeek > 0);
       const cleanFamilyOther = familyOther.map((s) => s.trim()).filter((s) => s !== '');
       const raw = {
@@ -98,10 +109,9 @@ export function SurveyForm({ onSuccess }: Props) {
         smoking: smokingVal,
         smokingPacksPerWeek:
           smokingVal === 'current' ? nullableNum(fd.get('smokingPacksPerWeek')) : null,
-        alcoholType: alcoholTypeVal,
-        alcoholAmountPerWeek: alcoholAmount,
-        // 계산 입력(표준잔/주)은 주종·주량에서 파생.
-        alcoholDrinksPerWeek: deriveAlcoholDrinksPerWeek(alcoholTypeVal, alcoholAmount),
+        alcoholEntries: cleanAlcohols,
+        // 계산 입력(표준잔/주 합계)은 주종·주량 목록에서 파생.
+        alcoholDrinksPerWeek: deriveAlcoholDrinksPerWeek(cleanAlcohols),
         exercises: cleanExercises,
         // 계산 입력(강도가중 유효분/주)은 운동 목록에서 파생.
         exerciseMinutesPerWeek: deriveExerciseMinutesPerWeek(cleanExercises),
@@ -281,33 +291,13 @@ export function SurveyForm({ onSuccess }: Props) {
           />
         )}
 
-        <SelectField
-          label={F.alcoholType.label}
-          name="alcoholType"
-          required
-          defaultValue="none"
-          onChange={(v) => setAlcoholType(v as AlcoholType)}
-          options={[
-            { value: 'none', label: F.alcoholType.options.none },
-            { value: 'beer', label: F.alcoholType.options.beer },
-            { value: 'soju', label: F.alcoholType.options.soju },
-            { value: 'wine', label: F.alcoholType.options.wine },
-            { value: 'spirits', label: F.alcoholType.options.spirits },
-            { value: 'makgeolli', label: F.alcoholType.options.makgeolli },
-            { value: 'other', label: F.alcoholType.options.other },
-          ]}
+        <AlcoholList
+          alcohols={alcohols}
+          onAdd={addAlcohol}
+          onUpdate={updateAlcohol}
+          onRemove={removeAlcohol}
+          labels={F.alcohol}
         />
-        {alcoholType !== 'none' && (
-          <Field
-            label={F.alcoholAmount.label}
-            name="alcoholAmountPerWeek"
-            type="number"
-            min={0}
-            max={200}
-            defaultValue={0}
-            placeholder={F.alcoholAmount.placeholder}
-          />
-        )}
 
         <ExerciseList
           exercises={exercises}
@@ -631,6 +621,106 @@ function Checkbox({
         {label}
       </span>
     </label>
+  );
+}
+
+// 주당 음주 — (주종·주량 잔) 목록. 복수 입력. 주종별 1잔 용량(ml) 표시.
+function AlcoholList({
+  alcohols,
+  onAdd,
+  onUpdate,
+  onRemove,
+  labels,
+}: {
+  alcohols: AlcoholEntry[];
+  onAdd: () => void;
+  onUpdate: (idx: number, patch: Partial<AlcoholEntry>) => void;
+  onRemove: (idx: number) => void;
+  labels: {
+    label: string;
+    addCta: string;
+    empty: string;
+    remove: string;
+    amountLabel: string;
+    perGlass: string;
+    types: Record<AlcoholType, string>;
+  };
+}) {
+  const types: AlcoholType[] = ['beer', 'soju', 'wine', 'spirits', 'makgeolli', 'other'];
+  return (
+    <div className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-stone-700 dark:text-stone-300">
+        {labels.label}
+      </span>
+      {alcohols.length === 0 ? (
+        <p className="mb-2 text-[12px] text-stone-400 dark:text-stone-500">{labels.empty}</p>
+      ) : (
+        <div className="space-y-2">
+          {alcohols.map((a, idx) => {
+            const ml = ALCOHOL_GLASS_ML[a.type];
+            return (
+              <div
+                key={idx}
+                className="rounded-xl border border-stone-200 bg-stone-50/60 p-2.5 dark:border-stone-800 dark:bg-stone-950/60"
+              >
+                <div className="flex items-center gap-2">
+                  <select
+                    aria-label={labels.label}
+                    value={a.type}
+                    onChange={(e) => onUpdate(idx, { type: e.target.value as AlcoholType })}
+                    className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-2 py-2.5 text-[13px] text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+                  >
+                    {types.map((t) => (
+                      <option key={t} value={t}>
+                        {labels.types[t]}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={0}
+                    max={200}
+                    inputMode="numeric"
+                    value={a.amountPerWeek || ''}
+                    onChange={(e) =>
+                      onUpdate(idx, {
+                        amountPerWeek: Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                      })
+                    }
+                    placeholder={labels.amountLabel}
+                    className="w-16 shrink-0 rounded-xl border border-stone-200 bg-stone-50 px-2.5 py-2.5 text-[14px] text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+                  />
+                  <span className="shrink-0 text-[12px] text-stone-500 dark:text-stone-400">
+                    {labels.amountLabel}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(idx)}
+                    aria-label={labels.remove}
+                    className="shrink-0 rounded-lg px-2 py-1 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                  >
+                    {labels.remove}
+                  </button>
+                </div>
+                {ml > 0 && (
+                  <p className="mt-1 text-[10px] text-stone-400 dark:text-stone-500">
+                    {labels.perGlass.replace('{v}', String(ml))}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onAdd}
+        disabled={alcohols.length >= 10}
+        className="mt-2 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[13px] font-semibold text-stone-700 transition active:scale-[0.98] disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+      >
+        {labels.addCta}
+      </button>
+    </div>
   );
 }
 

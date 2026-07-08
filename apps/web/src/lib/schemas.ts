@@ -21,11 +21,16 @@ export const RiskSurveyRequest = z.object({
   // 현재 흡연이면 주당 흡연량(갑/주). 비흡연·과거흡연이면 null.
   smokingPacksPerWeek: z.number().min(0).max(140).nullable().default(null),
 
-  // 음주: 주종 + 주량(잔/주). alcoholDrinksPerWeek(표준잔/주)은 파생 전송(계산 입력, 역호환).
-  alcoholType: z
-    .enum(['none', 'beer', 'soju', 'wine', 'spirits', 'makgeolli', 'other'])
-    .default('none'),
-  alcoholAmountPerWeek: z.number().min(0).max(200).default(0),
+  // 음주: (주종·주량 잔/주) 목록. alcoholDrinksPerWeek(표준잔/주 합계)은 파생 전송(계산 입력).
+  alcoholEntries: z
+    .array(
+      z.object({
+        type: z.enum(['beer', 'soju', 'wine', 'spirits', 'makgeolli', 'other']),
+        amountPerWeek: z.number().min(0).max(200),
+      }),
+    )
+    .max(10)
+    .default([]),
   alcoholDrinksPerWeek: z.number().int().min(0).max(100),
 
   // 운동: (유산소/근력/기타)×(강/중/약)×시간 목록. exerciseMinutesPerWeek(강도가중 유효분)은 파생.

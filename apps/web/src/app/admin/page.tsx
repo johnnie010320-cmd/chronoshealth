@@ -93,6 +93,14 @@ export default function AdminDashboardPage() {
       status: 'active',
     },
     {
+      key: 'surveyStats',
+      href: '/admin/survey-stats',
+      title: D.actionSurveyStats,
+      desc: D.actionSurveyStatsDesc,
+      status: 'active',
+      metric: metric(D.statRiskReports, stats?.totalRiskReports),
+    },
+    {
       key: 'moderation',
       href: null,
       title: D.actionModeration,

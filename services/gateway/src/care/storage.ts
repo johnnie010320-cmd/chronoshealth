@@ -69,8 +69,7 @@ export async function readLatestSurveyInput(
     smoking,
     // 세분화 원자료는 care 휴리스틱에서 미사용 — 중립 기본값(계산은 coarse 컬럼 사용).
     smokingPacksPerWeek: null,
-    alcoholType: 'none',
-    alcoholAmountPerWeek: 0,
+    alcoholEntries: [],
     alcoholDrinksPerWeek: row.alcohol_drinks_per_week,
     exercises: [],
     exerciseMinutesPerWeek: row.exercise_minutes_per_week,
