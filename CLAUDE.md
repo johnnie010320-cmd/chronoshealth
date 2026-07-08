@@ -25,19 +25,26 @@
 - **AI** — Workers AI `llama-3.3-70b-instruct-fp8-fast` (칼로리 추정, 푸드샷, 증상, 레시피 점수). `llama-3.1-8b`는 폐기(5028) — 사용 금지
 - **i18n** — ko / en / ja / es 4언어 전 화면
 
-### 진행 중 / 다음
+### 코드 완료 · 배포 대기 (2026-07-08, 미배포)
 
-1. **리더보드 실측 전환** — `vitality_snapshots` + ECDF. 최소표본 게이트 미달 시 모의분포 유지 (`docs/spec/leaderboard.md` §3)
-2. **케어 제휴 D1 이관** — `care_affiliates` 테이블 + 관리자 CRUD (실 제휴 URL 입력 시 `comingSoon` 자동 해제)
-3. **vascular age 실계산** — Framingham 기반 (현재 `bioAge` 복사)
-4. **생애 의료비 총액 정합** — `totalKrw`가 연령 배수 곡선을 반영하도록 수정
+배포 시 **analysis D1 migration 0036 · 0037 먼저 적용** → worker → Pages 순.
 
-### 알려진 한계 (UI에 "P1 추정" 고지)
+1. **리더보드 실측 전환** — `vitality_snapshots` + ECDF (`lb-v0.2.0`, migration 0036). 셀 표본 ≥ 30 이면 자동 전환, 미달 시 모의분포. `docs/spec/leaderboard.md` §3.1
+2. **케어 제휴 D1 이관** — `care_affiliates` + 관리자 CRUD `/admin/care-affiliates` (`care-v0.2.0`, migration 0037). 실 제휴 URL 입력 시 `comingSoon` 자동 해제
+3. **vascular age 실계산** — Framingham 역산 (`vascular-age-v0.1.0`). 상한 80(`vascularAgeCapped` → UI "80+"). `docs/spec/avatar-chronos.md` §9.1
+4. **생애 의료비 총액 정합** — `totalKrw` = `perDecadeKrw` 합 (`lifetime-cost-v0.2.0`)
 
-- 리더보드 순위·백분위 = 모의 정규분포 추정 (프로덕션 고유 사용자 3명)
-- `fiveAges.skin` / `fiveAges.joint` = `bioAge` 휴리스틱 — ML 데이터셋 의존, `docs/spec/pending-features.md` #7
-- 생애 예상 의료비 = 통계 추정 (`lifetime-cost-v0.1.0`), 의료 자문 아님
+### 알려진 한계 (UI에 항목별 고지)
+
+- 리더보드 순위·백분위 = 모의 정규분포 추정 (프로덕션 고유 사용자 3명 → 셀 표본 30 미달). `scope=country` 는 국가 미수집이라 항상 모의
+- `fiveAges.skin` / `fiveAges.joint` / `life` / `vitality` = `bioAge` 휴리스틱 — ML 데이터셋 의존, `docs/spec/pending-features.md` #7. 응답 `fiveAgesBasis` 로 항목별 구분
+- 생애 예상 의료비 = 통계 추정 (`lifetime-cost-v0.2.0`), 의료 자문 아님
+- 케어 제휴 = 실제 제휴 계약 전이라 전 카드 "준비중". 노출/클릭 추적·정산은 미구현 (`pending-features.md` #9)
 - 미구현 항목 전체 목록은 `docs/spec/pending-features.md` (SNS 로그인, 공단 연동, DID, 웨어러블, 푸시 등)
+
+### 기존 실패 (본 작업 무관, 별도 처리 필요)
+
+`vitest` 4건 실패 — `community.test.ts`(타인 게시물 삭제 404), `community-author-edit.test.ts`(타인 본문 수정·삭제 404), `messaging-files.test.ts`(방 삭제 403). `gateway typecheck` src 오류 7건 (`auth/password.ts` 4, `index.ts` Bindings 중복 2, `community/index.ts` 1).
 
 ## 임시 도메인 (ADR 0006)
 
