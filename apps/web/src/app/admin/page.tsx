@@ -158,10 +158,10 @@ export default function AdminDashboardPage() {
     },
     {
       key: 'featureRequests',
-      href: null,
+      href: '/admin/feature-requests',
       title: D.actionFeatureRequests,
       desc: D.actionFeatureRequestsDesc,
-      status: 'soon',
+      status: 'active',
     },
     {
       key: 'health',

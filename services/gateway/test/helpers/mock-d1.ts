@@ -728,6 +728,31 @@ type VitalitySnapshotMockRow = {
   updated_at: string;
 };
 
+// 2nd Data — 의료 이력 조건 (사용자×카테고리×코드, granted 토글).
+type MedicalConditionMockRow = {
+  user_pseudonym_id: string;
+  code: string;
+  category: string;
+  granted: number;
+  updated_at: string;
+};
+
+// 기능 요청 및 버그 리포트 (migration 0038).
+type FeatureRequestMockRow = {
+  id: string;
+  user_pseudonym_id: string;
+  kind: string;
+  title: string;
+  body: string;
+  status: string;
+  admin_feedback: string | null;
+  admin_feedback_at: string | null;
+  admin_feedback_by_pseudonym_id: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
 export type MockAnalysisState = {
   responses: ResponseRow[];
   reports: ReportRow[];
@@ -750,6 +775,8 @@ export type MockAnalysisState = {
   releases: ReleaseMockRow[];
   vitalitySnapshots: VitalitySnapshotMockRow[];
   careAffiliates: CareAffiliateMockRow[];
+  medicalConditions: MedicalConditionMockRow[];
+  featureRequests: FeatureRequestMockRow[];
 };
 
 // migration 0037 시드와 동일한 6건. 프로덕션에 마이그레이션이 적용된 상태를 재현한다.
@@ -837,6 +864,8 @@ export function makeMockAnalysisDb(): {
     releases: [],
     vitalitySnapshots: [],
     careAffiliates: seedCareAffiliates(),
+    medicalConditions: [],
+    featureRequests: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -940,6 +969,131 @@ export function makeMockAnalysisDb(): {
     }
 
     // migration 0036 — vitality_snapshots upsert (사용자당 1행).
+    // 2nd Data — 카테고리 전체 granted=0 리셋 후 코드별 granted=1 upsert.
+    if (trimmed.startsWith('UPDATE medical_conditions SET granted = 0')) {
+      const [user_pseudonym_id, category] = args as [string, string];
+      let changes = 0;
+      for (const row of state.medicalConditions) {
+        if (row.user_pseudonym_id === user_pseudonym_id && row.category === category) {
+          row.granted = 0;
+          changes += 1;
+        }
+      }
+      return { success: true, meta: { changes } };
+    }
+    if (trimmed.startsWith('INSERT INTO medical_conditions')) {
+      const [user_pseudonym_id, code, category] = args as [string, string, string];
+      const existing = state.medicalConditions.find(
+        (r) =>
+          r.user_pseudonym_id === user_pseudonym_id &&
+          r.category === category &&
+          r.code === code,
+      );
+      if (existing) {
+        existing.granted = 1;
+        existing.updated_at = new Date().toISOString();
+      } else {
+        state.medicalConditions.push({
+          user_pseudonym_id,
+          code,
+          category,
+          granted: 1,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    // 관리자 감사 로그 — 본 작업 성공 여부만 검증하면 되므로 no-op 로 수용.
+    if (trimmed.startsWith('INSERT INTO admin_audit_log')) {
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    // ── 기능 요청 및 버그 리포트 (feature_requests) ──────────────────────────
+    if (trimmed.startsWith('INSERT INTO feature_requests')) {
+      const [id, user_pseudonym_id, kind, title, body] = args as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
+      state.featureRequests.push({
+        id,
+        user_pseudonym_id,
+        kind,
+        title,
+        body,
+        status: 'open',
+        admin_feedback: null,
+        admin_feedback_at: null,
+        admin_feedback_by_pseudonym_id: null,
+        created_at: nextTs(),
+        updated_at: nextTs(),
+        deleted_at: null,
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (trimmed.startsWith('UPDATE feature_requests SET deleted_at')) {
+      // soft delete — 소유자 스코프면 pseudonym 도 일치해야 한다.
+      const ownerScoped = trimmed.includes('user_pseudonym_id = ?');
+      let changes = 0;
+      if (ownerScoped) {
+        const [id, pseudonym] = args as [string, string];
+        const row = state.featureRequests.find(
+          (r) => r.id === id && r.user_pseudonym_id === pseudonym && r.deleted_at === null,
+        );
+        if (row) {
+          row.deleted_at = nextTs();
+          changes = 1;
+        }
+      } else {
+        const [id] = args as [string];
+        const row = state.featureRequests.find(
+          (r) => r.id === id && r.deleted_at === null,
+        );
+        if (row) {
+          row.deleted_at = nextTs();
+          changes = 1;
+        }
+      }
+      return { success: true, meta: { changes } };
+    }
+    if (trimmed.startsWith('UPDATE feature_requests SET')) {
+      // SET 열은 storage 가 push 하는 순서대로 bind 를 소비한다.
+      const ownerScoped = trimmed.includes('user_pseudonym_id = ?');
+      const vals = [...args];
+      if (ownerScoped) {
+        const pseudonym = vals.pop() as string;
+        const id = vals.pop() as string;
+        const row = state.featureRequests.find(
+          (r) => r.id === id && r.user_pseudonym_id === pseudonym && r.deleted_at === null,
+        );
+        if (!row) return { success: true, meta: { changes: 0 } };
+        let i = 0;
+        if (trimmed.includes('kind = ?')) row.kind = vals[i++] as string;
+        if (trimmed.includes('title = ?')) row.title = vals[i++] as string;
+        if (trimmed.includes('body = ?')) row.body = vals[i++] as string;
+        row.updated_at = nextTs();
+        return { success: true, meta: { changes: 1 } };
+      }
+      // 관리자 피드백/상태.
+      const id = vals.pop() as string;
+      const row = state.featureRequests.find(
+        (r) => r.id === id && r.deleted_at === null,
+      );
+      if (!row) return { success: true, meta: { changes: 0 } };
+      let i = 0;
+      if (trimmed.includes('admin_feedback = ?')) {
+        row.admin_feedback = vals[i++] as string | null;
+        row.admin_feedback_at = nextTs();
+        row.admin_feedback_by_pseudonym_id = vals[i++] as string;
+      }
+      if (trimmed.includes('status = ?')) row.status = vals[i++] as string;
+      row.updated_at = nextTs();
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (trimmed.startsWith('INSERT INTO vitality_snapshots')) {
       const [user_pseudonym_id, vitality_score, age_band, sex, updated_at] =
         args as [string, number, string, string, string];
@@ -1943,6 +2097,25 @@ export function makeMockAnalysisDb(): {
         note: r.note,
       };
     }
+    if (trimmed.includes('FROM feature_requests') && trimmed.includes('WHERE id = ?')) {
+      const [id] = args as [string];
+      const r = state.featureRequests.find(
+        (x) => x.id === id && x.deleted_at === null,
+      );
+      if (!r) return null;
+      return {
+        id: r.id,
+        user_pseudonym_id: r.user_pseudonym_id,
+        kind: r.kind,
+        title: r.title,
+        body: r.body,
+        status: r.status,
+        admin_feedback: r.admin_feedback,
+        admin_feedback_at: r.admin_feedback_at,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      };
+    }
     throw new Error(`mock-analysis-d1 first() unknown: ${trimmed.substring(0, 80)}`);
   }
 
@@ -2310,11 +2483,62 @@ export function makeMockAnalysisDb(): {
       return { results: rows };
     }
     if (trimmed.includes('FROM medical_conditions')) {
-      // tests 없이도 빈 결과로 동작.
-      return { results: [] };
+      const [user_pseudonym_id] = args as [string];
+      const rows = state.medicalConditions
+        .filter((r) => r.user_pseudonym_id === user_pseudonym_id && r.granted === 1)
+        .sort((a, b) =>
+          a.category === b.category
+            ? a.code.localeCompare(b.code)
+            : a.category.localeCompare(b.category),
+        )
+        .map((r) => ({
+          code: r.code,
+          category: r.category,
+          granted: r.granted,
+          updated_at: r.updated_at,
+        }));
+      return { results: rows };
     }
     if (trimmed.includes('FROM surgery_records')) {
       return { results: [] };
+    }
+    if (trimmed.includes('FROM feature_requests')) {
+      const ownerScoped = trimmed.includes('user_pseudonym_id = ?');
+      let rows = state.featureRequests.filter((r) => r.deleted_at === null);
+      const binds = [...args];
+      if (ownerScoped) {
+        const pseudonym = binds[0] as string;
+        rows = rows.filter((r) => r.user_pseudonym_id === pseudonym);
+      } else {
+        // 관리자 목록 — 선택적 검색(title/body LIKE)·종류 필터, 마지막 bind 는 limit.
+        let bi = 0;
+        if (trimmed.includes('title LIKE ?')) {
+          const needle = String(binds[bi]).replace(/%/g, '');
+          bi += 2; // 동일 like 를 title/body 에 각각 bind.
+          rows = rows.filter(
+            (r) => r.title.includes(needle) || r.body.includes(needle),
+          );
+        }
+        if (trimmed.includes('kind = ?')) {
+          const kind = binds[bi++] as string;
+          rows = rows.filter((r) => r.kind === kind);
+        }
+      }
+      rows = rows.slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      return {
+        results: rows.map((r) => ({
+          id: r.id,
+          user_pseudonym_id: r.user_pseudonym_id,
+          kind: r.kind,
+          title: r.title,
+          body: r.body,
+          status: r.status,
+          admin_feedback: r.admin_feedback,
+          admin_feedback_at: r.admin_feedback_at,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        })),
+      };
     }
     throw new Error(`mock-analysis-d1 all() unknown: ${trimmed.substring(0, 80)}`);
   }

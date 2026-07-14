@@ -63,6 +63,7 @@ const ITEM_VISUAL: Partial<Record<ItemKey, { Icon: IconCmp; tone: BadgeTone }>> 
   itemRewardsEarn: { Icon: TargetIcon, tone: 'emerald' },
   itemRewardsSpend: { Icon: GiftIcon, tone: 'rose' },
   itemNotices: { Icon: BellIcon, tone: 'rose' },
+  itemFeatureRequest: { Icon: ChatBubbleIcon, tone: 'violet' },
   itemProfileEdit: { Icon: UserCircleIcon, tone: 'violet' },
   itemProfileDiary: { Icon: BookIcon, tone: 'amber' },
   itemProfileMyPosts: { Icon: FileTextIcon, tone: 'sky' },
@@ -160,6 +161,7 @@ const MENU_GROUPS: MenuGroup[] = [
     groupKey: 'groupProfile',
     items: [
       { itemKey: 'itemNotices', href: '/notices' },
+      { itemKey: 'itemFeatureRequest', href: '/feature-requests' },
       { itemKey: 'itemProfileEdit', href: '/profile' },
       { itemKey: 'itemProfileDiary', href: '/diary' },
       { itemKey: 'itemProfileMyPosts', href: '/community?mine=1' },

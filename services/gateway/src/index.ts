@@ -29,6 +29,8 @@ import { messagingRoute } from './routes/messaging/index.js';
 import { noticesPublicRoute, noticesAdminRoute } from './routes/notices/index.js';
 import { membersRoute } from './routes/members/index.js';
 import { formcoachRoute } from './routes/formcoach/index.js';
+import { featureRequestsMeRoute } from './routes/feature-requests/me.js';
+import { featureRequestsAdminRoute } from './routes/feature-requests/admin.js';
 import type { Bindings } from './bindings.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -82,6 +84,8 @@ app.route('/api/v1/me/diary', diaryRoute);
 app.route('/api/v1/messages', messagingRoute);
 app.route('/api/v1/notices', noticesPublicRoute);
 app.route('/api/v1/admin/notices', noticesAdminRoute);
+app.route('/api/v1/me/feature-requests', featureRequestsMeRoute);
+app.route('/api/v1/admin/feature-requests', featureRequestsAdminRoute);
 app.route('/api/v1/members', membersRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));

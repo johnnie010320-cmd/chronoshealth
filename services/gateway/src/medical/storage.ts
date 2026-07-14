@@ -3,6 +3,16 @@
 
 export type ConditionCategory = 'chronic' | 'critical' | 'family';
 
+// '해당 없음' 센티넬 — 사용자가 "질환 없음"을 명시적으로 선언(미응답과 구분).
+export const NONE_CODE = 'none';
+// 사용자 직접입력 코드 접두 — 카탈로그에 없는 병명을 자유 입력으로 저장.
+export const CUSTOM_PREFIX = 'custom:';
+
+/** 직접입력 코드면 'custom:' 접두를 벗겨 실제 병명만 반환한다. 그 외는 그대로. */
+export function displayConditionCode(code: string): string {
+  return code.startsWith(CUSTOM_PREFIX) ? code.slice(CUSTOM_PREFIX.length) : code;
+}
+
 // 스토리보드 p17 만성질환 10종.
 export const CHRONIC_CODES = [
   'diabetes',

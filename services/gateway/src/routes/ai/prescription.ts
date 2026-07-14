@@ -6,7 +6,11 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { authMiddleware, type AuthVariables } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
-import { listConditions } from '../../medical/storage.js';
+import {
+  listConditions,
+  displayConditionCode,
+  NONE_CODE,
+} from '../../medical/storage.js';
 import { aiText } from './ai-text.js';
 import { savePrescription, listPrescriptions } from '../../ai/prescription-storage.js';
 import type { Bindings } from '../../bindings.js';
@@ -155,7 +159,10 @@ async function callAi(
     chronologicalAge: req.chronologicalAge ?? null,
     risks: req.risks ?? null,
     routine: req.routine ?? null,
-    conditions: conditions.map((c) => ({ code: c.code, category: c.category })),
+    // '해당 없음' 센티넬은 코칭에 무의미하므로 제외, 직접입력은 접두 제거 후 실제 병명만 전달.
+    conditions: conditions
+      .filter((c) => c.code !== NONE_CODE)
+      .map((c) => ({ code: displayConditionCode(c.code), category: c.category })),
     locale: req.locale,
   });
   const res = await ai.run(MODEL, {

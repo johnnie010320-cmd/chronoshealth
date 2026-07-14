@@ -6,6 +6,8 @@ import {
   CHRONIC_CODES,
   CRITICAL_CODES,
   FAMILY_CODES,
+  CUSTOM_PREFIX,
+  NONE_CODE,
   insertSurgery,
   listConditions,
   listSurgeries,
@@ -72,9 +74,24 @@ medicalRoute.put('/conditions', authMiddleware, rateLimit(60), async (c) => {
   if (!parsed.success) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   }
-  // 카탈로그 검증.
+  const codes = parsed.data.codes;
+
+  // '해당 없음'은 단독으로만 유효 — 실제 질환 코드와 공존 불가.
+  if (codes.includes(NONE_CODE) && codes.length !== 1) {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+
+  // 카탈로그 검증 — 카탈로그 코드 / '해당 없음' 센티넬 / 직접입력(custom:) 만 허용.
   const allowed = new Set(ALL_CODES_BY_CATEGORY[parsed.data.category]);
-  if (parsed.data.codes.some((c) => !allowed.has(c))) {
+  const isValidCode = (code: string): boolean => {
+    if (code === NONE_CODE) return true;
+    if (allowed.has(code)) return true;
+    if (code.startsWith(CUSTOM_PREFIX)) {
+      return code.slice(CUSTOM_PREFIX.length).trim().length > 0;
+    }
+    return false;
+  };
+  if (codes.some((code) => !isValidCode(code))) {
     return c.json({ error: { code: 'UNKNOWN_CODE' } }, 400);
   }
   await upsertConditions(c.env.DB, pseudonymId, parsed.data.category, parsed.data.codes);

@@ -1682,6 +1682,116 @@ export async function removeSurgery(id: string): Promise<void> {
   if (!res.ok) await throwOnError(res);
 }
 
+// ── 기능 요청 및 버그 리포트 ────────────────────────────────────────────────
+export type FeatureRequestKind = 'feature' | 'bug';
+export type FeatureRequestStatus =
+  | 'open'
+  | 'planned'
+  | 'in_progress'
+  | 'done'
+  | 'declined';
+
+export type FeatureRequest = {
+  id: string;
+  kind: FeatureRequestKind;
+  title: string;
+  body: string;
+  status: FeatureRequestStatus;
+  adminFeedback: string | null;
+  adminFeedbackAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// 관리자 목록 — 작성자 닉네임(비-PII) 포함.
+export type AdminFeatureRequest = FeatureRequest & {
+  authorNickname: string | null;
+};
+
+export async function fetchMyFeatureRequests(): Promise<FeatureRequest[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/feature-requests`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { items: FeatureRequest[] }).items;
+}
+
+export async function createFeatureRequest(input: {
+  kind: FeatureRequestKind;
+  title: string;
+  body: string;
+}): Promise<FeatureRequest> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/feature-requests`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { item: FeatureRequest }).item;
+}
+
+export async function updateFeatureRequest(
+  id: string,
+  patch: { kind?: FeatureRequestKind; title?: string; body?: string },
+): Promise<FeatureRequest> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/feature-requests/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.sessionToken}`,
+    },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { item: FeatureRequest }).item;
+}
+
+export async function deleteFeatureRequest(id: string): Promise<void> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/feature-requests/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+// 관리자 — 조회/검색 + 피드백 + 삭제.
+export async function fetchAdminFeatureRequests(opts?: {
+  q?: string;
+  kind?: FeatureRequestKind | null;
+}): Promise<AdminFeatureRequest[]> {
+  const params = new URLSearchParams();
+  if (opts?.q) params.set('q', opts.q);
+  if (opts?.kind) params.set('kind', opts.kind);
+  const qs = params.toString();
+  const data = (await adminJson(
+    `/api/v1/admin/feature-requests${qs ? `?${qs}` : ''}`,
+    'GET',
+  )) as { items: AdminFeatureRequest[] };
+  return data.items;
+}
+
+export function sendFeatureRequestFeedback(
+  id: string,
+  patch: { feedback?: string | null; status?: FeatureRequestStatus },
+): Promise<unknown> {
+  return adminJson(`/api/v1/admin/feature-requests/${id}`, 'PATCH', patch);
+}
+
+export function deleteAdminFeatureRequest(id: string): Promise<unknown> {
+  return adminJson(`/api/v1/admin/feature-requests/${id}`, 'DELETE');
+}
+
 // Phase 1.3 — 내 댓글
 export type MyComment = {
   id: string;

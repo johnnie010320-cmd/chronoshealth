@@ -23,6 +23,11 @@ import { ChevronRightIcon } from '@/components/HealthIcons';
 type CategoryState = Record<ConditionCategory, Set<string>>;
 type CatalogState = Record<ConditionCategory, readonly string[]>;
 
+// 백엔드(services/gateway/src/routes/medical/index.ts)와 동일 규약.
+// '해당 없음' 센티넬은 단독 저장, 직접입력은 'custom:' 접두로 저장한다.
+const NONE_CODE = 'none';
+const CUSTOM_PREFIX = 'custom:';
+
 export default function TwinPage() {
   const { t } = useI18n();
   const T = t.twin;
@@ -83,7 +88,38 @@ export default function TwinPage() {
     setPicked((prev) => {
       const next = { ...prev, [cat]: new Set(prev[cat]) };
       if (next[cat].has(code)) next[cat].delete(code);
-      else next[cat].add(code);
+      else {
+        next[cat].add(code);
+        next[cat].delete(NONE_CODE); // 실제 질환 선택 시 '해당 없음' 자동 해제
+      }
+      return next;
+    });
+  }
+
+  // '해당 없음' 토글 — 선택 시 해당 카테고리의 다른 선택을 모두 비운다.
+  function toggleNone(cat: ConditionCategory) {
+    setPicked((prev) => {
+      const has = prev[cat].has(NONE_CODE);
+      return { ...prev, [cat]: new Set(has ? [] : [NONE_CODE]) };
+    });
+  }
+
+  // 직접입력 추가 — 'custom:' 접두를 붙여 저장. '해당 없음'과 공존 불가.
+  function addCustom(cat: ConditionCategory, raw: string) {
+    const text = raw.trim();
+    if (text === '') return;
+    setPicked((prev) => {
+      const next = { ...prev, [cat]: new Set(prev[cat]) };
+      next[cat].delete(NONE_CODE);
+      next[cat].add(`${CUSTOM_PREFIX}${text}`);
+      return next;
+    });
+  }
+
+  function removeCode(cat: ConditionCategory, code: string) {
+    setPicked((prev) => {
+      const next = { ...prev, [cat]: new Set(prev[cat]) };
+      next[cat].delete(code);
       return next;
     });
   }
@@ -234,9 +270,17 @@ export default function TwinPage() {
           codes={catalog.chronic}
           picked={picked.chronic}
           onToggle={(code) => toggle('chronic', code)}
+          onToggleNone={() => toggleNone('chronic')}
+          onAddCustom={(text) => addCustom('chronic', text)}
+          onRemoveCode={(code) => removeCode('chronic', code)}
           onSave={() => void persistCategory('chronic')}
           labels={T.chronicCodes}
-          saveCta={T.saveCta}
+          text={{
+            none: T.noneLabel,
+            customPlaceholder: T.customPlaceholder,
+            customAdd: T.customAddCta,
+            save: T.saveCta,
+          }}
         />
       )}
 
@@ -247,9 +291,17 @@ export default function TwinPage() {
           codes={catalog.critical}
           picked={picked.critical}
           onToggle={(code) => toggle('critical', code)}
+          onToggleNone={() => toggleNone('critical')}
+          onAddCustom={(text) => addCustom('critical', text)}
+          onRemoveCode={(code) => removeCode('critical', code)}
           onSave={() => void persistCategory('critical')}
           labels={T.criticalCodes}
-          saveCta={T.saveCta}
+          text={{
+            none: T.noneLabel,
+            customPlaceholder: T.customPlaceholder,
+            customAdd: T.customAddCta,
+            save: T.saveCta,
+          }}
         />
       )}
 
@@ -260,9 +312,17 @@ export default function TwinPage() {
           codes={catalog.family}
           picked={picked.family}
           onToggle={(code) => toggle('family', code)}
+          onToggleNone={() => toggleNone('family')}
+          onAddCustom={(text) => addCustom('family', text)}
+          onRemoveCode={(code) => removeCode('family', code)}
           onSave={() => void persistCategory('family')}
           labels={T.familyCodes}
-          saveCta={T.saveCta}
+          text={{
+            none: T.noneLabel,
+            customPlaceholder: T.customPlaceholder,
+            customAdd: T.customAddCta,
+            save: T.saveCta,
+          }}
         />
       )}
 
@@ -271,7 +331,8 @@ export default function TwinPage() {
         <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
           {T.surgeryTitle}
         </h2>
-        <div className="mt-2 grid grid-cols-[1fr_5rem_auto] gap-2">
+        {/* 수술명·연도·메모를 모두 입력한 뒤 아래 '저장'으로 한 번에 등록한다. */}
+        <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2">
           <input
             type="text"
             value={newSurgery.name}
@@ -289,14 +350,6 @@ export default function TwinPage() {
             maxLength={4}
             className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
           />
-          <button
-            type="button"
-            onClick={() => void handleAddSurgery()}
-            disabled={newSurgery.name.trim() === ''}
-            className="rounded-xl bg-brand-700 px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60"
-          >
-            {T.addCta}
-          </button>
         </div>
         <input
           type="text"
@@ -306,6 +359,14 @@ export default function TwinPage() {
           maxLength={500}
           className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
         />
+        <button
+          type="button"
+          onClick={() => void handleAddSurgery()}
+          disabled={newSurgery.name.trim() === ''}
+          className="mt-2 w-full rounded-xl bg-brand-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {T.surgerySaveCta}
+        </button>
         {surgeries.length === 0 ? (
           <p className="mt-3 text-[11px] text-stone-500 dark:text-stone-400">
             {T.surgeryEmpty}
@@ -358,18 +419,34 @@ function ConditionCategorySection({
   codes,
   picked,
   onToggle,
+  onToggleNone,
+  onAddCustom,
+  onRemoveCode,
   onSave,
   labels,
-  saveCta,
+  text,
 }: {
   title: string;
   codes: readonly string[];
   picked: Set<string>;
   onToggle: (code: string) => void;
+  onToggleNone: () => void;
+  onAddCustom: (text: string) => void;
+  onRemoveCode: (code: string) => void;
   onSave: () => void;
   labels: Record<string, string>;
-  saveCta: string;
+  text: { none: string; customPlaceholder: string; customAdd: string; save: string };
 }) {
+  const [customInput, setCustomInput] = useState('');
+  const noneSelected = picked.has(NONE_CODE);
+  // 사용자가 직접 입력한 항목(카탈로그에 없는 custom: 코드)만 칩으로 별도 표시.
+  const customCodes = Array.from(picked).filter((c) => c.startsWith(CUSTOM_PREFIX));
+
+  function commitCustom() {
+    onAddCustom(customInput);
+    setCustomInput('');
+  }
+
   return (
     <section className="card-shadow mt-4 rounded-2xl bg-white p-4 dark:bg-stone-900">
       <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">{title}</h2>
@@ -391,12 +468,75 @@ function ConditionCategorySection({
           </label>
         ))}
       </div>
+
+      {/* 해당 없음 — 선택 시 다른 항목을 모두 해제 */}
+      <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] dark:border-stone-800 dark:bg-stone-800/60">
+        <input
+          type="checkbox"
+          checked={noneSelected}
+          onChange={onToggleNone}
+          className="h-4 w-4 accent-brand-600"
+        />
+        <span className="font-semibold text-stone-700 dark:text-stone-200">
+          {text.none}
+        </span>
+      </label>
+
+      {/* 직접 입력한 항목 칩 */}
+      {customCodes.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {customCodes.map((code) => (
+            <span
+              key={code}
+              className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200"
+            >
+              {code.slice(CUSTOM_PREFIX.length)}
+              <button
+                type="button"
+                onClick={() => onRemoveCode(code)}
+                className="text-brand-400 hover:text-rose-600"
+                aria-label={code.slice(CUSTOM_PREFIX.length)}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 직접 입력 */}
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          type="text"
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commitCustom();
+            }
+          }}
+          placeholder={text.customPlaceholder}
+          maxLength={50}
+          disabled={noneSelected}
+          className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-[12px] disabled:opacity-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+        />
+        <button
+          type="button"
+          onClick={commitCustom}
+          disabled={noneSelected || customInput.trim() === ''}
+          className="shrink-0 rounded-xl border border-stone-300 bg-white px-3 py-2 text-[12px] font-semibold disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+        >
+          {text.customAdd}
+        </button>
+      </div>
+
       <button
         type="button"
         onClick={onSave}
         className="mt-3 inline-flex w-full items-center justify-between rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-stone-900"
       >
-        <span>{saveCta}</span>
+        <span>{text.save}</span>
         <ChevronRightIcon className="h-4 w-4" />
       </button>
     </section>
