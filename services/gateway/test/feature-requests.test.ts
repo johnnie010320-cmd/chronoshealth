@@ -143,6 +143,15 @@ describe('기능 요청 및 버그 리포트', () => {
     expect(res.status).toBe(400);
   });
 
+  it('본문 없이 생성 허용 → 첨부(이미지/PDF)로 내용 대체', async () => {
+    // 본문 텍스트 대신 첨부로 대체하는 흐름: 빈 본문으로도 글이 생성돼야 함.
+    const res = await create(userToken, { title: '스크린샷만 첨부', body: '' });
+    expect(res.status).toBe(201);
+    const { item } = (await res.json()) as { item: { id: string; body: string } };
+    expect(item.body).toBe('');
+    expect(item.id).toBeTruthy();
+  });
+
   it('본인 글 수정 반영', async () => {
     const id = await newId(userToken, { title: '초안 제목', body: '초안' });
     const res = await app.request(

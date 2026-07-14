@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
   createFeatureRequest,
+  deleteFeatureFile,
+  deleteFeatureImage,
   deleteFeatureRequest,
   fetchMyFeatureRequests,
   updateFeatureRequest,
+  uploadFeatureFile,
+  uploadFeatureImage,
   type FeatureRequest,
   type FeatureRequestKind,
   type FeatureRequestStatus,
@@ -27,8 +31,19 @@ export default function FeatureRequestsPage() {
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<FeatureRequest | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // 작성 폼에서 미리 선택해둔 첨부. 제출 시 글 생성/수정 후 업로드한다.
+  const [stagedImage, setStagedImage] = useState<File | null>(null);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
+  // 수정 중 기존 첨부 제거 여부.
+  const [removeImage, setRemoveImage] = useState(false);
+  const [removeFile, setRemoveFile] = useState(false);
+  const [imgPreview, setImgPreview] = useState<string | null>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!readSession()) {
@@ -41,6 +56,17 @@ export default function FeatureRequestsPage() {
       .catch(() => setItems([]))
       .finally(() => setLoaded(true));
   }, []);
+
+  // 선택한 이미지 미리보기(objectURL) 생성/해제.
+  useEffect(() => {
+    if (!stagedImage) {
+      setImgPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(stagedImage);
+    setImgPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [stagedImage]);
 
   if (!signedIn) {
     return (
@@ -61,20 +87,33 @@ export default function FeatureRequestsPage() {
             ? F.statusDeclined
             : F.statusOpen;
 
+  function clearStaged() {
+    setStagedImage(null);
+    setStagedFile(null);
+    setRemoveImage(false);
+    setRemoveFile(false);
+    if (imageInput.current) imageInput.current.value = '';
+    if (fileInput.current) fileInput.current.value = '';
+  }
+
   function resetForm() {
     setDraft(EMPTY);
     setEditingId(null);
+    setEditingItem(null);
+    clearStaged();
     setErr(null);
   }
 
   function startEdit(item: FeatureRequest) {
     setEditingId(item.id);
+    setEditingItem(item);
     setDraft({
       kind: item.kind,
       title: item.title,
       body: item.body,
       linkUrl: item.linkUrl ?? '',
     });
+    clearStaged();
     setErr(null);
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -82,10 +121,24 @@ export default function FeatureRequestsPage() {
   const patchItem = (updated: FeatureRequest) =>
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
 
+  // 제출 후 첨부 상태 계산 — 본문 대신 첨부만으로도 내용이 성립하는지 판단.
+  const willHaveImage = stagedImage
+    ? true
+    : Boolean(editingItem?.hasImage && !removeImage);
+  const willHaveFile = stagedFile
+    ? true
+    : Boolean(editingItem?.fileName && !removeFile);
+  const hasContent =
+    draft.body.trim().length >= 1 ||
+    willHaveImage ||
+    willHaveFile ||
+    draft.linkUrl.trim() !== '';
+  const canSubmit = draft.title.trim().length >= 2 && hasContent;
+
   async function handleSubmit() {
     const title = draft.title.trim();
     const body = draft.body.trim();
-    if (title.length < 2 || body.length < 1) {
+    if (title.length < 2 || !hasContent) {
       setErr(F.errInvalid);
       return;
     }
@@ -93,16 +146,23 @@ export default function FeatureRequestsPage() {
     setBusy(true);
     setErr(null);
     try {
-      if (editingId) {
-        const updated = await updateFeatureRequest(editingId, { kind: draft.kind, title, body, linkUrl });
-        patchItem(updated);
-      } else {
-        const created = await createFeatureRequest({ kind: draft.kind, title, body, linkUrl });
-        setItems((prev) => [created, ...prev]);
-      }
+      let item = editingId
+        ? await updateFeatureRequest(editingId, { kind: draft.kind, title, body, linkUrl })
+        : await createFeatureRequest({ kind: draft.kind, title, body, linkUrl });
+      const id = item.id;
+      // 첨부 적용 — 제거 먼저, 그다음 신규 업로드(교체).
+      if (removeImage && !stagedImage) item = await deleteFeatureImage(id);
+      if (stagedImage) item = await uploadFeatureImage(id, stagedImage);
+      if (removeFile && !stagedFile) item = await deleteFeatureFile(id);
+      if (stagedFile) item = await uploadFeatureFile(id, stagedFile);
+
+      if (editingId) patchItem(item);
+      else setItems((prev) => [item, ...prev]);
       resetForm();
     } catch (e) {
-      setErr(e instanceof Error && e.message === 'INVALID_INPUT' ? F.errInvalid : F.errGeneric);
+      setErr(
+        e instanceof Error && e.message === 'INVALID_INPUT' ? F.errInvalid : F.errGeneric,
+      );
     } finally {
       setBusy(false);
     }
@@ -124,6 +184,11 @@ export default function FeatureRequestsPage() {
 
   const inputCls =
     'w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100';
+  const chipCls =
+    'inline-flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-600 disabled:opacity-50 dark:border-stone-700 dark:text-stone-300';
+
+  const keptImage = Boolean(editingItem?.hasImage && !removeImage && !stagedImage);
+  const keptFile = Boolean(editingItem?.fileName && !removeFile && !stagedFile);
 
   return (
     <AppShell title={F.pageTitle} decoration="dots">
@@ -173,6 +238,115 @@ export default function FeatureRequestsPage() {
           maxLength={500}
           className={`mt-2 ${inputCls}`}
         />
+
+        {/* 첨부 사전 선택 — 본문 대체 가능 */}
+        <div className="mt-3 rounded-xl border border-dashed border-stone-200 p-3 dark:border-stone-700">
+          <p className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
+            {F.attachSectionLabel}
+          </p>
+
+          <input
+            ref={imageInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              setStagedImage(f);
+              if (f) setRemoveImage(false);
+            }}
+          />
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              setStagedFile(f);
+              if (f) setRemoveFile(false);
+            }}
+          />
+
+          {imgPreview && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imgPreview}
+              alt={F.imageAlt}
+              className="mt-2 max-h-40 w-auto rounded-lg border border-stone-200 dark:border-stone-700"
+            />
+          )}
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            {/* 이미지 */}
+            {stagedImage ? (
+              <span className={chipCls}>
+                🖼 {stagedImage.name.slice(0, 24)} · {F.selectedLabel}
+                <button
+                  type="button"
+                  onClick={() => setStagedImage(null)}
+                  className="ml-1 text-stone-400 hover:text-rose-600"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : keptImage ? (
+              <span className={chipCls}>
+                🖼 {F.imageAlt}
+                <button
+                  type="button"
+                  onClick={() => setRemoveImage(true)}
+                  className="ml-1 text-stone-400 hover:text-rose-600"
+                >
+                  {F.removeImageCta}
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => imageInput.current?.click()}
+                className={chipCls}
+              >
+                {F.attachImageCta}
+              </button>
+            )}
+
+            {/* PDF */}
+            {stagedFile ? (
+              <span className={chipCls}>
+                📄 {stagedFile.name.slice(0, 24)} · {F.selectedLabel}
+                <button
+                  type="button"
+                  onClick={() => setStagedFile(null)}
+                  className="ml-1 text-stone-400 hover:text-rose-600"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : keptFile ? (
+              <span className={chipCls}>
+                📄 {editingItem?.fileName}
+                <button
+                  type="button"
+                  onClick={() => setRemoveFile(true)}
+                  className="ml-1 text-stone-400 hover:text-rose-600"
+                >
+                  {F.removeFileCta}
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className={chipCls}
+              >
+                {F.attachFileCta}
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-[10px] text-stone-400 dark:text-stone-500">{F.attachHint}</p>
+        </div>
+
         {err && (
           <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-300">{err}</p>
         )}
@@ -190,15 +364,12 @@ export default function FeatureRequestsPage() {
           <button
             type="button"
             onClick={() => void handleSubmit()}
-            disabled={busy || draft.title.trim().length < 2 || draft.body.trim() === ''}
+            disabled={busy || !canSubmit}
             className="flex-1 rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {editingId ? F.saveCta : F.submitCta}
           </button>
         </div>
-        {!editingId && (
-          <p className="mt-2 text-[10px] text-stone-400 dark:text-stone-500">{F.attachHint}</p>
-        )}
       </section>
 
       {/* 내 목록 */}
@@ -230,9 +401,11 @@ export default function FeatureRequestsPage() {
               <p className="mt-2 text-sm font-bold text-stone-900 dark:text-stone-100">
                 {item.title}
               </p>
-              <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-stone-600 dark:text-stone-300">
-                {item.body}
-              </p>
+              {item.body && (
+                <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-stone-600 dark:text-stone-300">
+                  {item.body}
+                </p>
+              )}
 
               <FeatureAttachments
                 item={item}
@@ -242,9 +415,6 @@ export default function FeatureRequestsPage() {
                   imageAlt: F.imageAlt,
                   download: F.downloadCta,
                 }}
-                editable
-                onChange={patchItem}
-                onError={() => setErr(F.errFile)}
               />
 
               {item.adminFeedback && (

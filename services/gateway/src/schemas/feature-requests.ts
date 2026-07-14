@@ -27,7 +27,8 @@ export const CreateFeatureRequest = z
   .object({
     kind: Kind.default('feature'),
     title: z.string().trim().min(2).max(120),
-    body: z.string().trim().min(1).max(4000),
+    // 본문은 선택 — 이미지/PDF 첨부로 내용을 대체할 수 있음(첨부는 생성 후 업로드).
+    body: z.string().trim().max(4000).default(''),
     linkUrl: z.preprocess((v) => (v === '' ? null : v), LINK_URL).default(null),
   })
   .strict();
@@ -38,7 +39,7 @@ export const UpdateFeatureRequest = z
   .object({
     kind: Kind.optional(),
     title: z.string().trim().min(2).max(120).optional(),
-    body: z.string().trim().min(1).max(4000).optional(),
+    body: z.string().trim().max(4000).optional(),
     linkUrl: z.preprocess((v) => (v === '' ? null : v), LINK_URL).optional(),
   })
   .strict()
