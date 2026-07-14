@@ -1699,6 +1699,11 @@ export type FeatureRequest = {
   status: FeatureRequestStatus;
   adminFeedback: string | null;
   adminFeedbackAt: string | null;
+  // 첨부 — 이미지(인라인), 파일(PDF), 외부 링크.
+  hasImage: boolean;
+  imageType: string | null;
+  fileName: string | null;
+  linkUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -1722,6 +1727,7 @@ export async function createFeatureRequest(input: {
   kind: FeatureRequestKind;
   title: string;
   body: string;
+  linkUrl?: string | null;
 }): Promise<FeatureRequest> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
@@ -1739,7 +1745,12 @@ export async function createFeatureRequest(input: {
 
 export async function updateFeatureRequest(
   id: string,
-  patch: { kind?: FeatureRequestKind; title?: string; body?: string },
+  patch: {
+    kind?: FeatureRequestKind;
+    title?: string;
+    body?: string;
+    linkUrl?: string | null;
+  },
 ): Promise<FeatureRequest> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
@@ -1764,6 +1775,84 @@ export async function deleteFeatureRequest(id: string): Promise<void> {
   });
   if (!res.ok) await throwOnError(res);
 }
+
+// 첨부 업로드/삭제 (본인 글). image=png/jpg/webp, file=pdf.
+async function featureUpload(
+  id: string,
+  slot: 'image' | 'file',
+  file: File,
+): Promise<FeatureRequest> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/me/feature-requests/${id}/${slot}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+      body: form,
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { item: FeatureRequest }).item;
+}
+
+async function featureAttachmentDelete(
+  id: string,
+  slot: 'image' | 'file',
+): Promise<FeatureRequest> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/me/feature-requests/${id}/${slot}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { item: FeatureRequest }).item;
+}
+
+export const uploadFeatureImage = (id: string, file: File) =>
+  featureUpload(id, 'image', file);
+export const uploadFeatureFile = (id: string, file: File) =>
+  featureUpload(id, 'file', file);
+export const deleteFeatureImage = (id: string) =>
+  featureAttachmentDelete(id, 'image');
+export const deleteFeatureFile = (id: string) =>
+  featureAttachmentDelete(id, 'file');
+
+// 첨부를 인증 요청으로 받아 objectURL 반환(비공개 — img src/다운로드용). 실패 시 null.
+// scope='me' 는 본인, 'admin' 은 관리자 콘솔에서 조회.
+async function featureAttachmentObjectUrl(
+  id: string,
+  slot: 'image' | 'file',
+  scope: 'me' | 'admin',
+): Promise<string | null> {
+  const session = readSession();
+  if (!session) return null;
+  const base =
+    scope === 'admin'
+      ? `${GATEWAY_URL}/api/v1/admin/feature-requests`
+      : `${GATEWAY_URL}/api/v1/me/feature-requests`;
+  const res = await fetch(`${base}/${id}/${slot}`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) return null;
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+export const fetchFeatureImageObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'image', 'me');
+export const fetchFeatureFileObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'file', 'me');
+export const fetchAdminFeatureImageObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'image', 'admin');
+export const fetchAdminFeatureFileObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'file', 'admin');
 
 // 관리자 — 조회/검색 + 피드백 + 삭제.
 export async function fetchAdminFeatureRequests(opts?: {

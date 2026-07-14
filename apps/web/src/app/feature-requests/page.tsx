@@ -14,9 +14,10 @@ import {
   type FeatureRequestKind,
   type FeatureRequestStatus,
 } from '@/lib/api-client';
+import { FeatureAttachments } from '@/components/FeatureAttachments';
 
-type Draft = { kind: FeatureRequestKind; title: string; body: string };
-const EMPTY: Draft = { kind: 'feature', title: '', body: '' };
+type Draft = { kind: FeatureRequestKind; title: string; body: string; linkUrl: string };
+const EMPTY: Draft = { kind: 'feature', title: '', body: '', linkUrl: '' };
 
 export default function FeatureRequestsPage() {
   const { t } = useI18n();
@@ -68,10 +69,18 @@ export default function FeatureRequestsPage() {
 
   function startEdit(item: FeatureRequest) {
     setEditingId(item.id);
-    setDraft({ kind: item.kind, title: item.title, body: item.body });
+    setDraft({
+      kind: item.kind,
+      title: item.title,
+      body: item.body,
+      linkUrl: item.linkUrl ?? '',
+    });
     setErr(null);
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  const patchItem = (updated: FeatureRequest) =>
+    setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
 
   async function handleSubmit() {
     const title = draft.title.trim();
@@ -80,18 +89,15 @@ export default function FeatureRequestsPage() {
       setErr(F.errInvalid);
       return;
     }
+    const linkUrl = draft.linkUrl.trim() === '' ? null : draft.linkUrl.trim();
     setBusy(true);
     setErr(null);
     try {
       if (editingId) {
-        const updated = await updateFeatureRequest(editingId, {
-          kind: draft.kind,
-          title,
-          body,
-        });
-        setItems((prev) => prev.map((i) => (i.id === editingId ? updated : i)));
+        const updated = await updateFeatureRequest(editingId, { kind: draft.kind, title, body, linkUrl });
+        patchItem(updated);
       } else {
-        const created = await createFeatureRequest({ kind: draft.kind, title, body });
+        const created = await createFeatureRequest({ kind: draft.kind, title, body, linkUrl });
         setItems((prev) => [created, ...prev]);
       }
       resetForm();
@@ -159,6 +165,14 @@ export default function FeatureRequestsPage() {
           rows={4}
           className={`mt-2 resize-y ${inputCls}`}
         />
+        <input
+          type="url"
+          value={draft.linkUrl}
+          onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))}
+          placeholder={F.linkPlaceholder}
+          maxLength={500}
+          className={`mt-2 ${inputCls}`}
+        />
         {err && (
           <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-300">{err}</p>
         )}
@@ -182,6 +196,9 @@ export default function FeatureRequestsPage() {
             {editingId ? F.saveCta : F.submitCta}
           </button>
         </div>
+        {!editingId && (
+          <p className="mt-2 text-[10px] text-stone-400 dark:text-stone-500">{F.attachHint}</p>
+        )}
       </section>
 
       {/* 내 목록 */}
@@ -216,6 +233,19 @@ export default function FeatureRequestsPage() {
               <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-stone-600 dark:text-stone-300">
                 {item.body}
               </p>
+
+              <FeatureAttachments
+                item={item}
+                scope="me"
+                labels={{
+                  link: F.linkLabel,
+                  imageAlt: F.imageAlt,
+                  download: F.downloadCta,
+                }}
+                editable
+                onChange={patchItem}
+                onError={() => setErr(F.errFile)}
+              />
 
               {item.adminFeedback && (
                 <div className="mt-2 rounded-xl bg-brand-50 px-3 py-2 dark:bg-brand-900/30">

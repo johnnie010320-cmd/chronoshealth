@@ -13,12 +13,22 @@ const Status = z.enum(
   FEATURE_REQUEST_STATUSES as unknown as [string, ...string[]],
 );
 
+// 외부 링크 — http/https URL 또는 null(빈 문자열은 null 로 정규화).
+const LINK_URL = z
+  .string()
+  .trim()
+  .max(500)
+  .url()
+  .refine((u) => u.startsWith('http://') || u.startsWith('https://'), 'link must be http(s)')
+  .nullable();
+
 // 사용자 — 생성.
 export const CreateFeatureRequest = z
   .object({
     kind: Kind.default('feature'),
     title: z.string().trim().min(2).max(120),
     body: z.string().trim().min(1).max(4000),
+    linkUrl: z.preprocess((v) => (v === '' ? null : v), LINK_URL).default(null),
   })
   .strict();
 export type CreateFeatureRequest = z.infer<typeof CreateFeatureRequest>;
@@ -29,6 +39,7 @@ export const UpdateFeatureRequest = z
     kind: Kind.optional(),
     title: z.string().trim().min(2).max(120).optional(),
     body: z.string().trim().min(1).max(4000).optional(),
+    linkUrl: z.preprocess((v) => (v === '' ? null : v), LINK_URL).optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, 'at least one field required');

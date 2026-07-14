@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { FeatureAttachments } from '@/components/FeatureAttachments';
 import { useI18n } from '@/lib/i18n';
 import {
   deleteAdminFeatureRequest,
@@ -195,6 +196,19 @@ export default function AdminFeatureRequestsPage() {
               <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-stone-600 dark:text-stone-300">
                 {row.body}
               </p>
+
+              {(row.hasImage || row.fileName || row.linkUrl) && (
+                <div className="mt-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                    {FA.attachmentsLabel}
+                  </p>
+                  <FeatureAttachments
+                    item={row}
+                    scope="admin"
+                    labels={{ link: F.linkLabel, imageAlt: F.imageAlt, download: F.downloadCta }}
+                  />
+                </div>
+              )}
 
               {/* 상태 + 피드백 */}
               <div className="mt-3 space-y-2 border-t border-stone-100 pt-3 dark:border-stone-800">

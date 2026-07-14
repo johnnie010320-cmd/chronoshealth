@@ -7,10 +7,12 @@ import {
   adminSoftDeleteFeatureRequest,
   listAllFeatureRequests,
   readFeatureRequest,
+  readFeatureRequestMedia,
   setAdminFeedback,
   type FeatureRequestKind,
   type FeatureRequestStatus,
 } from '../../feature-requests/storage.js';
+import { streamFeatureImage, streamFeatureFile } from './stream.js';
 import { resolveNicknames } from '../../messaging/nickname.js';
 import { appendAudit } from '../../admin/audit.js';
 import type { Bindings } from '../../bindings.js';
@@ -54,11 +56,40 @@ featureRequestsAdminRoute.get(
       status: r.status,
       adminFeedback: r.adminFeedback,
       adminFeedbackAt: r.adminFeedbackAt,
+      hasImage: r.hasImage,
+      imageType: r.imageType,
+      fileName: r.fileName,
+      linkUrl: r.linkUrl,
       authorNickname: nickMap.get(r.userPseudonymId) ?? null,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     }));
     return c.json({ items, modelVersion: MODEL_VERSION });
+  },
+);
+
+// 첨부 스트림 — 관리자 전용(비공개). 소유자 무관, adminMiddleware 로 인가.
+featureRequestsAdminRoute.get(
+  '/:id/image',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(200),
+  async (c) => {
+    const media = await readFeatureRequestMedia(c.env.DB, c.req.param('id'));
+    if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    return streamFeatureImage(c.env, media);
+  },
+);
+
+featureRequestsAdminRoute.get(
+  '/:id/file',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(200),
+  async (c) => {
+    const media = await readFeatureRequestMedia(c.env.DB, c.req.param('id'));
+    if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    return streamFeatureFile(c.env, media);
   },
 );
 
@@ -113,8 +144,11 @@ featureRequestsAdminRoute.delete(
   async (c) => {
     const id = c.req.param('id');
     const existing = await readFeatureRequest(c.env.DB, id);
+    const media = await readFeatureRequestMedia(c.env.DB, id);
     const ok = await adminSoftDeleteFeatureRequest(c.env.DB, id);
     if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    if (media?.imageKey) await c.env.ATTACHMENTS.delete(media.imageKey).catch(() => {});
+    if (media?.fileKey) await c.env.ATTACHMENTS.delete(media.fileKey).catch(() => {});
     await appendAudit(c.env.DB, {
       actorPseudonymId: c.get('userPseudonymId'),
       action: 'feature_request.delete',

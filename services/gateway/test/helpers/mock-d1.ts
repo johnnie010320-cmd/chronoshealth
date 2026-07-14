@@ -737,7 +737,7 @@ type MedicalConditionMockRow = {
   updated_at: string;
 };
 
-// 기능 요청 및 버그 리포트 (migration 0038).
+// 기능 요청 및 버그 리포트 (migration 0038 + 0039 첨부).
 type FeatureRequestMockRow = {
   id: string;
   user_pseudonym_id: string;
@@ -748,6 +748,11 @@ type FeatureRequestMockRow = {
   admin_feedback: string | null;
   admin_feedback_at: string | null;
   admin_feedback_by_pseudonym_id: string | null;
+  image_key: string | null;
+  image_type: string | null;
+  file_key: string | null;
+  file_name: string | null;
+  link_url: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -1011,12 +1016,13 @@ export function makeMockAnalysisDb(): {
 
     // ── 기능 요청 및 버그 리포트 (feature_requests) ──────────────────────────
     if (trimmed.startsWith('INSERT INTO feature_requests')) {
-      const [id, user_pseudonym_id, kind, title, body] = args as [
+      const [id, user_pseudonym_id, kind, title, body, link_url] = args as [
         string,
         string,
         string,
         string,
         string,
+        string | null,
       ];
       state.featureRequests.push({
         id,
@@ -1028,10 +1034,37 @@ export function makeMockAnalysisDb(): {
         admin_feedback: null,
         admin_feedback_at: null,
         admin_feedback_by_pseudonym_id: null,
+        image_key: null,
+        image_type: null,
+        file_key: null,
+        file_name: null,
+        link_url: link_url ?? null,
         created_at: nextTs(),
         updated_at: nextTs(),
         deleted_at: null,
       });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (trimmed.startsWith('UPDATE feature_requests SET image_key')) {
+      const [key, type, id] = args as [string | null, string | null, string];
+      const row = state.featureRequests.find(
+        (r) => r.id === id && r.deleted_at === null,
+      );
+      if (!row) return { success: true, meta: { changes: 0 } };
+      row.image_key = key;
+      row.image_type = type;
+      row.updated_at = nextTs();
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (trimmed.startsWith('UPDATE feature_requests SET file_key')) {
+      const [key, name, id] = args as [string | null, string | null, string];
+      const row = state.featureRequests.find(
+        (r) => r.id === id && r.deleted_at === null,
+      );
+      if (!row) return { success: true, meta: { changes: 0 } };
+      row.file_key = key;
+      row.file_name = name;
+      row.updated_at = nextTs();
       return { success: true, meta: { changes: 1 } };
     }
     if (trimmed.startsWith('UPDATE feature_requests SET deleted_at')) {
@@ -1074,6 +1107,7 @@ export function makeMockAnalysisDb(): {
         if (trimmed.includes('kind = ?')) row.kind = vals[i++] as string;
         if (trimmed.includes('title = ?')) row.title = vals[i++] as string;
         if (trimmed.includes('body = ?')) row.body = vals[i++] as string;
+        if (trimmed.includes('link_url = ?')) row.link_url = vals[i++] as string | null;
         row.updated_at = nextTs();
         return { success: true, meta: { changes: 1 } };
       }
@@ -2099,6 +2133,19 @@ export function makeMockAnalysisDb(): {
     }
     if (trimmed.includes('FROM feature_requests') && trimmed.includes('WHERE id = ?')) {
       const [id] = args as [string];
+      // readFeatureRequestMedia — file_key 포함, deleted 무관(정리 목적).
+      if (trimmed.includes('file_key')) {
+        const r = state.featureRequests.find((x) => x.id === id);
+        if (!r) return null;
+        return {
+          user_pseudonym_id: r.user_pseudonym_id,
+          image_key: r.image_key,
+          image_type: r.image_type,
+          file_key: r.file_key,
+          file_name: r.file_name,
+        };
+      }
+      // readFeatureRequest — 활성 행만.
       const r = state.featureRequests.find(
         (x) => x.id === id && x.deleted_at === null,
       );
@@ -2112,6 +2159,10 @@ export function makeMockAnalysisDb(): {
         status: r.status,
         admin_feedback: r.admin_feedback,
         admin_feedback_at: r.admin_feedback_at,
+        image_key: r.image_key,
+        image_type: r.image_type,
+        file_name: r.file_name,
+        link_url: r.link_url,
         created_at: r.created_at,
         updated_at: r.updated_at,
       };
@@ -2535,6 +2586,10 @@ export function makeMockAnalysisDb(): {
           status: r.status,
           admin_feedback: r.admin_feedback,
           admin_feedback_at: r.admin_feedback_at,
+          image_key: r.image_key,
+          image_type: r.image_type,
+          file_name: r.file_name,
+          link_url: r.link_url,
           created_at: r.created_at,
           updated_at: r.updated_at,
         })),

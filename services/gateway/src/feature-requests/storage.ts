@@ -30,8 +30,22 @@ export type FeatureRequestRow = {
   status: FeatureRequestStatus;
   adminFeedback: string | null;
   adminFeedbackAt: string | null;
+  // 첨부 — 이미지(인라인), 파일(PDF), 외부 링크. R2 키는 노출하지 않음.
+  hasImage: boolean;
+  imageType: string | null;
+  fileName: string | null;
+  linkUrl: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+// 첨부 스트림용 — R2 키 포함(내부 전용) + 소유자(인가 판정).
+export type FeatureRequestMedia = {
+  ownerPseudonymId: string;
+  imageKey: string | null;
+  imageType: string | null;
+  fileKey: string | null;
+  fileName: string | null;
 };
 
 type RawRow = {
@@ -43,6 +57,10 @@ type RawRow = {
   status: string;
   admin_feedback: string | null;
   admin_feedback_at: string | null;
+  image_key: string | null;
+  image_type: string | null;
+  file_name: string | null;
+  link_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -57,13 +75,19 @@ function mapRow(r: RawRow): FeatureRequestRow {
     status: (r.status as FeatureRequestStatus) ?? 'open',
     adminFeedback: r.admin_feedback,
     adminFeedbackAt: r.admin_feedback_at,
+    hasImage: r.image_key != null,
+    imageType: r.image_type,
+    fileName: r.file_name,
+    linkUrl: r.link_url,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
 }
 
 const SELECT = `SELECT id, user_pseudonym_id, kind, title, body, status,
-                       admin_feedback, admin_feedback_at, created_at, updated_at
+                       admin_feedback, admin_feedback_at,
+                       image_key, image_type, file_name, link_url,
+                       created_at, updated_at
                   FROM feature_requests`;
 
 // ── 사용자 본인 ────────────────────────────────────────────────────────────
@@ -90,14 +114,15 @@ export async function insertFeatureRequest(
     kind: FeatureRequestKind;
     title: string;
     body: string;
+    linkUrl: string | null;
   },
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO feature_requests (id, user_pseudonym_id, kind, title, body, status)
-         VALUES (?, ?, ?, ?, ?, 'open')`,
+      `INSERT INTO feature_requests (id, user_pseudonym_id, kind, title, body, status, link_url)
+         VALUES (?, ?, ?, ?, ?, 'open', ?)`,
     )
-    .bind(row.id, row.userPseudonymId, row.kind, row.title, row.body)
+    .bind(row.id, row.userPseudonymId, row.kind, row.title, row.body, row.linkUrl)
     .run();
 }
 
@@ -112,12 +137,75 @@ export async function readFeatureRequest(
   return r ? mapRow(r) : null;
 }
 
+// 첨부 스트림 인가용 — R2 키 + 소유자. deleted 여부 무시(삭제 후 정리 목적).
+export async function readFeatureRequestMedia(
+  db: D1Database,
+  id: string,
+): Promise<FeatureRequestMedia | null> {
+  const r = await db
+    .prepare(
+      `SELECT user_pseudonym_id, image_key, image_type, file_key, file_name
+         FROM feature_requests WHERE id = ? LIMIT 1`,
+    )
+    .bind(id)
+    .first<{
+      user_pseudonym_id: string;
+      image_key: string | null;
+      image_type: string | null;
+      file_key: string | null;
+      file_name: string | null;
+    }>();
+  if (!r) return null;
+  return {
+    ownerPseudonymId: r.user_pseudonym_id,
+    imageKey: r.image_key,
+    imageType: r.image_type,
+    fileKey: r.file_key,
+    fileName: r.file_name,
+  };
+}
+
+export async function setFeatureImage(
+  db: D1Database,
+  id: string,
+  key: string | null,
+  type: string | null,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      "UPDATE feature_requests SET image_key = ?, image_type = ?, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(key, type, id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function setFeatureFile(
+  db: D1Database,
+  id: string,
+  key: string | null,
+  name: string | null,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      "UPDATE feature_requests SET file_key = ?, file_name = ?, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(key, name, id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
 // 본인 글만 수정 — 소유자 불일치/삭제됨이면 0 changes → false.
 export async function updateMyFeatureRequest(
   db: D1Database,
   id: string,
   userPseudonymId: string,
-  patch: { kind?: FeatureRequestKind; title?: string; body?: string },
+  patch: {
+    kind?: FeatureRequestKind;
+    title?: string;
+    body?: string;
+    linkUrl?: string | null;
+  },
 ): Promise<boolean> {
   const sets: string[] = [];
   const binds: unknown[] = [];
@@ -132,6 +220,10 @@ export async function updateMyFeatureRequest(
   if (patch.body !== undefined) {
     sets.push('body = ?');
     binds.push(patch.body);
+  }
+  if (patch.linkUrl !== undefined) {
+    sets.push('link_url = ?');
+    binds.push(patch.linkUrl);
   }
   if (sets.length === 0) return true;
   sets.push("updated_at = datetime('now')");

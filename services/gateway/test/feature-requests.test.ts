@@ -17,8 +17,32 @@ type Item = {
   body: string;
   status: string;
   adminFeedback: string | null;
+  hasImage?: boolean;
+  imageType?: string | null;
+  fileName?: string | null;
+  linkUrl?: string | null;
   authorNickname?: string | null;
 };
+
+// 최소 인메모리 R2 — 라우트가 쓰는 put/get/delete 만 구현.
+function makeMockR2() {
+  const store = new Map<string, ArrayBuffer>();
+  return {
+    async put(key: string, value: ArrayBuffer) {
+      store.set(key, value);
+      return {};
+    },
+    async get(key: string) {
+      const v = store.get(key);
+      if (!v) return null;
+      return { body: v };
+    },
+    async delete(key: string) {
+      store.delete(key);
+    },
+    _store: store,
+  };
+}
 
 describe('기능 요청 및 버그 리포트', () => {
   let identity: ReturnType<typeof makeMockIdentityDb>;
@@ -26,6 +50,7 @@ describe('기능 요청 및 버그 리포트', () => {
   let adminToken: string;
   let userToken: string;
   let otherToken: string;
+  let r2: ReturnType<typeof makeMockR2>;
 
   function seedUser(
     state: MockD1State,
@@ -48,6 +73,7 @@ describe('기능 요청 및 버그 리포트', () => {
   beforeEach(() => {
     identity = makeMockIdentityDb();
     analysis = makeMockAnalysisDb();
+    r2 = makeMockR2();
     __clearRateLimit();
     seedUser(identity.state, 'admin-1', 'admin@chronoshealth.dev', null);
     seedUser(identity.state, 'user-1', 'user@chronoshealth.dev', '홍길동');
@@ -60,6 +86,7 @@ describe('기능 요청 및 버그 리포트', () => {
   const env = () => ({
     IDENTITY_DB: identity.db,
     DB: analysis.db,
+    ATTACHMENTS: r2 as unknown as R2Bucket,
     BETA_SIGNUP_HMAC_SALT: 'test',
     ENVIRONMENT: 'dev' as const,
     ADMIN_PSEUDONYM_IDS: 'admin-1',
@@ -225,5 +252,127 @@ describe('기능 요청 및 버그 리포트', () => {
   it('비관리자는 관리자 라우트 접근 불가 → 403', async () => {
     const res = await adminList(userToken);
     expect(res.status).toBe(403);
+  });
+
+  // ── 첨부: 링크 · 이미지 · 파일 ─────────────────────────────────────────────
+
+  it('생성 시 링크 첨부 → 라운드트립', async () => {
+    const res = await create(userToken, {
+      title: '링크 포함',
+      body: '참고',
+      linkUrl: 'https://example.com/bug',
+    });
+    expect(res.status).toBe(201);
+    const item = ((await res.json()) as { item: Item }).item;
+    expect(item.linkUrl).toBe('https://example.com/bug');
+  });
+
+  it('잘못된 링크(http/https 아님) → 400', async () => {
+    const res = await create(userToken, {
+      title: '나쁜 링크',
+      body: 'x',
+      linkUrl: 'javascript:alert(1)',
+    });
+    expect(res.status).toBe(400);
+  });
+
+  const uploadImage = (token: string, id: string) => {
+    const form = new FormData();
+    form.append('file', new File([new Uint8Array([1, 2, 3])], 'shot.png', { type: 'image/png' }));
+    return app.request(
+      `/api/v1/me/feature-requests/${id}/image`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
+      env(),
+    );
+  };
+
+  it('이미지 업로드 → hasImage/imageType 설정, 소유자 스트림 200', async () => {
+    const id = await newId(userToken, { title: '이미지', body: '스크린샷 첨부' });
+    const up = await uploadImage(userToken, id);
+    expect(up.status).toBe(200);
+    const item = ((await up.json()) as { item: Item }).item;
+    expect(item.hasImage).toBe(true);
+    expect(item.imageType).toBe('image/png');
+
+    const stream = await app.request(
+      `/api/v1/me/feature-requests/${id}/image`,
+      { method: 'GET', headers: { Authorization: `Bearer ${userToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(200);
+    expect(stream.headers.get('Content-Type')).toBe('image/png');
+  });
+
+  it('타인은 이미지 업로드/스트림 불가 → 404', async () => {
+    const id = await newId(userToken, { title: '이미지', body: 'x' });
+    const up = await uploadImage(otherToken, id);
+    expect(up.status).toBe(404);
+    await uploadImage(userToken, id);
+    const stream = await app.request(
+      `/api/v1/me/feature-requests/${id}/image`,
+      { method: 'GET', headers: { Authorization: `Bearer ${otherToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(404);
+  });
+
+  it('png/pdf 아닌 이미지 형식 → 415', async () => {
+    const id = await newId(userToken, { title: '이미지', body: 'x' });
+    const form = new FormData();
+    form.append('file', new File([new Uint8Array([1])], 'a.gif', { type: 'image/gif' }));
+    const up = await app.request(
+      `/api/v1/me/feature-requests/${id}/image`,
+      { method: 'POST', headers: { Authorization: `Bearer ${userToken}` }, body: form },
+      env(),
+    );
+    expect(up.status).toBe(400);
+    const data = (await up.json()) as { error: { code: string } };
+    expect(data.error.code).toBe('UNSUPPORTED_FILE_TYPE');
+  });
+
+  it('PDF 파일 업로드 → fileName 설정, 스트림 200(pdf), 삭제 후 해제', async () => {
+    const id = await newId(userToken, { title: '파일', body: '로그 첨부' });
+    const form = new FormData();
+    form.append('file', new File([new Uint8Array([37, 80, 68, 70])], 'log.pdf', { type: 'application/pdf' }));
+    const up = await app.request(
+      `/api/v1/me/feature-requests/${id}/file`,
+      { method: 'POST', headers: { Authorization: `Bearer ${userToken}` }, body: form },
+      env(),
+    );
+    expect(up.status).toBe(200);
+    expect(((await up.json()) as { item: Item }).item.fileName).toBe('log.pdf');
+
+    const stream = await app.request(
+      `/api/v1/me/feature-requests/${id}/file`,
+      { method: 'GET', headers: { Authorization: `Bearer ${userToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(200);
+    expect(stream.headers.get('Content-Type')).toBe('application/pdf');
+
+    const del = await app.request(
+      `/api/v1/me/feature-requests/${id}/file`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${userToken}` } },
+      env(),
+    );
+    expect(del.status).toBe(200);
+    expect(((await del.json()) as { item: Item }).item.fileName).toBeNull();
+  });
+
+  it('관리자도 첨부 스트림 조회 가능 + 목록에 첨부 플래그', async () => {
+    const id = await newId(userToken, { title: '관리자 조회', body: 'x', linkUrl: 'https://ex.com' });
+    await uploadImage(userToken, id);
+
+    const stream = await app.request(
+      `/api/v1/admin/feature-requests/${id}/image`,
+      { method: 'GET', headers: { Authorization: `Bearer ${adminToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(200);
+
+    const list = await adminList(adminToken);
+    const item = ((await list.json()) as { items: Item[] }).items[0]!;
+    expect(item.hasImage).toBe(true);
+    expect(item.linkUrl).toBe('https://ex.com');
   });
 });
