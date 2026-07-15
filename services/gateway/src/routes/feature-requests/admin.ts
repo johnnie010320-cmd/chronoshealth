@@ -12,7 +12,12 @@ import {
   type FeatureRequestKind,
   type FeatureRequestStatus,
 } from '../../feature-requests/storage.js';
-import { streamFeatureImage, streamFeatureFile } from './stream.js';
+import {
+  streamFeatureImage,
+  streamFeatureFile,
+  streamFeatureBodyImage,
+  streamFeatureBodyFile,
+} from './stream.js';
 import { resolveNicknames } from '../../messaging/nickname.js';
 import { appendAudit } from '../../admin/audit.js';
 import type { Bindings } from '../../bindings.js';
@@ -56,6 +61,9 @@ featureRequestsAdminRoute.get(
       status: r.status,
       adminFeedback: r.adminFeedback,
       adminFeedbackAt: r.adminFeedbackAt,
+      hasBodyImage: r.hasBodyImage,
+      bodyImageType: r.bodyImageType,
+      bodyFileName: r.bodyFileName,
       hasImage: r.hasImage,
       imageType: r.imageType,
       fileName: r.fileName,
@@ -90,6 +98,31 @@ featureRequestsAdminRoute.get(
     const media = await readFeatureRequestMedia(c.env.DB, c.req.param('id'));
     if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     return streamFeatureFile(c.env, media);
+  },
+);
+
+// 본문 미디어 스트림 — 관리자 전용.
+featureRequestsAdminRoute.get(
+  '/:id/body-image',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(200),
+  async (c) => {
+    const media = await readFeatureRequestMedia(c.env.DB, c.req.param('id'));
+    if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    return streamFeatureBodyImage(c.env, media);
+  },
+);
+
+featureRequestsAdminRoute.get(
+  '/:id/body-file',
+  authMiddleware,
+  adminMiddleware,
+  rateLimit(200),
+  async (c) => {
+    const media = await readFeatureRequestMedia(c.env.DB, c.req.param('id'));
+    if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    return streamFeatureBodyFile(c.env, media);
   },
 );
 
@@ -147,8 +180,14 @@ featureRequestsAdminRoute.delete(
     const media = await readFeatureRequestMedia(c.env.DB, id);
     const ok = await adminSoftDeleteFeatureRequest(c.env.DB, id);
     if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
-    if (media?.imageKey) await c.env.ATTACHMENTS.delete(media.imageKey).catch(() => {});
-    if (media?.fileKey) await c.env.ATTACHMENTS.delete(media.fileKey).catch(() => {});
+    for (const key of [
+      media?.bodyImageKey,
+      media?.bodyFileKey,
+      media?.imageKey,
+      media?.fileKey,
+    ]) {
+      if (key) await c.env.ATTACHMENTS.delete(key).catch(() => {});
+    }
     await appendAudit(c.env.DB, {
       actorPseudonymId: c.get('userPseudonymId'),
       action: 'feature_request.delete',

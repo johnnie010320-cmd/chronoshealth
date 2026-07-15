@@ -10,6 +10,8 @@ import {
   listMyFeatureRequests,
   readFeatureRequest,
   readFeatureRequestMedia,
+  setBodyFile,
+  setBodyImage,
   setFeatureFile,
   setFeatureImage,
   softDeleteMyFeatureRequest,
@@ -18,12 +20,19 @@ import {
 } from '../../feature-requests/storage.js';
 import {
   MAX_FEATURE_BYTES,
+  featureBodyFileKey,
+  featureBodyImageKey,
   featureFileKey,
   featureImageKey,
   isPdf,
   resolveFeatureImageType,
 } from '../../feature-requests/files.js';
-import { streamFeatureImage, streamFeatureFile } from './stream.js';
+import {
+  streamFeatureImage,
+  streamFeatureFile,
+  streamFeatureBodyImage,
+  streamFeatureBodyFile,
+} from './stream.js';
 import { safeFileName } from '../../messaging/files.js';
 import type { Bindings } from '../../bindings.js';
 
@@ -98,8 +107,15 @@ featureRequestsMeRoute.delete('/:id', authMiddleware, rateLimit(60), async (c) =
   const media = await readFeatureRequestMedia(c.env.DB, id);
   const ok = await softDeleteMyFeatureRequest(c.env.DB, id, pseudonymId);
   if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
-  if (media?.imageKey) await c.env.ATTACHMENTS.delete(media.imageKey).catch(() => {});
-  if (media?.fileKey) await c.env.ATTACHMENTS.delete(media.fileKey).catch(() => {});
+  // 본문 미디어 + 추가 첨부 R2 정리(있으면).
+  for (const key of [
+    media?.bodyImageKey,
+    media?.bodyFileKey,
+    media?.imageKey,
+    media?.fileKey,
+  ]) {
+    if (key) await c.env.ATTACHMENTS.delete(key).catch(() => {});
+  }
   return c.json({ deleted: true, modelVersion: MODEL_VERSION });
 });
 
@@ -195,4 +211,96 @@ featureRequestsMeRoute.get('/:id/file', authMiddleware, rateLimit(200), async (c
   const media = await ownedMedia(c.env, c.req.param('id'), c.get('userPseudonymId'));
   if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   return streamFeatureFile(c.env, media);
+});
+
+// ── 본문 미디어: 본문 자체를 이미지/PDF로 채우기(이미지 XOR PDF) — 본인 글에만 ──────
+// 추가 첨부(image/file)와 별개 슬롯. 한쪽 업로드 시 반대쪽 본문 미디어는 정리.
+
+featureRequestsMeRoute.post('/:id/body-image', authMiddleware, rateLimit(30), async (c) => {
+  const id = c.req.param('id');
+  const media = await ownedMedia(c.env, id, c.get('userPseudonymId'));
+  if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  const form = await c.req.formData().catch(() => null);
+  const file = form?.get('file');
+  if (!(file instanceof File)) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const type = resolveFeatureImageType(file.name, file.type);
+  if (!type) return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
+  if (file.size <= 0 || file.size > MAX_FEATURE_BYTES) {
+    return c.json({ error: { code: 'FILE_TOO_LARGE' } }, 400);
+  }
+  const key = featureBodyImageKey(id, type);
+  try {
+    await c.env.ATTACHMENTS.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: type },
+    });
+  } catch (err) {
+    console.error('R2 put feature body image failed', err);
+    return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
+  }
+  await setBodyImage(c.env.DB, id, key, type);
+  // 교체된 이전 본문 미디어 정리(반대쪽 PDF, 확장자 바뀐 이전 이미지).
+  if (media.bodyFileKey) await c.env.ATTACHMENTS.delete(media.bodyFileKey).catch(() => {});
+  if (media.bodyImageKey && media.bodyImageKey !== key)
+    await c.env.ATTACHMENTS.delete(media.bodyImageKey).catch(() => {});
+  const item = await readFeatureRequest(c.env.DB, id);
+  return c.json({ item, modelVersion: MODEL_VERSION });
+});
+
+featureRequestsMeRoute.delete('/:id/body-image', authMiddleware, rateLimit(30), async (c) => {
+  const id = c.req.param('id');
+  const media = await ownedMedia(c.env, id, c.get('userPseudonymId'));
+  if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (media.bodyImageKey) await c.env.ATTACHMENTS.delete(media.bodyImageKey).catch(() => {});
+  await setBodyImage(c.env.DB, id, null, null);
+  const item = await readFeatureRequest(c.env.DB, id);
+  return c.json({ item, modelVersion: MODEL_VERSION });
+});
+
+featureRequestsMeRoute.get('/:id/body-image', authMiddleware, rateLimit(200), async (c) => {
+  const media = await ownedMedia(c.env, c.req.param('id'), c.get('userPseudonymId'));
+  if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  return streamFeatureBodyImage(c.env, media);
+});
+
+featureRequestsMeRoute.post('/:id/body-file', authMiddleware, rateLimit(30), async (c) => {
+  const id = c.req.param('id');
+  const media = await ownedMedia(c.env, id, c.get('userPseudonymId'));
+  if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  const form = await c.req.formData().catch(() => null);
+  const file = form?.get('file');
+  if (!(file instanceof File)) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  if (!isPdf(file.name, file.type)) return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
+  if (file.size <= 0 || file.size > MAX_FEATURE_BYTES) {
+    return c.json({ error: { code: 'FILE_TOO_LARGE' } }, 400);
+  }
+  const key = featureBodyFileKey(id);
+  try {
+    await c.env.ATTACHMENTS.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: 'application/pdf' },
+    });
+  } catch (err) {
+    console.error('R2 put feature body file failed', err);
+    return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
+  }
+  await setBodyFile(c.env.DB, id, key, safeFileName(file.name));
+  // 교체된 이전 본문 이미지 정리.
+  if (media.bodyImageKey) await c.env.ATTACHMENTS.delete(media.bodyImageKey).catch(() => {});
+  const item = await readFeatureRequest(c.env.DB, id);
+  return c.json({ item, modelVersion: MODEL_VERSION });
+});
+
+featureRequestsMeRoute.delete('/:id/body-file', authMiddleware, rateLimit(30), async (c) => {
+  const id = c.req.param('id');
+  const media = await ownedMedia(c.env, id, c.get('userPseudonymId'));
+  if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (media.bodyFileKey) await c.env.ATTACHMENTS.delete(media.bodyFileKey).catch(() => {});
+  await setBodyFile(c.env.DB, id, null, null);
+  const item = await readFeatureRequest(c.env.DB, id);
+  return c.json({ item, modelVersion: MODEL_VERSION });
+});
+
+featureRequestsMeRoute.get('/:id/body-file', authMiddleware, rateLimit(200), async (c) => {
+  const media = await ownedMedia(c.env, c.req.param('id'), c.get('userPseudonymId'));
+  if (!media) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  return streamFeatureBodyFile(c.env, media);
 });

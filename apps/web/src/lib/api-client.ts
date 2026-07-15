@@ -1699,7 +1699,11 @@ export type FeatureRequest = {
   status: FeatureRequestStatus;
   adminFeedback: string | null;
   adminFeedbackAt: string | null;
-  // 첨부 — 이미지(인라인), 파일(PDF), 외부 링크.
+  // 본문 미디어 — 본문 자체를 이미지/PDF로 채운 경우(둘 다 없으면 텍스트 본문).
+  hasBodyImage: boolean;
+  bodyImageType: string | null;
+  bodyFileName: string | null;
+  // 추가 첨부 — 이미지(인라인), 파일(PDF), 외부 링크.
   hasImage: boolean;
   imageType: string | null;
   fileName: string | null;
@@ -1776,10 +1780,13 @@ export async function deleteFeatureRequest(id: string): Promise<void> {
   if (!res.ok) await throwOnError(res);
 }
 
-// 첨부 업로드/삭제 (본인 글). image=png/jpg/webp, file=pdf.
+// 첨부/본문 미디어 업로드/삭제 (본인 글). image=png/jpg/webp, file=pdf.
+// slot: image/file=추가 첨부, body-image/body-file=본문 자체를 파일로 채우기.
+type FeatureSlot = 'image' | 'file' | 'body-image' | 'body-file';
+
 async function featureUpload(
   id: string,
-  slot: 'image' | 'file',
+  slot: FeatureSlot,
   file: File,
 ): Promise<FeatureRequest> {
   const session = readSession();
@@ -1800,7 +1807,7 @@ async function featureUpload(
 
 async function featureAttachmentDelete(
   id: string,
-  slot: 'image' | 'file',
+  slot: FeatureSlot,
 ): Promise<FeatureRequest> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
@@ -1824,11 +1831,21 @@ export const deleteFeatureImage = (id: string) =>
 export const deleteFeatureFile = (id: string) =>
   featureAttachmentDelete(id, 'file');
 
+// 본문 미디어 — 본문 자체를 이미지/PDF로 채우기(이미지 XOR PDF, 서버에서 상호배타).
+export const uploadFeatureBodyImage = (id: string, file: File) =>
+  featureUpload(id, 'body-image', file);
+export const uploadFeatureBodyFile = (id: string, file: File) =>
+  featureUpload(id, 'body-file', file);
+export const deleteFeatureBodyImage = (id: string) =>
+  featureAttachmentDelete(id, 'body-image');
+export const deleteFeatureBodyFile = (id: string) =>
+  featureAttachmentDelete(id, 'body-file');
+
 // 첨부를 인증 요청으로 받아 objectURL 반환(비공개 — img src/다운로드용). 실패 시 null.
 // scope='me' 는 본인, 'admin' 은 관리자 콘솔에서 조회.
 async function featureAttachmentObjectUrl(
   id: string,
-  slot: 'image' | 'file',
+  slot: FeatureSlot,
   scope: 'me' | 'admin',
 ): Promise<string | null> {
   const session = readSession();
@@ -1853,6 +1870,16 @@ export const fetchAdminFeatureImageObjectUrl = (id: string) =>
   featureAttachmentObjectUrl(id, 'image', 'admin');
 export const fetchAdminFeatureFileObjectUrl = (id: string) =>
   featureAttachmentObjectUrl(id, 'file', 'admin');
+
+// 본문 미디어 objectURL.
+export const fetchFeatureBodyImageObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'body-image', 'me');
+export const fetchFeatureBodyFileObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'body-file', 'me');
+export const fetchAdminFeatureBodyImageObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'body-image', 'admin');
+export const fetchAdminFeatureBodyFileObjectUrl = (id: string) =>
+  featureAttachmentObjectUrl(id, 'body-file', 'admin');
 
 // 관리자 — 조회/검색 + 피드백 + 삭제.
 export async function fetchAdminFeatureRequests(opts?: {

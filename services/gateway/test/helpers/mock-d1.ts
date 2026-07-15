@@ -737,7 +737,7 @@ type MedicalConditionMockRow = {
   updated_at: string;
 };
 
-// 기능 요청 및 버그 리포트 (migration 0038 + 0039 첨부).
+// 기능 요청 및 버그 리포트 (migration 0038 + 0039 첨부 + 0040 본문 미디어).
 type FeatureRequestMockRow = {
   id: string;
   user_pseudonym_id: string;
@@ -748,6 +748,10 @@ type FeatureRequestMockRow = {
   admin_feedback: string | null;
   admin_feedback_at: string | null;
   admin_feedback_by_pseudonym_id: string | null;
+  body_image_key: string | null;
+  body_image_type: string | null;
+  body_file_key: string | null;
+  body_file_name: string | null;
   image_key: string | null;
   image_type: string | null;
   file_key: string | null;
@@ -1034,6 +1038,10 @@ export function makeMockAnalysisDb(): {
         admin_feedback: null,
         admin_feedback_at: null,
         admin_feedback_by_pseudonym_id: null,
+        body_image_key: null,
+        body_image_type: null,
+        body_file_key: null,
+        body_file_name: null,
         image_key: null,
         image_type: null,
         file_key: null,
@@ -1064,6 +1072,32 @@ export function makeMockAnalysisDb(): {
       if (!row) return { success: true, meta: { changes: 0 } };
       row.file_key = key;
       row.file_name = name;
+      row.updated_at = nextTs();
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (trimmed.startsWith('UPDATE feature_requests SET body_image_key')) {
+      const [key, type, id] = args as [string | null, string | null, string];
+      const row = state.featureRequests.find(
+        (r) => r.id === id && r.deleted_at === null,
+      );
+      if (!row) return { success: true, meta: { changes: 0 } };
+      row.body_image_key = key;
+      row.body_image_type = type;
+      row.body_file_key = null; // 이미지 XOR PDF
+      row.body_file_name = null;
+      row.updated_at = nextTs();
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (trimmed.startsWith('UPDATE feature_requests SET body_file_key')) {
+      const [key, name, id] = args as [string | null, string | null, string];
+      const row = state.featureRequests.find(
+        (r) => r.id === id && r.deleted_at === null,
+      );
+      if (!row) return { success: true, meta: { changes: 0 } };
+      row.body_file_key = key;
+      row.body_file_name = name;
+      row.body_image_key = null; // 이미지 XOR PDF
+      row.body_image_type = null;
       row.updated_at = nextTs();
       return { success: true, meta: { changes: 1 } };
     }
@@ -2139,6 +2173,10 @@ export function makeMockAnalysisDb(): {
         if (!r) return null;
         return {
           user_pseudonym_id: r.user_pseudonym_id,
+          body_image_key: r.body_image_key,
+          body_image_type: r.body_image_type,
+          body_file_key: r.body_file_key,
+          body_file_name: r.body_file_name,
           image_key: r.image_key,
           image_type: r.image_type,
           file_key: r.file_key,
@@ -2159,6 +2197,9 @@ export function makeMockAnalysisDb(): {
         status: r.status,
         admin_feedback: r.admin_feedback,
         admin_feedback_at: r.admin_feedback_at,
+        body_image_key: r.body_image_key,
+        body_image_type: r.body_image_type,
+        body_file_name: r.body_file_name,
         image_key: r.image_key,
         image_type: r.image_type,
         file_name: r.file_name,
@@ -2586,6 +2627,9 @@ export function makeMockAnalysisDb(): {
           status: r.status,
           admin_feedback: r.admin_feedback,
           admin_feedback_at: r.admin_feedback_at,
+          body_image_key: r.body_image_key,
+          body_image_type: r.body_image_type,
+          body_file_name: r.body_file_name,
           image_key: r.image_key,
           image_type: r.image_type,
           file_name: r.file_name,

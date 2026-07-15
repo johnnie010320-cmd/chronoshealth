@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { FeatureAttachments } from '@/components/FeatureAttachments';
+import { FeatureBody } from '@/components/FeatureBody';
 import { useI18n } from '@/lib/i18n';
 import {
   deleteAdminFeatureRequest,
@@ -193,9 +194,13 @@ export default function AdminFeatureRequestsPage() {
               <p className="mt-2 text-sm font-bold text-stone-900 dark:text-stone-100">
                 {row.title}
               </p>
-              <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-stone-600 dark:text-stone-300">
-                {row.body}
-              </p>
+              <FeatureBody
+                item={row}
+                scope="admin"
+                imageAlt={F.bodyImageAlt}
+                download={F.downloadCta}
+                textClassName="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-stone-600 dark:text-stone-300"
+              />
 
               {(row.hasImage || row.fileName || row.linkUrl) && (
                 <div className="mt-2">

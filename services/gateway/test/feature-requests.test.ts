@@ -17,6 +17,9 @@ type Item = {
   body: string;
   status: string;
   adminFeedback: string | null;
+  hasBodyImage?: boolean;
+  bodyImageType?: string | null;
+  bodyFileName?: string | null;
   hasImage?: boolean;
   imageType?: string | null;
   fileName?: string | null;
@@ -383,5 +386,97 @@ describe('기능 요청 및 버그 리포트', () => {
     const item = ((await list.json()) as { items: Item[] }).items[0]!;
     expect(item.hasImage).toBe(true);
     expect(item.linkUrl).toBe('https://ex.com');
+  });
+
+  // ── 본문 미디어(0040) — 본문 자체를 이미지/PDF로 채우기 ──────────────────────
+
+  const uploadBody = (token: string, id: string, slot: 'body-image' | 'body-file') => {
+    const form = new FormData();
+    const file =
+      slot === 'body-image'
+        ? new File([new Uint8Array([1, 2, 3])], 'body.png', { type: 'image/png' })
+        : new File([new Uint8Array([37, 80, 68, 70])], 'body.pdf', { type: 'application/pdf' });
+    form.append('file', file);
+    return app.request(
+      `/api/v1/me/feature-requests/${id}/${slot}`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
+      env(),
+    );
+  };
+
+  it('본문 이미지로 채우기 → hasBodyImage 설정, 소유자 스트림 200', async () => {
+    // 본문 텍스트 없이(빈 본문) 생성 후 본문 이미지 업로드.
+    const id = await newId(userToken, { title: '이미지 본문', body: '' });
+    const up = await uploadBody(userToken, id, 'body-image');
+    expect(up.status).toBe(200);
+    const item = ((await up.json()) as { item: Item }).item;
+    expect(item.hasBodyImage).toBe(true);
+    expect(item.bodyImageType).toBe('image/png');
+
+    const stream = await app.request(
+      `/api/v1/me/feature-requests/${id}/body-image`,
+      { method: 'GET', headers: { Authorization: `Bearer ${userToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(200);
+    expect(stream.headers.get('Content-Type')).toBe('image/png');
+  });
+
+  it('본문 PDF로 채우기 → bodyFileName 설정, 스트림 200', async () => {
+    const id = await newId(userToken, { title: 'PDF 본문', body: '' });
+    const up = await uploadBody(userToken, id, 'body-file');
+    expect(up.status).toBe(200);
+    expect(((await up.json()) as { item: Item }).item.bodyFileName).toBe('body.pdf');
+
+    const stream = await app.request(
+      `/api/v1/me/feature-requests/${id}/body-file`,
+      { method: 'GET', headers: { Authorization: `Bearer ${userToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(200);
+    expect(stream.headers.get('Content-Type')).toBe('application/pdf');
+  });
+
+  it('본문 미디어는 이미지 XOR PDF — PDF 올리면 기존 본문 이미지 해제', async () => {
+    const id = await newId(userToken, { title: '전환', body: '' });
+    await uploadBody(userToken, id, 'body-image');
+    const afterFile = ((await (await uploadBody(userToken, id, 'body-file')).json()) as {
+      item: Item;
+    }).item;
+    expect(afterFile.bodyFileName).toBe('body.pdf');
+    expect(afterFile.hasBodyImage).toBe(false);
+  });
+
+  it('본문 미디어와 추가 첨부는 별개 슬롯 — 공존 가능', async () => {
+    const id = await newId(userToken, { title: '본문+첨부', body: '' });
+    await uploadBody(userToken, id, 'body-image'); // 본문 = 이미지
+    await uploadImage(userToken, id); // 추가 첨부 = 이미지
+    const list = await listMine(userToken);
+    const item = ((await list.json()) as { items: Item[] }).items[0]!;
+    expect(item.hasBodyImage).toBe(true);
+    expect(item.hasImage).toBe(true);
+  });
+
+  it('본문 미디어 삭제 → 텍스트 본문으로 복귀', async () => {
+    const id = await newId(userToken, { title: '삭제', body: '' });
+    await uploadBody(userToken, id, 'body-image');
+    const del = await app.request(
+      `/api/v1/me/feature-requests/${id}/body-image`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${userToken}` } },
+      env(),
+    );
+    expect(del.status).toBe(200);
+    expect(((await del.json()) as { item: Item }).item.hasBodyImage).toBe(false);
+  });
+
+  it('관리자도 본문 미디어 스트림 조회 가능', async () => {
+    const id = await newId(userToken, { title: '관리자 본문', body: '' });
+    await uploadBody(userToken, id, 'body-image');
+    const stream = await app.request(
+      `/api/v1/admin/feature-requests/${id}/body-image`,
+      { method: 'GET', headers: { Authorization: `Bearer ${adminToken}` } },
+      env(),
+    );
+    expect(stream.status).toBe(200);
   });
 });

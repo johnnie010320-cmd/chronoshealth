@@ -30,7 +30,11 @@ export type FeatureRequestRow = {
   status: FeatureRequestStatus;
   adminFeedback: string | null;
   adminFeedbackAt: string | null;
-  // 첨부 — 이미지(인라인), 파일(PDF), 외부 링크. R2 키는 노출하지 않음.
+  // 본문 미디어 — 본문 자체를 이미지/PDF로 채운 경우(둘 다 없으면 텍스트 본문). R2 키는 노출하지 않음.
+  hasBodyImage: boolean;
+  bodyImageType: string | null;
+  bodyFileName: string | null;
+  // 추가 첨부 — 이미지(인라인), 파일(PDF), 외부 링크. R2 키는 노출하지 않음.
   hasImage: boolean;
   imageType: string | null;
   fileName: string | null;
@@ -39,9 +43,13 @@ export type FeatureRequestRow = {
   updatedAt: string;
 };
 
-// 첨부 스트림용 — R2 키 포함(내부 전용) + 소유자(인가 판정).
+// 첨부 스트림용 — R2 키 포함(내부 전용) + 소유자(인가 판정). 본문·추가첨부 슬롯 모두.
 export type FeatureRequestMedia = {
   ownerPseudonymId: string;
+  bodyImageKey: string | null;
+  bodyImageType: string | null;
+  bodyFileKey: string | null;
+  bodyFileName: string | null;
   imageKey: string | null;
   imageType: string | null;
   fileKey: string | null;
@@ -57,6 +65,9 @@ type RawRow = {
   status: string;
   admin_feedback: string | null;
   admin_feedback_at: string | null;
+  body_image_key: string | null;
+  body_image_type: string | null;
+  body_file_name: string | null;
   image_key: string | null;
   image_type: string | null;
   file_name: string | null;
@@ -75,6 +86,9 @@ function mapRow(r: RawRow): FeatureRequestRow {
     status: (r.status as FeatureRequestStatus) ?? 'open',
     adminFeedback: r.admin_feedback,
     adminFeedbackAt: r.admin_feedback_at,
+    hasBodyImage: r.body_image_key != null,
+    bodyImageType: r.body_image_type,
+    bodyFileName: r.body_file_name,
     hasImage: r.image_key != null,
     imageType: r.image_type,
     fileName: r.file_name,
@@ -86,6 +100,7 @@ function mapRow(r: RawRow): FeatureRequestRow {
 
 const SELECT = `SELECT id, user_pseudonym_id, kind, title, body, status,
                        admin_feedback, admin_feedback_at,
+                       body_image_key, body_image_type, body_file_name,
                        image_key, image_type, file_name, link_url,
                        created_at, updated_at
                   FROM feature_requests`;
@@ -144,12 +159,18 @@ export async function readFeatureRequestMedia(
 ): Promise<FeatureRequestMedia | null> {
   const r = await db
     .prepare(
-      `SELECT user_pseudonym_id, image_key, image_type, file_key, file_name
+      `SELECT user_pseudonym_id,
+              body_image_key, body_image_type, body_file_key, body_file_name,
+              image_key, image_type, file_key, file_name
          FROM feature_requests WHERE id = ? LIMIT 1`,
     )
     .bind(id)
     .first<{
       user_pseudonym_id: string;
+      body_image_key: string | null;
+      body_image_type: string | null;
+      body_file_key: string | null;
+      body_file_name: string | null;
       image_key: string | null;
       image_type: string | null;
       file_key: string | null;
@@ -158,6 +179,10 @@ export async function readFeatureRequestMedia(
   if (!r) return null;
   return {
     ownerPseudonymId: r.user_pseudonym_id,
+    bodyImageKey: r.body_image_key,
+    bodyImageType: r.body_image_type,
+    bodyFileKey: r.body_file_key,
+    bodyFileName: r.body_file_name,
     imageKey: r.image_key,
     imageType: r.image_type,
     fileKey: r.file_key,
@@ -189,6 +214,39 @@ export async function setFeatureFile(
   const res = await db
     .prepare(
       "UPDATE feature_requests SET file_key = ?, file_name = ?, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(key, name, id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// ── 본문 미디어(0040) — 이미지 XOR PDF. 한쪽 설정 시 반대쪽 컬럼은 비운다. ──────
+// 반대쪽 R2 객체 삭제는 라우트가 담당(교체 전 media 로 이전 키 확보).
+
+export async function setBodyImage(
+  db: D1Database,
+  id: string,
+  key: string | null,
+  type: string | null,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      "UPDATE feature_requests SET body_image_key = ?, body_image_type = ?, body_file_key = NULL, body_file_name = NULL, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(key, type, id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function setBodyFile(
+  db: D1Database,
+  id: string,
+  key: string | null,
+  name: string | null,
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      "UPDATE feature_requests SET body_file_key = ?, body_file_name = ?, body_image_key = NULL, body_image_type = NULL, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
     )
     .bind(key, name, id)
     .run();

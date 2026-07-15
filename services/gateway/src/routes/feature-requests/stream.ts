@@ -12,29 +12,31 @@ function notFound(): Response {
   });
 }
 
-export async function streamFeatureImage(
+async function streamImage(
   env: Bindings,
-  media: FeatureRequestMedia,
+  key: string | null,
+  type: string | null,
 ): Promise<Response> {
-  if (!media.imageKey) return notFound();
-  const obj = await env.ATTACHMENTS.get(media.imageKey);
+  if (!key) return notFound();
+  const obj = await env.ATTACHMENTS.get(key);
   if (!obj) return notFound();
   return new Response(obj.body, {
     headers: {
-      'Content-Type': media.imageType ?? 'application/octet-stream',
+      'Content-Type': type ?? 'application/octet-stream',
       'Cache-Control': 'private, max-age=300',
     },
   });
 }
 
-export async function streamFeatureFile(
+async function streamPdf(
   env: Bindings,
-  media: FeatureRequestMedia,
+  key: string | null,
+  fileName: string | null,
 ): Promise<Response> {
-  if (!media.fileKey) return notFound();
-  const obj = await env.ATTACHMENTS.get(media.fileKey);
+  if (!key) return notFound();
+  const obj = await env.ATTACHMENTS.get(key);
   if (!obj) return notFound();
-  const name = safeFileName(media.fileName ?? 'attachment.pdf');
+  const name = safeFileName(fileName ?? 'attachment.pdf');
   return new Response(obj.body, {
     headers: {
       'Content-Type': 'application/pdf',
@@ -43,3 +45,15 @@ export async function streamFeatureFile(
     },
   });
 }
+
+// 추가 첨부(0039).
+export const streamFeatureImage = (env: Bindings, media: FeatureRequestMedia) =>
+  streamImage(env, media.imageKey, media.imageType);
+export const streamFeatureFile = (env: Bindings, media: FeatureRequestMedia) =>
+  streamPdf(env, media.fileKey, media.fileName);
+
+// 본문 미디어(0040).
+export const streamFeatureBodyImage = (env: Bindings, media: FeatureRequestMedia) =>
+  streamImage(env, media.bodyImageKey, media.bodyImageType);
+export const streamFeatureBodyFile = (env: Bindings, media: FeatureRequestMedia) =>
+  streamPdf(env, media.bodyFileKey, media.bodyFileName);
