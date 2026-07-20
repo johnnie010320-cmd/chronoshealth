@@ -44,6 +44,14 @@ export function AppShell({
   const iconButtonClass =
     'inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60';
 
+  // 헤더 2층 구조 — 1층은 브랜드/이동 + 고정 액션 아이콘만 두고,
+  // 폭이 가변인 요소(제목·닉네임·배지·브랜드라인)는 2층으로 내려 겹침을 원천 차단한다.
+  const showBrandLine = !showHeaderBack;
+  const showAdminBadge = isAdmin === true && !showHeaderBack;
+  const showNickname = !title && Boolean(nickname);
+  const hasSecondRow =
+    Boolean(title) || showNickname || showAdminBadge || showBrandLine;
+
   return (
     <div className="app-bg relative mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
       <MessageToast arrivedAt={unread.arrivedAt} count={unread.count} />
@@ -54,69 +62,78 @@ export function AppShell({
         />
       )}
 
-      <header className="safe-top sticky top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 backdrop-blur-md">
-        {showHeaderBack ? (
-          <div className="-ml-2 flex items-center gap-0.5">
-            <Link href={parentHref} aria-label={t.common.back} className={iconButtonClass}>
-              <ArrowLeftIcon className="h-5 w-5" />
-            </Link>
-            {showHomeButton && (
-              <Link href="/" aria-label={t.common.home} className={iconButtonClass}>
-                <HomeIcon className="h-5 w-5" />
+      <header className="safe-top sticky top-0 z-10 backdrop-blur-md">
+        {/* 1층 — 브랜드/이동 + 고정 액션 아이콘. 아이콘은 shrink-0 이라 항상 자리를 지킨다. */}
+        <div className="flex items-center justify-between gap-2 px-5 pb-1.5 pt-3">
+          {showHeaderBack ? (
+            <div className="-ml-2 flex shrink-0 items-center gap-0.5">
+              <Link href={parentHref} aria-label={t.common.back} className={iconButtonClass}>
+                <ArrowLeftIcon className="h-5 w-5" />
               </Link>
-            )}
-          </div>
-        ) : (
-          <div className="flex min-w-0 items-center gap-2">
+              {showHomeButton && (
+                <Link href="/" aria-label={t.common.home} className={iconButtonClass}>
+                  <HomeIcon className="h-5 w-5" />
+                </Link>
+              )}
+            </div>
+          ) : (
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-stone-900 dark:text-stone-100"
+              className="flex min-w-0 items-center gap-2 text-stone-900 dark:text-stone-100"
               aria-label={t.brand}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/brand-mark.png"
                 alt=""
-                className="h-9 w-9 rounded-full object-cover shadow-sm"
+                className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm"
               />
-              <span className="text-sm font-semibold tracking-tight">
+              <span className="truncate text-sm font-semibold tracking-tight">
                 {t.brand}
               </span>
             </Link>
-            {/* 관리자에게만 보이는 ADMIN 진입 배지 — 앱 이름 우측. */}
-            {isAdmin === true && (
-              <Link
-                href="/admin"
-                aria-label={t.admin.accessCta}
-                className="inline-flex shrink-0 items-center rounded-full bg-gradient-to-r from-rose-600 to-amber-500 px-2 py-0.5 text-[9px] font-bold tracking-[0.15em] text-white transition active:scale-[0.97]"
-              >
-                {t.admin.modeBadge}
-              </Link>
+          )}
+
+          <div className="flex shrink-0 items-center gap-1">
+            <MessageBell count={unread.count} />
+            <LanguageSwitcher />
+            <UserMenu />
+          </div>
+        </div>
+
+        {/* 2층 — 화면 제목 또는 사용자 컨텍스트(ADMIN 배지·닉네임)와 DID AI 표기. */}
+        {hasSecondRow && (
+          <div className="flex items-center justify-between gap-2 px-5 pb-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              {/* 관리자에게만 보이는 ADMIN 진입 배지. */}
+              {showAdminBadge && (
+                <Link
+                  href="/admin"
+                  aria-label={t.admin.accessCta}
+                  className="inline-flex shrink-0 items-center rounded-full bg-gradient-to-r from-rose-600 to-amber-500 px-2 py-0.5 text-[9px] font-bold tracking-[0.15em] text-white transition active:scale-[0.97]"
+                >
+                  {t.admin.modeBadge}
+                </Link>
+              )}
+              {title ? (
+                <span className="truncate text-sm font-medium text-stone-700 dark:text-stone-300">
+                  {title}
+                </span>
+              ) : (
+                showNickname && (
+                  <span className="truncate rounded-full bg-brand-50 px-2.5 py-1 text-[12px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+                    {nickname}
+                  </span>
+                )
+              )}
+            </div>
+            {showBrandLine && (
+              <span className="shrink-0 text-[11px] font-bold tracking-[0.16em] text-stone-500 dark:text-stone-400">
+                {t.home.brandLine}
+              </span>
             )}
           </div>
         )}
-
-        <div className="flex min-w-0 items-center gap-1">
-          {title && (
-            <span className="mr-1 truncate text-sm font-medium text-stone-700 dark:text-stone-300">
-              {title}
-            </span>
-          )}
-          {!title && nickname && (
-            <span className="mr-0.5 max-w-[7.5rem] truncate rounded-full bg-brand-50 px-2.5 py-1 text-[12px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-              {nickname}
-            </span>
-          )}
-          {/* DID AI 브랜드 표기 — 홈 상단 톡(메시지) 아이콘 좌측. */}
-          {!showHeaderBack && (
-            <span className="mr-0.5 shrink-0 text-[11px] font-bold tracking-[0.16em] text-stone-500 dark:text-stone-400">
-              {t.home.brandLine}
-            </span>
-          )}
-          <MessageBell count={unread.count} />
-          <LanguageSwitcher />
-          <UserMenu />
-        </div>
       </header>
 
       <div className={`flex-1 px-5 ${hideBottomNav ? 'pb-8' : 'pb-24'}`}>
