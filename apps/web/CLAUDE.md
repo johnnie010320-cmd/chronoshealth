@@ -36,3 +36,33 @@
 - Cloudflare Pages 프로젝트: `chronoshealth` (CF 계정 `l2pamerica@gmail.com`)
 - 임시 도메인: `chronoshealth.ever-day.com` (ADR 0006)
 - GitHub: `johnnie010320-cmd/chronoshealth`
+
+### ⚠️ 대시보드 "Deployments paused" 는 정상 상태 (장애 아님)
+
+Pages 대시보드의 **"Deployments paused"** 배지는 배포 실패가 아니라 **GitHub 자동 배포를 의도적으로 꺼둔 상태**다
+(`deployments_enabled=false`, `production_deployments_enabled=false`). 실제 배포는 전부 수동 업로드(`ad_hoc`)로 성공하고 있다.
+
+**끄는 이유** — 이 프로젝트의 배포는 죠니 사전 승인 + 관리자 `releases` 개발로그 동기화가 필수인데,
+push 마다 자동 배포되면 두 규칙을 모두 우회하게 된다.
+
+**배포 방법 (유일)**
+
+```bash
+pnpm --filter web build          # apps/web/out 생성
+cd apps/web
+npx wrangler pages deploy out --project-name=chronoshealth --branch=master
+```
+
+`--branch=master` 가 프로덕션이다. 배포 후 analysis D1 `releases` 에 버전 기록.
+
+**빌드 설정 주의** — 과거 설정이 `build_command=""`, `destination_dir="public"`, `root_dir="apps/web"` 로 잘못돼 있었다.
+이 상태로 자동 배포를 재개하면 `apps/web/public`(이미지 2개뿐)이 사이트 전체로 발행되어 **프로덕션이 파괴된다**.
+2026-07-20 에 아래 값으로 교정했다(자동 배포는 계속 중지 유지):
+
+| 항목 | 값 |
+|---|---|
+| `root_dir` | `` (repo 루트 — pnpm workspace 의존성 설치 필요) |
+| `build_command` | `pnpm --filter web build` |
+| `destination_dir` | `apps/web/out` |
+
+자동 배포를 켜려면 위 규칙(승인·devlog)을 어떻게 지킬지 먼저 정해야 한다.
