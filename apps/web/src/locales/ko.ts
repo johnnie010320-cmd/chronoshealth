@@ -261,6 +261,10 @@ export const ko = {
     fileExpireNote: '공유 파일은 7일 후 자동 삭제됩니다.',
     errorUnsupportedFile: '지원하지 않는 형식입니다. jpg·pdf·ppt만 가능해요.',
     errorFileTooLarge: '파일이 너무 큽니다 (최대 20MB).',
+    translate: '번역',
+    translating: '번역 중…',
+    showOriginal: '원문 보기',
+    translateFailed: '번역하지 못했어요. 다시 시도해 주세요.',
   },
   notices: {
     nav: '공지사항',
@@ -768,6 +772,10 @@ export const ko = {
       dmAcceptLabel: '이 댓글에 1:1 대화 허용',
       dmCta: '1:1 대화',
       dmStarting: '여는 중…',
+      translate: '번역',
+      translating: '번역 중…',
+      showOriginal: '원문 보기',
+      translateFailed: '번역하지 못했어요. 다시 시도해 주세요.',
     },
     pseudonymPrefix: '익명',
     error: {

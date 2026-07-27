@@ -268,6 +268,10 @@ export const en: Dictionary = {
     fileExpireNote: 'Shared files are auto-deleted after 7 days.',
     errorUnsupportedFile: 'Unsupported type. Only jpg·pdf·ppt are allowed.',
     errorFileTooLarge: 'File is too large (max 20MB).',
+    translate: 'Translate',
+    translating: 'Translating…',
+    showOriginal: 'Show original',
+    translateFailed: "Couldn't translate. Please try again.",
   },
   notices: {
     nav: 'Notices',
@@ -775,6 +779,10 @@ export const en: Dictionary = {
       dmAcceptLabel: 'Allow 1:1 messages on this comment',
       dmCta: '1:1 chat',
       dmStarting: 'Opening…',
+      translate: 'Translate',
+      translating: 'Translating…',
+      showOriginal: 'Show original',
+      translateFailed: "Couldn't translate. Please try again.",
     },
     pseudonymPrefix: 'Anon',
     error: {

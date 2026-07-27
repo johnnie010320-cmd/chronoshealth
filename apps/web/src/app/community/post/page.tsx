@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { RichBodyView } from '@/components/RichBodyEditor';
 import { RecipeScoreCard } from '@/components/RecipeScore';
+import { TranslateControl } from '@/components/TranslateControl';
 import {
   addCommunityComment,
   deleteCommunityComment,
@@ -44,6 +45,12 @@ function CommunityDetailPage() {
   const router = useRouter();
   const { t } = useI18n();
   const Co = t.community;
+  const translateLabels = {
+    translate: Co.detail.translate,
+    translating: Co.detail.translating,
+    showOriginal: Co.detail.showOriginal,
+    failed: Co.detail.translateFailed,
+  };
 
   const id = params?.get('id') ?? '';
   const [post, setPost] = useState<CommunityPost | null>(null);
@@ -265,6 +272,10 @@ function CommunityDetailPage() {
 
         <PostBody post={post} />
 
+        {post.body.trim() !== '' && (
+          <TranslateControl text={post.body} labels={translateLabels} />
+        )}
+
         {post.snsUrls.map((s, i) => (
           <a
             key={`s${i}`}
@@ -374,6 +385,9 @@ function CommunityDetailPage() {
                     <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-stone-700 dark:text-stone-200">
                       {c.body}
                     </p>
+                    {c.body.trim() !== '' && (
+                      <TranslateControl text={c.body} labels={translateLabels} />
+                    )}
                     {c.isSelf && (
                       <div className="mt-1.5 flex items-center gap-3">
                         <button

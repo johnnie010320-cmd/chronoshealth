@@ -268,6 +268,10 @@ export const es: Dictionary = {
     fileExpireNote: 'Los archivos compartidos se eliminan tras 7 días.',
     errorUnsupportedFile: 'Tipo no admitido. Solo jpg·pdf·ppt.',
     errorFileTooLarge: 'El archivo es demasiado grande (máx 20MB).',
+    translate: 'Traducir',
+    translating: 'Traduciendo…',
+    showOriginal: 'Ver original',
+    translateFailed: 'No se pudo traducir. Inténtalo de nuevo.',
   },
   notices: {
     nav: 'Avisos',
@@ -775,6 +779,10 @@ export const es: Dictionary = {
       dmAcceptLabel: 'Permitir chat 1:1 en este comentario',
       dmCta: 'Chat 1:1',
       dmStarting: 'Abriendo…',
+      translate: 'Traducir',
+      translating: 'Traduciendo…',
+      showOriginal: 'Ver original',
+      translateFailed: 'No se pudo traducir. Inténtalo de nuevo.',
     },
     pseudonymPrefix: 'Anón',
     error: {

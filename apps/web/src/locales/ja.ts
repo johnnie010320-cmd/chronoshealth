@@ -265,6 +265,10 @@ export const ja: Dictionary = {
     fileExpireNote: '共有ファイルは7日後に自動削除されます。',
     errorUnsupportedFile: '対応していない形式です。jpg·pdf·pptのみ可能です。',
     errorFileTooLarge: 'ファイルが大きすぎます (最大20MB)。',
+    translate: '翻訳',
+    translating: '翻訳中…',
+    showOriginal: '原文を表示',
+    translateFailed: '翻訳できませんでした。もう一度お試しください。',
   },
   notices: {
     nav: 'お知らせ',
@@ -772,6 +776,10 @@ export const ja: Dictionary = {
       dmAcceptLabel: 'このコメントで1:1チャットを許可',
       dmCta: '1:1チャット',
       dmStarting: '開いています…',
+      translate: '翻訳',
+      translating: '翻訳中…',
+      showOriginal: '原文を表示',
+      translateFailed: '翻訳できませんでした。もう一度お試しください。',
     },
     pseudonymPrefix: '匿名',
     error: {

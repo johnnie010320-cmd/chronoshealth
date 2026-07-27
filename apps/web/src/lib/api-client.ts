@@ -2020,6 +2020,23 @@ export async function symptomCheck(input: SymptomInput): Promise<SymptomResult> 
   return (await res.json()) as SymptomResult;
 }
 
+// 온디맨드 번역 — 사용자끼리 주고받은 글(메시지·커뮤니티 댓글)을 읽는 사람의 앱 언어로 번역.
+// 번역 결과는 저장하지 않고 화면 상태로만 보관(휘발). 원문은 그대로 유지.
+export async function translateText(
+  text: string,
+  target: 'ko' | 'en' | 'ja' | 'es',
+): Promise<string> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/ai/translate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ text, target }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { translated: string }).translated;
+}
+
 // Phase 2.2 — MY DIARY
 export type DiaryMood = 'great' | 'good' | 'soso' | 'tired' | 'bad';
 export type DiaryEntry = {

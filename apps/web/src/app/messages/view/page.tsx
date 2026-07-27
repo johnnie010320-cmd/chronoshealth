@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { ChevronRightIcon } from '@/components/HealthIcons';
+import { ChevronRightIcon, GlobeIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -18,6 +18,7 @@ import {
   sendMessage,
   leaveConversation,
   uploadMessageFile,
+  translateText,
   REACTION_EMOJIS,
   type ChatMessage,
   type ConversationDetail,
@@ -36,7 +37,7 @@ function mergeAsc(a: ChatMessage[], b: ChatMessage[]): ChatMessage[] {
 }
 
 function ThreadInner() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const M = t.messaging;
   const router = useRouter();
   const params = useSearchParams();
@@ -53,6 +54,9 @@ function ThreadInner() {
   // 답장 대상 + 컨텍스트 메뉴(우클릭/롱프레스로 연 메시지 id).
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  // 메시지별 번역 결과(휘발 — 화면 상태로만 보관). id → 번역문. 현재 번역 중인 메시지 id 별도 추적.
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   // 과거 메시지 prepend 시 스크롤 위치 보존용(이전 높이·스크롤톱).
@@ -161,6 +165,7 @@ function ThreadInner() {
       UNSUPPORTED_FILE_TYPE: M.errorUnsupportedFile,
       FILE_TOO_LARGE: M.errorFileTooLarge,
       UPLOAD_FAILED: M.errorGeneric,
+      TRANSLATE_FAILED: M.translateFailed,
     };
     return map[code] ?? M.errorGeneric;
   }
@@ -230,6 +235,31 @@ function ThreadInner() {
     } catch (err) {
       setErrCode(err instanceof Error ? err.message : 'generic');
     }
+  }
+
+  // 메시지 번역 — 내 앱 언어(locale)로 번역해 원문 아래에 표시. 번역문은 저장하지 않음.
+  async function handleTranslate(m: ChatMessage) {
+    setMenuFor(null);
+    if (!m.body || translatingId || translations[m.id]) return;
+    setTranslatingId(m.id);
+    setErrCode(null);
+    try {
+      const translated = await translateText(m.body, locale);
+      setTranslations((prev) => ({ ...prev, [m.id]: translated }));
+    } catch {
+      setErrCode('TRANSLATE_FAILED');
+    } finally {
+      setTranslatingId(null);
+    }
+  }
+
+  // 번역 숨기고 원문만 보기.
+  function hideTranslation(messageId: string) {
+    setTranslations((prev) => {
+      const next = { ...prev };
+      delete next[messageId];
+      return next;
+    });
   }
 
   // 답장 시작 — 입력창에 인용 배너 표시 + 포커스.
@@ -388,6 +418,34 @@ function ThreadInner() {
                         </div>
                       </div>
                     )}
+                    {/* 번역 진행/결과 — 원문 아래에 별도 말풍선으로 표시(원문 보존). */}
+                    {m.body && translatingId === m.id && (
+                      <span className="mt-0.5 px-1 text-[10px] text-stone-400">
+                        {M.translating}
+                      </span>
+                    )}
+                    {m.body && translations[m.id] && (
+                      <div
+                        className={`mt-0.5 flex max-w-[82%] flex-col ${
+                          m.isMine ? 'items-end' : 'items-start'
+                        }`}
+                      >
+                        <div className="min-w-0 whitespace-pre-wrap break-words rounded-2xl border border-dashed border-brand-300 bg-brand-50/60 px-3.5 py-2 text-[14px] text-stone-800 dark:border-brand-700 dark:bg-brand-900/20 dark:text-stone-100">
+                          <span className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-300">
+                            <GlobeIcon className="h-3 w-3" />
+                            {M.translate}
+                          </span>
+                          {translations[m.id]}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => hideTranslation(m.id)}
+                          className="mt-0.5 px-1 text-[10px] font-medium text-stone-400 underline-offset-2 hover:underline"
+                        >
+                          {M.showOriginal}
+                        </button>
+                      </div>
+                    )}
                     {m.attachment && (
                       <div
                         className={`mt-0.5 flex max-w-[82%] items-end gap-1 ${
@@ -475,6 +533,15 @@ function ThreadInner() {
                           ))}
                         </div>
                         <div className="flex gap-1 border-t border-stone-100 pt-1 dark:border-stone-800">
+                          {m.body && !translations[m.id] && (
+                            <button
+                              type="button"
+                              onClick={() => void handleTranslate(m)}
+                              className="flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-medium text-brand-700 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                            >
+                              {M.translate}
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => startReply(m)}
