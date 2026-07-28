@@ -18,6 +18,7 @@ import {
   sendMessage,
   leaveConversation,
   uploadMessageFile,
+  fetchMessageFileObjectUrl,
   translateText,
   REACTION_EMOJIS,
   type ChatMessage,
@@ -57,6 +58,15 @@ function ThreadInner() {
   // 메시지별 번역 결과(휘발 — 화면 상태로만 보관). id → 번역문. 현재 번역 중인 메시지 id 별도 추적.
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [translatingId, setTranslatingId] = useState<string | null>(null);
+  // 첨부 미리보기 모달. url=null 이면 렌더 불가 형식(PPT 등) → 미지원 안내만 표시.
+  const [preview, setPreview] = useState<{
+    messageId: string;
+    name: string;
+    type: string;
+    url: string | null;
+    unsupported: boolean;
+  } | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   // 과거 메시지 prepend 시 스크롤 위치 보존용(이전 높이·스크롤톱).
@@ -158,6 +168,13 @@ function ThreadInner() {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [body]);
 
+  // 미리보기 objectURL 은 모달이 닫히거나 다른 파일로 바뀔 때(또는 언마운트 시) 해제 — 메모리 누수 방지.
+  useEffect(() => {
+    const url = preview?.url;
+    if (!url) return;
+    return () => URL.revokeObjectURL(url);
+  }, [preview]);
+
   function errText(code: string): string {
     const map: Record<string, string> = {
       FORBIDDEN_KEYWORD: M.errorForbiddenKeyword,
@@ -190,6 +207,33 @@ function ThreadInner() {
     } catch (err) {
       setErrCode(err instanceof Error ? err.message : 'generic');
     }
+  }
+
+  // 첨부 탭 → 미리보기. 이미지·PDF 는 blob 을 받아 화면에 렌더,
+  // PPT 등 브라우저가 렌더할 수 없는 형식은 blob 을 받지 않고 '미리보기 미지원' 안내만 표시.
+  async function openPreview(m: ChatMessage) {
+    const att = m.attachment;
+    if (!att) return;
+    const canRender = att.type.startsWith('image/') || att.type === 'application/pdf';
+    if (!canRender) {
+      setPreview({ messageId: m.id, name: att.name, type: att.type, url: null, unsupported: true });
+      return;
+    }
+    if (previewLoadingId) return;
+    setPreviewLoadingId(m.id);
+    setErrCode(null);
+    try {
+      const url = await fetchMessageFileObjectUrl(m.id);
+      setPreview({ messageId: m.id, name: att.name, type: att.type, url, unsupported: false });
+    } catch (err) {
+      setErrCode(err instanceof Error ? err.message : 'generic');
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  }
+
+  function closePreview() {
+    setPreview(null);
   }
 
   async function handleFile(file: File | null) {
@@ -312,6 +356,7 @@ function ThreadInner() {
           {M.errorNotMember}
         </div>
       ) : (
+        <>
         <div className="flex h-[calc(100vh-8rem)] flex-col">
           {conv && (
             <div className="flex items-center justify-end pb-1">
@@ -462,7 +507,7 @@ function ThreadInner() {
                         )}
                       <button
                         type="button"
-                        onClick={() => void handleDownload(m.id, m.attachment?.name ?? 'file')}
+                        onClick={() => void openPreview(m)}
                         className={`flex min-w-0 items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.98] ${
                           m.isMine
                             ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/30'
@@ -475,7 +520,8 @@ function ThreadInner() {
                             {m.attachment.name}
                           </span>
                           <span className="block text-[10px] text-stone-500 dark:text-stone-400">
-                            {formatSize(m.attachment.size)} · {M.download}
+                            {formatSize(m.attachment.size)} ·{' '}
+                            {previewLoadingId === m.id ? M.previewLoading : M.previewOpen}
                           </span>
                         </span>
                       </button>
@@ -643,6 +689,66 @@ function ThreadInner() {
             </button>
           </form>
         </div>
+
+        {/* 첨부 미리보기 모달 — 이미지·PDF 렌더, PPT 등은 미지원 안내 + 다운로드 제공. */}
+        {preview && (
+          <div
+            className="fixed inset-0 z-40 flex flex-col bg-black/85 backdrop-blur-sm"
+            onClick={closePreview}
+          >
+            <div
+              className="safe-top flex items-center justify-between gap-3 px-4 py-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="min-w-0 truncate text-[13px] font-semibold text-white">
+                {preview.name}
+              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleDownload(preview.messageId, preview.name)}
+                  className="rounded-full bg-white/15 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-white/25"
+                >
+                  {M.download}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePreview}
+                  aria-label={M.previewClose}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              className="flex flex-1 items-center justify-center overflow-auto p-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {preview.unsupported ? (
+                <div className="max-w-xs rounded-2xl bg-white/95 px-5 py-6 text-center text-[13px] leading-relaxed text-stone-700 dark:bg-stone-900/95 dark:text-stone-200">
+                  {M.previewUnsupported}
+                </div>
+              ) : preview.type.startsWith('image/') ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={preview.url ?? ''}
+                  alt={preview.name}
+                  className="max-h-full max-w-full rounded-lg object-contain"
+                />
+              ) : (
+                <iframe
+                  src={preview.url ?? ''}
+                  title={preview.name}
+                  className="h-full w-full rounded-lg bg-white"
+                />
+              )}
+            </div>
+          </div>
+        )}
+        </>
       )}
     </AppShell>
   );

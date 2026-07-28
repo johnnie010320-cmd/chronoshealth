@@ -272,6 +272,10 @@ export const es: Dictionary = {
     translating: 'Traduciendo…',
     showOriginal: 'Ver original',
     translateFailed: 'No se pudo traducir. Inténtalo de nuevo.',
+    previewOpen: 'Vista previa',
+    previewLoading: 'Abriendo vista previa…',
+    previewClose: 'Cerrar',
+    previewUnsupported: 'Los archivos PPT no se pueden previsualizar. Descárgalo para verlo.',
   },
   notices: {
     nav: 'Avisos',

@@ -265,6 +265,10 @@ export const ko = {
     translating: '번역 중…',
     showOriginal: '원문 보기',
     translateFailed: '번역하지 못했어요. 다시 시도해 주세요.',
+    previewOpen: '미리보기',
+    previewLoading: '미리보기 여는 중…',
+    previewClose: '닫기',
+    previewUnsupported: 'PPT 파일은 미리보기를 지원하지 않습니다. 다운로드해 확인해 주세요.',
   },
   notices: {
     nav: '공지사항',

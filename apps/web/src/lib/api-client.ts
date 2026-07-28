@@ -2404,6 +2404,18 @@ export async function downloadMessageFile(messageId: string, fileName: string): 
   URL.revokeObjectURL(url);
 }
 
+// 첨부 미리보기용 — 인증 blob 을 받아 objectURL 로 반환(다운로드 대신 화면 렌더용).
+// 호출부는 사용 후 반드시 URL.revokeObjectURL 로 해제해야 함(메모리 누수 방지).
+export async function fetchMessageFileObjectUrl(messageId: string): Promise<string> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/files/${messageId}`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return URL.createObjectURL(await res.blob());
+}
+
 // 본인이 보낸 메시지 삭제.
 export async function deleteMessage(conversationId: string, messageId: string): Promise<void> {
   const session = readSession();

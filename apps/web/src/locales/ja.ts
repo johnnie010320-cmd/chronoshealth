@@ -269,6 +269,10 @@ export const ja: Dictionary = {
     translating: '翻訳中…',
     showOriginal: '原文を表示',
     translateFailed: '翻訳できませんでした。もう一度お試しください。',
+    previewOpen: 'プレビュー',
+    previewLoading: 'プレビューを開いています…',
+    previewClose: '閉じる',
+    previewUnsupported: 'PPTファイルはプレビューに対応していません。ダウンロードしてご確認ください。',
   },
   notices: {
     nav: 'お知らせ',
