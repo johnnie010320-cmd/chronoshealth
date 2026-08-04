@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon, GlobeIcon } from '@/components/HealthIcons';
@@ -399,9 +399,21 @@ function ThreadInner() {
               </div>
             )}
             {!loading &&
-              messages.map((m) => (
+              messages.map((m, i) => {
+                const prev = messages[i - 1];
+                const showDate =
+                  !prev || localDayKey(prev.createdAt) !== localDayKey(m.createdAt);
+                return (
+                <Fragment key={m.id}>
+                  {/* 날짜 구분선 — 하루가 바뀔 때(입력 디바이스 로컬 달력 기준)만 표시 */}
+                  {showDate && (
+                    <div className="flex justify-center py-1">
+                      <span className="rounded-full bg-stone-100 px-3 py-0.5 text-[11px] font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                        {formatMsgDate(m.createdAt, locale)}
+                      </span>
+                    </div>
+                  )}
                 <div
-                  key={m.id}
                   className={`relative flex flex-col ${m.isMine ? 'items-end' : 'items-start'}`}
                 >
                   {!m.isMine && conv?.kind === 'room' && (
@@ -529,6 +541,11 @@ function ThreadInner() {
                     )}
                   </div>
 
+                  {/* 생성 시각 — 입력 디바이스 로컬 타임존·로케일로 표기 */}
+                  <span className="mt-0.5 px-1 text-[10px] tabular-nums text-stone-400">
+                    {formatMsgTime(m.createdAt, locale)}
+                  </span>
+
                   {/* 반응 칩 */}
                   {m.reactions.length > 0 && (
                     <div className="mt-0.5 flex flex-wrap gap-1">
@@ -612,7 +629,9 @@ function ThreadInner() {
                     </>
                   )}
                 </div>
-              ))}
+                </Fragment>
+                );
+              })}
             <div ref={bottomRef} />
           </div>
 
@@ -796,6 +815,32 @@ function MessageBody({ body, mine }: { body: string; mine: boolean }) {
       )}
     </>
   );
+}
+
+// SQLite datetime('now') 은 "YYYY-MM-DD HH:MM:SS" (UTC, 타임존 마커 없음).
+// 브라우저가 이 공백 형식을 로컬시간으로 오인 파싱하지 않도록 'T'+'Z' 로 UTC 를 명시한 뒤,
+// toLocale* 로 뷰어의 입력 디바이스 로컬 타임존·로케일에 맞춰 표기한다.
+function utcToLocal(sqlUtc: string): Date {
+  return new Date(`${sqlUtc.replace(' ', 'T')}Z`);
+}
+
+function formatMsgTime(sqlUtc: string, locale: string): string {
+  return utcToLocal(sqlUtc).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatMsgDate(sqlUtc: string, locale: string): string {
+  return utcToLocal(sqlUtc).toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  });
+}
+
+// 로컬(입력 디바이스) 달력 기준 하루 키 — 날짜 구분선 표시 여부 판단.
+function localDayKey(sqlUtc: string): string {
+  const d = utcToLocal(sqlUtc);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
 function formatSize(bytes: number): string {
