@@ -6,6 +6,7 @@ import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon, GlobeIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
+import { previewMode, renderOfficeHtml } from '@/lib/office-preview';
 import {
   addMessageReaction,
   deleteConversation,
@@ -19,6 +20,7 @@ import {
   leaveConversation,
   uploadMessageFile,
   fetchMessageFileObjectUrl,
+  fetchMessageFileBytes,
   translateText,
   REACTION_EMOJIS,
   type ChatMessage,
@@ -58,13 +60,19 @@ function ThreadInner() {
   // 메시지별 번역 결과(휘발 — 화면 상태로만 보관). id → 번역문. 현재 번역 중인 메시지 id 별도 추적.
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [translatingId, setTranslatingId] = useState<string | null>(null);
-  // 첨부 미리보기 모달. url=null 이면 렌더 불가 형식(PPT 등) → 미지원 안내만 표시.
+  // 첨부 미리보기 모달.
+  //  - image/pdf : url(objectURL)로 인라인 렌더
+  //  - office(docx/xlsx/xls) : html(브라우저 내 변환 결과)를 sandbox iframe 으로 렌더
+  //  - unsupported(ppt/pptx·레거시 doc·기타) : 안내 + 다운로드만
+  //  - failed : office 변환 실패 → 안내 + 다운로드
   const [preview, setPreview] = useState<{
     messageId: string;
     name: string;
     type: string;
+    mode: 'image' | 'pdf' | 'office' | 'unsupported';
     url: string | null;
-    unsupported: boolean;
+    html: string | null;
+    failed: boolean;
   } | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -209,24 +217,46 @@ function ThreadInner() {
     }
   }
 
-  // 첨부 탭 → 미리보기. 이미지·PDF 는 blob 을 받아 화면에 렌더,
-  // PPT 등 브라우저가 렌더할 수 없는 형식은 blob 을 받지 않고 '미리보기 미지원' 안내만 표시.
+  // 첨부 탭 → 미리보기.
+  //  - 이미지·PDF : blob(objectURL)을 받아 인라인 렌더
+  //  - Word(docx)·Excel(xlsx/xls) : 바이트를 받아 브라우저 안에서 HTML 로 변환 후 sandbox iframe 렌더
+  //  - PPT/레거시(ppt/pptx/doc)·기타 : 변환 불가 → '미리보기 미지원' 안내 + 다운로드만
+  // 어느 경우에도 파일 바이트는 외부로 전송되지 않는다(전부 인증된 게이트웨이 ↔ 브라우저 내 처리).
   async function openPreview(m: ChatMessage) {
     const att = m.attachment;
     if (!att) return;
-    const canRender = att.type.startsWith('image/') || att.type === 'application/pdf';
-    if (!canRender) {
-      setPreview({ messageId: m.id, name: att.name, type: att.type, url: null, unsupported: true });
+    const mode = previewMode(att.name, att.type);
+    if (mode === 'unsupported') {
+      setPreview({
+        messageId: m.id, name: att.name, type: att.type, mode, url: null, html: null, failed: false,
+      });
       return;
     }
     if (previewLoadingId) return;
     setPreviewLoadingId(m.id);
     setErrCode(null);
     try {
-      const url = await fetchMessageFileObjectUrl(m.id);
-      setPreview({ messageId: m.id, name: att.name, type: att.type, url, unsupported: false });
+      if (mode === 'office') {
+        const bytes = await fetchMessageFileBytes(m.id);
+        const html = await renderOfficeHtml(att.name, bytes);
+        setPreview({
+          messageId: m.id, name: att.name, type: att.type, mode, url: null, html, failed: false,
+        });
+      } else {
+        const url = await fetchMessageFileObjectUrl(m.id);
+        setPreview({
+          messageId: m.id, name: att.name, type: att.type, mode, url, html: null, failed: false,
+        });
+      }
     } catch (err) {
-      setErrCode(err instanceof Error ? err.message : 'generic');
+      // office 변환 실패는 모달 안에서 안내(다운로드 유도), 그 외(이미지·PDF 다운로드 실패)는 하단 에러.
+      if (mode === 'office') {
+        setPreview({
+          messageId: m.id, name: att.name, type: att.type, mode, url: null, html: null, failed: true,
+        });
+      } else {
+        setErrCode(err instanceof Error ? err.message : 'generic');
+      }
     } finally {
       setPreviewLoadingId(null);
     }
@@ -680,7 +710,7 @@ function ThreadInner() {
               )}
               <input
                 type="file"
-                accept=".jpg,.jpeg,.pdf,.ppt,.pptx,image/jpeg,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                accept=".png,.jpg,.jpeg,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,image/png,image/jpeg,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="hidden"
                 disabled={fileBusy}
                 onChange={(e) => {
@@ -746,11 +776,19 @@ function ThreadInner() {
               className="flex flex-1 items-center justify-center overflow-auto p-3"
               onClick={(e) => e.stopPropagation()}
             >
-              {preview.unsupported ? (
+              {preview.mode === 'unsupported' || preview.failed ? (
                 <div className="max-w-xs rounded-2xl bg-white/95 px-5 py-6 text-center text-[13px] leading-relaxed text-stone-700 dark:bg-stone-900/95 dark:text-stone-200">
-                  {M.previewUnsupported}
+                  {preview.failed ? M.previewFailed : M.previewUnsupported}
                 </div>
-              ) : preview.type.startsWith('image/') ? (
+              ) : preview.mode === 'office' ? (
+                // 브라우저 내 변환 결과 HTML 을 sandbox(스크립트 차단)로 격리 렌더.
+                <iframe
+                  sandbox=""
+                  srcDoc={preview.html ?? ''}
+                  title={preview.name}
+                  className="h-full w-full rounded-lg bg-white"
+                />
+              ) : preview.mode === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={preview.url ?? ''}

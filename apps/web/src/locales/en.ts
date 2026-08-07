@@ -275,7 +275,8 @@ export const en: Dictionary = {
     previewOpen: 'Preview',
     previewLoading: 'Opening preview…',
     previewClose: 'Close',
-    previewUnsupported: "PPT files can't be previewed. Please download to view.",
+    previewUnsupported: "This file type (e.g. PPT) can't be previewed. Please download to view.",
+    previewFailed: "Couldn't load the preview. Please download to view.",
   },
   notices: {
     nav: 'Notices',

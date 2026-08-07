@@ -268,7 +268,8 @@ export const ko = {
     previewOpen: '미리보기',
     previewLoading: '미리보기 여는 중…',
     previewClose: '닫기',
-    previewUnsupported: 'PPT 파일은 미리보기를 지원하지 않습니다. 다운로드해 확인해 주세요.',
+    previewUnsupported: 'PPT 등 이 형식은 미리보기를 지원하지 않습니다. 다운로드해 확인해 주세요.',
+    previewFailed: '미리보기를 불러오지 못했습니다. 다운로드해 확인해 주세요.',
   },
   notices: {
     nav: '공지사항',

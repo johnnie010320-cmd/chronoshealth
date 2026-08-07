@@ -272,7 +272,8 @@ export const ja: Dictionary = {
     previewOpen: 'プレビュー',
     previewLoading: 'プレビューを開いています…',
     previewClose: '閉じる',
-    previewUnsupported: 'PPTファイルはプレビューに対応していません。ダウンロードしてご確認ください。',
+    previewUnsupported: 'PPTなどこの形式はプレビューに対応していません。ダウンロードしてご確認ください。',
+    previewFailed: 'プレビューを読み込めませんでした。ダウンロードしてご確認ください。',
   },
   notices: {
     nav: 'お知らせ',

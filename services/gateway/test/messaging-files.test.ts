@@ -89,6 +89,28 @@ describe('R9 대화 파일 공유', () => {
     expect(r2.store.size).toBe(1);
   });
 
+  it('신규 허용 유형(png/docx/xlsx) 업로드 → 정규 MIME 로 저장', async () => {
+    const conv = await openDm(aliceToken, 'bob');
+    const cases: Array<[string, string]> = [
+      ['photo.png', 'image/png'],
+      [
+        'memo.docx',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ],
+      [
+        'sheet.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ],
+    ];
+    for (const [name, mime] of cases) {
+      const res = await upload(aliceToken, conv, uploadForm(name, mime));
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { message: { attachment: { name: string; type: string } } };
+      expect(data.message.attachment.type).toBe(mime);
+      expect(data.message.attachment.name).toBe(name);
+    }
+  });
+
   it('상대가 메시지 목록 조회 시 첨부 노출', async () => {
     const conv = await openDm(aliceToken, 'bob');
     await upload(aliceToken, conv, uploadForm('a.jpg', 'image/jpeg'));

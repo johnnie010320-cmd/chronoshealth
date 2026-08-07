@@ -275,7 +275,8 @@ export const es: Dictionary = {
     previewOpen: 'Vista previa',
     previewLoading: 'Abriendo vista previa…',
     previewClose: 'Cerrar',
-    previewUnsupported: 'Los archivos PPT no se pueden previsualizar. Descárgalo para verlo.',
+    previewUnsupported: 'Este tipo de archivo (p. ej. PPT) no se puede previsualizar. Descárgalo para verlo.',
+    previewFailed: 'No se pudo cargar la vista previa. Descárgalo para verlo.',
   },
   notices: {
     nav: 'Avisos',

@@ -2416,6 +2416,18 @@ export async function fetchMessageFileObjectUrl(messageId: string): Promise<stri
   return URL.createObjectURL(await res.blob());
 }
 
+// 첨부 실물을 ArrayBuffer 로 받아온다(브라우저 내 Office 렌더용 — mammoth/SheetJS 입력).
+// objectURL 과 달리 바이트 자체가 필요할 때 사용. 외부 전송 없이 전부 클라이언트에서 처리.
+export async function fetchMessageFileBytes(messageId: string): Promise<ArrayBuffer> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/messages/files/${messageId}`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return res.arrayBuffer();
+}
+
 // 본인이 보낸 메시지 삭제.
 export async function deleteMessage(conversationId: string, messageId: string): Promise<void> {
   const session = readSession();

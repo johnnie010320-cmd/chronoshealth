@@ -1,5 +1,6 @@
 // R9 대화 파일 첨부 — 허용 유형/용량 검증 + R2 키 생성.
-// 허용: jpg/jpeg, pdf, ppt, pptx. 최대 20MB. 비공개(게이트웨이 인증 후 스트림).
+// 허용: png/jpg/jpeg, pdf, ppt/pptx, doc/docx, xls/xlsx. 최대 20MB.
+// 비공개(게이트웨이 인증 후 스트림).
 
 export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // 20MB
 // 첨부(R2 실물) 보관 기간 90일. 만료 시 파일 바이트만 삭제하고 메시지 기록은 보존.
@@ -7,11 +8,16 @@ export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // 20MB
 export const ATTACHMENT_TTL_DAYS = 90;
 
 const EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png',
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   pdf: 'application/pdf',
   ppt: 'application/vnd.ms-powerpoint',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
 const ALLOWED_MIMES = new Set(Object.values(EXT_TO_MIME));
 
