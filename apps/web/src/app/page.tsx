@@ -1,46 +1,27 @@
 'use client';
 
-import { useEffect, useState, type ReactElement } from 'react';
+// 라이프(홈) 탭 — 결과 표시 중심(정보구조 재편 2026-08).
+// AI 리포트(활력·나이·의료비)와 VITA 진단 요약을 여기서 "러프하게" 보여준다.
+// 데이터 입력은 AI 리포트 탭, 진단 상세는 AI 진단 탭.
+
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { IconBadge, type BadgeTone } from '@/components/IconBadge';
-import {
-  ChevronRightIcon,
-  HeartPulseIcon,
-  LeafIcon,
-  TargetIcon,
-  StethoscopeIcon,
-  type IconProps,
-} from '@/components/HealthIcons';
+import { IconBadge } from '@/components/IconBadge';
+import { ChevronRightIcon, TargetIcon, StethoscopeIcon } from '@/components/HealthIcons';
+import { AvatarReport } from '@/components/AvatarReport';
+import { VitaSummaryCard } from '@/components/VitaSummaryCard';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { getNoticeLastSeen } from '@/lib/notice-state';
-import {
-  fetchAvatarMe,
-  fetchMeProfile,
-  fetchNotices,
-  type AvatarResponse,
-  type Notice,
-} from '@/lib/api-client';
-
-type AgePair = { years: number; months: number };
-
-function splitYearMonths(value: number): AgePair {
-  if (!Number.isFinite(value) || value <= 0) return { years: 0, months: 0 };
-  const years = Math.floor(value);
-  const months = Math.round((value - years) * 12);
-  if (months === 12) return { years: years + 1, months: 0 };
-  return { years, months };
-}
+import { fetchMeProfile, fetchNotices, type Notice } from '@/lib/api-client';
 
 export default function HomePage() {
   const { t } = useI18n();
   const H = t.home;
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
-  const [avatar, setAvatar] = useState<AvatarResponse | null>(null);
-  const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [noticeHasNew, setNoticeHasNew] = useState(false);
 
@@ -54,18 +35,10 @@ export default function HomePage() {
     // ADR 0013 — 본인정보 미완료 시 /onboarding 강제 이동
     fetchMeProfile(false)
       .then((data) => {
-        if (!data.profile.isProfileComplete) {
-          router.replace('/onboarding');
-        }
+        if (!data.profile.isProfileComplete) router.replace('/onboarding');
       })
       .catch(() => {
         /* me 조회 실패는 무시 (게이트 우회) */
-      });
-    fetchAvatarMe()
-      .then((data) => setAvatar(data))
-      .catch((e) => {
-        const code = e instanceof Error ? e.message : 'generic';
-        setAvatarErr(code);
       });
   }, [router]);
 
@@ -86,22 +59,16 @@ export default function HomePage() {
       });
   }, []);
 
-  const bioAge = avatar ? splitYearMonths(avatar.fiveAges.life) : null;
-  const youthAge = avatar ? splitYearMonths(avatar.fiveAges.vitality) : null;
-  const ctaHref = signedIn ? '/survey' : '/signup';
+  const ctaHref = signedIn ? '/reports' : '/signup';
   const ctaLabel = signedIn ? H.twinCtaSignedIn : H.twinCtaSignedOut;
   const promptText = signedIn ? H.twinPromptSignedIn : H.twinPromptSignedOut;
 
   return (
     <AppShell decoration="dots">
-      {/* caremybody 브랜드 히어로 — 앱 제목과 설문 메뉴 사이 (2026-06-20 리브랜딩) */}
+      {/* caremybody 브랜드 히어로 */}
       <section className="card-shadow mt-3 overflow-hidden rounded-2xl">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/caremybody-hero.png"
-          alt="caremybody"
-          className="block w-full"
-        />
+        <img src="/caremybody-hero.png" alt="caremybody" className="block w-full" />
       </section>
 
       {notice && (
@@ -141,9 +108,7 @@ export default function HomePage() {
         </Link>
       ) : (
         <section className="card-shadow mt-3 rounded-2xl card-sky px-5 py-4">
-          <p className="text-[13px] font-medium text-stone-800 dark:text-stone-100">
-            {promptText}
-          </p>
+          <p className="text-[13px] font-medium text-stone-800 dark:text-stone-100">{promptText}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Link
               href="/signup"
@@ -163,28 +128,15 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="mt-3 grid grid-cols-2 gap-3">
-        <AgeCard
-          eyebrow={H.cardBioAgeEyebrow}
-          label={H.cardBioAgeLabel}
-          pair={bioAge}
-          yearUnit={H.cardAgeYearUnit}
-          monthUnit={H.cardAgeMonthUnit}
-          hint={H.cardNoReportHint}
-          Icon={HeartPulseIcon}
-          tone="rose"
-        />
-        <AgeCard
-          eyebrow={H.cardYouthAgeEyebrow}
-          label={H.cardYouthAgeLabel}
-          pair={youthAge}
-          yearUnit={H.cardAgeYearUnit}
-          monthUnit={H.cardAgeMonthUnit}
-          hint={H.cardNoReportHint}
-          Icon={LeafIcon}
-          tone="emerald"
-        />
-      </section>
+      {/* VITA 진단 요약(러프) — 상세는 AI 진단 탭 */}
+      {signedIn && <VitaSummaryCard />}
+
+      {/* AI 리포트 결과(활력 점수·예측 잔여 연수·5종 나이·생애 예상 의료비) */}
+      {signedIn && (
+        <section className="mt-3">
+          <AvatarReport />
+        </section>
+      )}
 
       <section className="mt-3 grid grid-cols-2 gap-3">
         <Link
@@ -198,9 +150,7 @@ export default function HomePage() {
           <span className="text-sm font-bold text-stone-900 dark:text-stone-100">
             {H.boxRoutineTitle}
           </span>
-          <span className="text-[11px] text-stone-600 dark:text-stone-400">
-            {H.boxRoutineBody}
-          </span>
+          <span className="text-[11px] text-stone-600 dark:text-stone-400">{H.boxRoutineBody}</span>
         </Link>
 
         <Link
@@ -214,9 +164,7 @@ export default function HomePage() {
           <span className="text-sm font-bold text-stone-900 dark:text-stone-100">
             {H.boxCareTitle}
           </span>
-          <span className="text-[11px] text-stone-600 dark:text-stone-400">
-            {H.boxCareBody}
-          </span>
+          <span className="text-[11px] text-stone-600 dark:text-stone-400">{H.boxCareBody}</span>
         </Link>
       </section>
 
@@ -225,69 +173,6 @@ export default function HomePage() {
           {H.disclaimer}
         </div>
       )}
-      {signedIn && avatarErr && avatarErr !== 'NO_REPORT' && (
-        <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50/60 px-4 py-2.5 text-[11px] leading-relaxed text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
-          {avatarErr}
-        </div>
-      )}
     </AppShell>
-  );
-}
-
-function AgeCard({
-  eyebrow,
-  label,
-  pair,
-  yearUnit,
-  monthUnit,
-  hint,
-  Icon,
-  tone,
-}: {
-  eyebrow: string;
-  label: string;
-  pair: AgePair | null;
-  yearUnit: string;
-  monthUnit: string;
-  hint: string;
-  Icon: (p: IconProps) => ReactElement;
-  tone: BadgeTone;
-}) {
-  return (
-    <div className="card-shadow flex flex-col rounded-2xl card-emerald px-4 py-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-          {eyebrow}
-        </span>
-        <IconBadge Icon={Icon} tone={tone} size="sm" />
-      </div>
-      {pair ? (
-        <div className="mt-1 flex items-baseline gap-1">
-          <span className="text-2xl font-bold leading-tight tracking-tight text-stone-900 dark:text-stone-100">
-            {pair.years}
-          </span>
-          <span className="text-[12px] text-stone-600 dark:text-stone-400">
-            {yearUnit}
-          </span>
-          {pair.months > 0 && (
-            <>
-              <span className="ml-1 text-base font-semibold text-stone-700 dark:text-stone-300">
-                {pair.months}
-              </span>
-              <span className="text-[12px] text-stone-600 dark:text-stone-400">
-                {monthUnit}
-              </span>
-            </>
-          )}
-        </div>
-      ) : (
-        <span className="mt-2 text-[12px] font-medium text-stone-400 dark:text-stone-500">
-          {hint}
-        </span>
-      )}
-      <span className="mt-2 text-[11px] text-stone-600 dark:text-stone-400">
-        {label}
-      </span>
-    </div>
   );
 }

@@ -105,21 +105,6 @@ const MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
-    groupKey: 'groupRoutine',
-    items: [
-      { itemKey: 'itemRoutineDaily', href: '/routine' },
-    ],
-  },
-  {
-    groupKey: 'groupAiAge',
-    items: [
-      { itemKey: 'itemBioAge', href: '/reports' },
-      { itemKey: 'itemYouthAge', href: '/reports' },
-      { itemKey: 'itemSkinAge', href: '/reports' },
-      { itemKey: 'itemJointAge', href: '/reports' },
-    ],
-  },
-  {
     groupKey: 'groupAiCare',
     items: [
       { itemKey: 'itemCareDiet', href: '/care' },
@@ -155,18 +140,6 @@ const MENU_GROUPS: MenuGroup[] = [
       { itemKey: 'itemRewardsBalance', href: '/rewards' },
       { itemKey: 'itemRewardsEarn', href: '/rewards' },
       { itemKey: 'itemRewardsSpend', href: '/rewards' },
-    ],
-  },
-  {
-    groupKey: 'groupProfile',
-    items: [
-      { itemKey: 'itemNotices', href: '/notices' },
-      { itemKey: 'itemFeatureRequest', href: '/feature-requests' },
-      { itemKey: 'itemProfileEdit', href: '/profile' },
-      { itemKey: 'itemProfileDiary', href: '/diary' },
-      { itemKey: 'itemProfileMyPosts', href: '/community?mine=1' },
-      { itemKey: 'itemProfileMyComments', href: '/community' },
-      { itemKey: 'itemProfileLogout', href: '/profile' },
     ],
   },
 ];

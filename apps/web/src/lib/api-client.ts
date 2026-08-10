@@ -1003,6 +1003,40 @@ export async function fetchLatestVita(): Promise<VitaSavedResult | null> {
   return ((await res.json()) as { result: VitaSavedResult | null }).result;
 }
 
+// ── 국민건강보험공단(건강보험25시) 검진 연동 — 인터페이스 + MOCK(실연동 키는 추후) ──
+export type NhisCheckup = {
+  examDate: string;
+  heightCm: number;
+  weightKg: number;
+  bmi: number;
+  waistCm: number;
+  systolicBp: number;
+  diastolicBp: number;
+  fastingGlucose: number;
+  totalCholesterol: number;
+  hdl: number;
+  ldl: number;
+  triglyceride: number;
+  hemoglobin: number;
+  ast: number;
+  alt: number;
+  gtp: number;
+  urineProtein: string;
+  smoking: string;
+  drinking: string;
+};
+
+export async function fetchNhisCheckup(): Promise<{ source: string; checkup: NhisCheckup }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/nhis/checkup`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { source: string; checkup: NhisCheckup };
+}
+
 export async function fetchRoutineToday(): Promise<RoutineTodayResponse> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');

@@ -206,6 +206,7 @@ export const ko = {
     survey: '설문',
     reports: 'AI 리포트',
     myRoutine: '마이 루틴',
+    aiDiagnosis: 'AI 진단',
     care: 'AI 케어',
     community: '커뮤니티',
     rewards: '혜택',

@@ -440,3 +440,11 @@ export function ClipboardFilledIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ScopeFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M13 3.06a9 9 0 0 1 0 17.88V18a1 1 0 1 0-2 0v2.94a9 9 0 0 1 0-17.88V6a1 1 0 1 0 2 0V3.06ZM6 11a1 1 0 0 1 0 2H3.06a9.05 9.05 0 0 1 0-2H6Zm14.94 0a9.05 9.05 0 0 1 0 2H18a1 1 0 1 1 0-2h2.94ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+    </svg>
+  );
+}

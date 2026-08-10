@@ -10,22 +10,22 @@ import {
   HeartPulseIcon,
   UsersIcon,
   UserCircleIcon,
-  MenuIcon,
   ClipboardIcon,
+  ScopeIcon,
   HomeFilledIcon,
   FileTextFilledIcon,
   HeartFilledIcon,
   UsersFilledIcon,
   UserCircleFilledIcon,
-  GridFilledIcon,
   ClipboardFilledIcon,
+  ScopeFilledIcon,
 } from './HealthIcons';
 
 type IconCmp = (p: { className?: string; strokeWidth?: number }) => ReactElement;
 
 type Item = {
   href: string;
-  labelKey: 'home' | 'reports' | 'myRoutine' | 'care' | 'community' | 'profile' | 'menu';
+  labelKey: 'home' | 'reports' | 'myRoutine' | 'aiDiagnosis' | 'care' | 'community' | 'profile';
   Icon: IconCmp;
   ActiveIcon: IconCmp; // 활성 시 채워진 아이콘(삼성 헬스식)
 };
@@ -35,10 +35,10 @@ const ITEMS: Item[] = [
   { href: '/', labelKey: 'home', Icon: HomeIcon, ActiveIcon: HomeFilledIcon },
   { href: '/reports', labelKey: 'reports', Icon: FileTextIcon, ActiveIcon: FileTextFilledIcon },
   { href: '/my-routine', labelKey: 'myRoutine', Icon: ClipboardIcon, ActiveIcon: ClipboardFilledIcon },
+  { href: '/ai-diagnosis', labelKey: 'aiDiagnosis', Icon: ScopeIcon, ActiveIcon: ScopeFilledIcon },
   { href: '/care', labelKey: 'care', Icon: HeartPulseIcon, ActiveIcon: HeartFilledIcon },
   { href: '/community', labelKey: 'community', Icon: UsersIcon, ActiveIcon: UsersFilledIcon },
   { href: '/profile', labelKey: 'profile', Icon: UserCircleIcon, ActiveIcon: UserCircleFilledIcon },
-  { href: '/menu', labelKey: 'menu', Icon: MenuIcon, ActiveIcon: GridFilledIcon },
 ];
 
 function isActive(pathname: string, href: string): boolean {

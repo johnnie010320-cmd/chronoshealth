@@ -213,6 +213,7 @@ export const es: Dictionary = {
     survey: 'Encuesta',
     reports: 'Informe AI',
     myRoutine: 'Mi rutina',
+    aiDiagnosis: 'Diagnóstico',
     care: 'Cuidado AI',
     community: 'Comunidad',
     rewards: 'Beneficios',

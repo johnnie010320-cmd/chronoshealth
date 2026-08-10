@@ -512,6 +512,31 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {/* 더보기 — 전체메뉴 탭 해체(2026-08)에 따라 마이페이지 항목을 여기로 이동 + 전체 메뉴 접근 */}
+      <section className="card-shadow mt-4 overflow-hidden rounded-3xl bg-white/95 dark:bg-stone-900">
+        <ul className="divide-y divide-stone-100 dark:divide-stone-800">
+          {(
+            [
+              ['/notices', t.menu.itemNotices],
+              ['/diary', t.menu.itemProfileDiary],
+              ['/community?mine=1', t.menu.itemProfileMyPosts],
+              ['/feature-requests', t.menu.itemFeatureRequest],
+              ['/menu', t.menu.pageTitle],
+            ] as [string, string][]
+          ).map(([href, label]) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className="flex items-center gap-3 px-5 py-3.5 text-stone-700 transition active:bg-stone-50 dark:text-stone-200 dark:active:bg-stone-800"
+              >
+                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{label}</span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <div className="mt-6">
         <button
           type="button"
