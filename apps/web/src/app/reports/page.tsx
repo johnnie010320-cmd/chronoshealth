@@ -10,12 +10,13 @@ import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
 import { VitaSurvey } from '@/components/VitaSurvey';
 import { NhisConnect } from '@/components/NhisConnect';
+import { WearableConnect } from '@/components/WearableConnect';
 import { ChevronRightIcon, ClipboardIcon, SparkleIcon } from '@/components/HealthIcons';
 import { IconBadge } from '@/components/IconBadge';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 
-type InputTab = 'direct' | 'nhis';
+type InputTab = 'direct' | 'nhis' | 'wearable';
 
 export default function ReportsPage() {
   const { t } = useI18n();
@@ -43,13 +44,14 @@ export default function ReportsPage() {
               [
                 ['direct', '직접 입력'],
                 ['nhis', '국민건강보험공단'],
+                ['wearable', '웨어러블'],
               ] as [InputTab, string][]
             ).map(([key, label]) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className={`flex-1 rounded-xl px-3 py-2 text-[13px] font-semibold transition ${
+                className={`flex-1 rounded-xl px-2 py-2 text-center text-[12px] font-semibold leading-tight transition ${
                   tab === key
                     ? 'bg-brand-600 text-white'
                     : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
@@ -77,8 +79,10 @@ export default function ReportsPage() {
               </span>
               <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
             </Link>
-          ) : (
+          ) : tab === 'nhis' ? (
             <NhisConnect />
+          ) : (
+            <WearableConnect />
           )}
 
           {/* VITA 자가진단 — 입력 방식과 무관하게 항상 추가로 수행해야 하는 필수 항목 */}

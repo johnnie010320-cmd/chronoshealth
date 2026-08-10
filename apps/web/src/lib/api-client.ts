@@ -1037,6 +1037,51 @@ export async function fetchNhisCheckup(): Promise<{ source: string; checkup: Nhi
   return (await res.json()) as { source: string; checkup: NhisCheckup };
 }
 
+// ── 웨어러블 연동 — 인터페이스 + MOCK(집계사 실연동 키는 추후) ──
+export type WearableMetrics = {
+  sleepDurationH: number;
+  sleepDeepH: number;
+  sleepRemH: number;
+  sleepScore: number;
+  hrvMs: number;
+  restingHr: number;
+  avgHr: number;
+  steps: number;
+  activeEnergyKcal: number;
+  spo2: number;
+  respiratoryRate: number;
+  skinTempDeltaC: number;
+};
+
+export type WearableSummary = {
+  source: string;
+  provider: string;
+  lastSyncAt: string;
+  metrics: WearableMetrics;
+};
+
+export async function connectWearable(): Promise<{ status: string; authUrl: string | null }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/wearable/connect`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { status: string; authUrl: string | null };
+}
+
+export async function fetchWearableSummary(): Promise<WearableSummary> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/wearable/summary`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as WearableSummary;
+}
+
 export async function fetchRoutineToday(): Promise<RoutineTodayResponse> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
