@@ -959,6 +959,50 @@ export type RoutineUpsertResponse = {
   modelVersion: string;
 };
 
+// ── VITA 자가진단 결과(영역별 점수) 저장·조회 ──────────────────────────────
+export type VitaSectionScores = {
+  energy: number;
+  glucose: number;
+  gut: number;
+  inflammation: number;
+  detox: number;
+  circulation: number;
+  hormone: number;
+  sleep: number;
+  musculoskeletal: number;
+  neuro: number;
+};
+
+export type VitaSavedResult = {
+  code: string;
+  totalScore: number;
+  sectionScores: VitaSectionScores;
+  createdAt: string;
+};
+
+export async function submitVita(sectionScores: VitaSectionScores): Promise<VitaSavedResult> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/vita`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ sectionScores }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { result: VitaSavedResult }).result;
+}
+
+export async function fetchLatestVita(): Promise<VitaSavedResult | null> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/vita/latest`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { result: VitaSavedResult | null }).result;
+}
+
 export async function fetchRoutineToday(): Promise<RoutineTodayResponse> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
