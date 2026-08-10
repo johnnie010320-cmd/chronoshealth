@@ -155,6 +155,7 @@ const PARENT_MAP: Record<string, string> = {
   '/health-diary': '/',
   '/twin': '/menu',
   '/routine': '/menu',
+  '/my-routine': '/menu',
   '/reports': '/menu',
   '/care': '/menu',
   '/rewards': '/menu',

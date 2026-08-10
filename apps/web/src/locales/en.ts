@@ -212,6 +212,7 @@ export const en: Dictionary = {
     home: 'Life',
     survey: 'Survey',
     reports: 'AI Report',
+    myRoutine: 'My Routine',
     care: 'AI Care',
     community: 'Community',
     rewards: 'Rewards',

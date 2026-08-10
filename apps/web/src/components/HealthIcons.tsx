@@ -432,3 +432,11 @@ export function GridFilledIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ClipboardFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M9 2a1 1 0 0 0-1 1H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2a1 1 0 0 0-1-1H9Zm0 2h6v2H9V4Zm-.5 7h7a.9.9 0 0 1 0 1.8h-7a.9.9 0 0 1 0-1.8Zm0 4h5a.9.9 0 0 1 0 1.8h-5a.9.9 0 0 1 0-1.8Z" />
+    </svg>
+  );
+}

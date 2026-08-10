@@ -209,6 +209,7 @@ export const ja: Dictionary = {
     home: 'ライフ',
     survey: 'アンケート',
     reports: 'AIレポート',
+    myRoutine: 'ルーティン',
     care: 'AIケア',
     community: 'コミュニティ',
     rewards: '特典',

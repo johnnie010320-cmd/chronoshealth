@@ -205,6 +205,7 @@ export const ko = {
     home: '라이프',
     survey: '설문',
     reports: 'AI 리포트',
+    myRoutine: '마이 루틴',
     care: 'AI 케어',
     community: '커뮤니티',
     rewards: '혜택',

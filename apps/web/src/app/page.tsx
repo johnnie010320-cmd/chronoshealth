@@ -4,11 +4,9 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
-import { TodaySelfCheck } from '@/components/TodaySelfCheck';
 import { IconBadge, type BadgeTone } from '@/components/IconBadge';
 import {
   ChevronRightIcon,
-  UsersIcon,
   HeartPulseIcon,
   LeafIcon,
   TargetIcon,
@@ -188,8 +186,6 @@ export default function HomePage() {
         />
       </section>
 
-      <TodaySelfCheck />
-
       <section className="mt-3 grid grid-cols-2 gap-3">
         <Link
           href="/health-diary"
@@ -223,21 +219,6 @@ export default function HomePage() {
           </span>
         </Link>
       </section>
-
-      <Link
-        href="/community"
-        className="card-shadow mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900/70"
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
-            <UsersIcon className="h-4 w-4" />
-          </span>
-          <p className="truncate text-[12px] font-medium text-stone-700 dark:text-stone-300">
-            {t.community.homeCardLabel}
-          </p>
-        </div>
-        <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
-      </Link>
 
       {!signedIn && (
         <div className="mt-3 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-2.5 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
