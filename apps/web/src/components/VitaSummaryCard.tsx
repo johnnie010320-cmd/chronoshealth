@@ -5,8 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRightIcon, SparkleIcon } from '@/components/HealthIcons';
-import { IconBadge } from '@/components/IconBadge';
+import { ChevronRightIcon } from '@/components/HealthIcons';
 import { readSession } from '@/lib/session';
 import { fetchLatestVita, type VitaSavedResult } from '@/lib/api-client';
 import { buildVitaReport } from '@/lib/vita/reports';
@@ -37,27 +36,8 @@ export function VitaSummaryCard() {
       .catch(() => setState('none'));
   }, []);
 
-  if (state === 'unauth' || state === 'loading') return null;
-
-  if (state === 'none' || !saved) {
-    return (
-      <Link
-        href="/reports"
-        className="card-shadow mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-4 transition active:scale-[0.99] dark:bg-stone-900"
-      >
-        <IconBadge Icon={SparkleIcon} tone="emerald" size="sm" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-bold text-stone-900 dark:text-stone-100">
-            VITA 자가진단 시작하기
-          </span>
-          <span className="block text-[11px] text-stone-500 dark:text-stone-400">
-            200문항으로 4대 축(대사·정화·순환·신경)을 진단하고 내 유형을 확인하세요.
-          </span>
-        </span>
-        <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
-      </Link>
-    );
-  }
+  // 결과가 있을 때만 요약을 노출한다. '시작하기' 진입은 AI 리포트 탭에 있으므로 라이프에선 생략(중복 방지).
+  if (state !== 'ok' || !saved) return null;
 
   const report = buildVitaReport(saved.sectionScores);
   const head = report.headline;

@@ -1,29 +1,32 @@
 'use client';
 
-// AI 리포트 결과(활력 점수·예측 잔여 연수·5종 나이·생애 예상 의료비) 렌더 컴포넌트.
-// 정보구조 재편(2026-08): 입력은 AI리포트 탭, 결과 표시는 라이프 탭 → 이 컴포넌트를 라이프에서 사용.
-// i18n 키는 기존 t.reports 를 그대로 재사용한다.
+// AI 리포트 결과(활력 점수·예측 잔여 연수·5종 나이·생애 예상 의료비) 렌더 — 라이프 탭에서 사용.
+// 정보구조 재편(2026-08): 입력은 AI리포트 탭. 라이프에선 결과만 표기(입력 CTA 없음).
+// 활력 점수/예측 잔여 연수는 같은 열 2단(각 50%) 컴팩트 카드로 표시.
 
 import { useEffect, useState, type ReactElement } from 'react';
 import Link from 'next/link';
 import { LoginRequired } from '@/components/LoginRequired';
 import { IconBadge, type BadgeTone } from '@/components/IconBadge';
 import {
-  ChevronRightIcon,
-  HeartPulseIcon,
   ActivityIcon,
-  ShieldIcon,
   ScopeIcon,
   CoinIcon,
   TrophyIcon,
   type IconProps,
 } from '@/components/HealthIcons';
-import { VitalityCard } from '@/components/avatar/VitalityCard';
-import { PyrBar } from '@/components/avatar/PyrBar';
 import { FiveAgesGrid } from '@/components/avatar/FiveAgesGrid';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { fetchAvatarMe, type AvatarResponse } from '@/lib/api-client';
+
+type Tier = 'excellent' | 'good' | 'fair' | 'attention';
+const TIER_TONE: Record<Tier, string> = {
+  excellent: 'from-emerald-600 to-teal-500',
+  good: 'from-brand-700 to-teal-500',
+  fair: 'from-amber-500 to-yellow-500',
+  attention: 'from-rose-600 to-orange-500',
+};
 
 function SectionHeader({
   Icon,
@@ -54,6 +57,7 @@ function SectionHeader({
 export function AvatarReport() {
   const { t } = useI18n();
   const R = t.reports;
+  const A = t.avatar;
   const [state, setState] = useState<
     | { status: 'loading' }
     | { status: 'unauth' }
@@ -86,28 +90,8 @@ export function AvatarReport() {
   }
 
   if (state.status === 'unauth') return <LoginRequired />;
-
-  if (state.status === 'noReport') {
-    return (
-      <section className="card-shadow mt-3 rounded-3xl card-violet p-6 text-center">
-        <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
-          <HeartPulseIcon className="h-6 w-6" />
-        </span>
-        <h2 className="mt-3 text-lg font-bold text-stone-900 dark:text-stone-100">{R.noReportTitle}</h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-stone-600 dark:text-stone-400">
-          {R.noReportBody}
-        </p>
-        <Link
-          href="/reports"
-          className="mt-4 inline-flex items-center gap-1 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
-        >
-          <span>{R.noReportCta}</span>
-          <ChevronRightIcon className="h-4 w-4" />
-        </Link>
-      </section>
-    );
-  }
-
+  // 리포트가 없으면 라이프에선 아무것도 표시하지 않는다(입력 CTA는 AI 리포트 탭에만).
+  if (state.status === 'noReport') return null;
   if (state.status === 'err') {
     return (
       <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">
@@ -116,36 +100,42 @@ export function AvatarReport() {
     );
   }
 
+  const tier = state.data.vitalityScore.tier as Tier;
+  const [lo, hi] = state.data.predictedYearsRemaining.ci95;
+
   return (
     <div className="space-y-5">
-      {typeof state.data.confidence === 'number' && (
-        <section className="card-shadow rounded-2xl bg-gradient-to-r from-brand-700 to-brand-500 px-4 py-3 text-white">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-widest opacity-90">
-              {R.confidenceLabel}
+      {/* 활력 점수 + 예측 잔여 연수 — 같은 열 2단(각 50%) */}
+      <section className="grid grid-cols-2 gap-3">
+        <div
+          className={`card-shadow overflow-hidden rounded-2xl bg-gradient-to-br ${TIER_TONE[tier]} px-4 py-4 text-white`}
+        >
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/85">
+            {R.vitalitySectionTitle}
+          </p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-4xl font-bold leading-none tracking-tight">
+              {state.data.vitalityScore.value}
             </span>
-            <span className="text-2xl font-bold tabular-nums">{state.data.confidence}%</span>
+            <span className="text-[11px] text-white/70">/100</span>
           </div>
-          <p className="mt-1 text-[11px] opacity-80">{R.confidenceHint}</p>
-        </section>
-      )}
+          <p className="mt-1.5 text-[10px] text-white/85">{A.vitalityTiers[tier]}</p>
+        </div>
 
-      <section>
-        <SectionHeader Icon={HeartPulseIcon} tone="rose" title={R.vitalitySectionTitle} />
-        <VitalityCard
-          name={state.data.name}
-          chronologicalAge={state.data.chronologicalAge}
-          value={state.data.vitalityScore.value}
-          tier={state.data.vitalityScore.tier}
-        />
-      </section>
-
-      <section>
-        <SectionHeader Icon={ShieldIcon} tone="emerald" title={R.pyrSectionTitle} />
-        <PyrBar
-          median={state.data.predictedYearsRemaining.median}
-          ci95={state.data.predictedYearsRemaining.ci95}
-        />
+        <div className="card-shadow rounded-2xl bg-white px-4 py-4 dark:bg-stone-900">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
+            {R.pyrSectionTitle}
+          </p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-3xl font-bold leading-none tracking-tight text-stone-900 dark:text-stone-100">
+              {state.data.predictedYearsRemaining.median.toFixed(1)}
+            </span>
+            <span className="text-[11px] text-stone-500 dark:text-stone-400">{A.pyr.unit}</span>
+          </div>
+          <p className="mt-1.5 text-[10px] text-stone-500 dark:text-stone-400">
+            {A.pyr.ci} {lo.toFixed(1)}~{hi.toFixed(1)}
+          </p>
+        </div>
       </section>
 
       <section>
