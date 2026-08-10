@@ -42,7 +42,7 @@ export default function ReportsPage() {
             {(
               [
                 ['direct', '직접 입력'],
-                ['nhis', '국민건강보험공단 연동'],
+                ['nhis', '국민건강보험공단'],
               ] as [InputTab, string][]
             ).map(([key, label]) => (
               <button
