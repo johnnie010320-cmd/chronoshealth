@@ -12,6 +12,7 @@ import { IconBadge } from '@/components/IconBadge';
 import { ChevronRightIcon, TargetIcon, StethoscopeIcon } from '@/components/HealthIcons';
 import { AvatarReport } from '@/components/AvatarReport';
 import { VitaSummaryCard } from '@/components/VitaSummaryCard';
+import { BannerCarousel } from '@/components/BannerCarousel';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { getNoticeLastSeen } from '@/lib/notice-state';
@@ -65,11 +66,8 @@ export default function HomePage() {
 
   return (
     <AppShell decoration="dots">
-      {/* caremybody 브랜드 히어로 */}
-      <section className="card-shadow mt-3 overflow-hidden rounded-2xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/caremybody-hero.png" alt="caremybody" className="block w-full" />
-      </section>
+      {/* 메인 배너 — 관리자 배너(이미지/동영상) 캐러셀. 배너 없으면 기본 히어로 이미지 */}
+      <BannerCarousel />
 
       {notice && (
         <Link

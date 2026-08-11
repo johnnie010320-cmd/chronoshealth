@@ -1082,6 +1082,80 @@ export async function fetchWearableSummary(): Promise<WearableSummary> {
   return (await res.json()) as WearableSummary;
 }
 
+// ── 메인 배너(홈 히어로) — 공개 조회 + 관리자 CRUD ──────────────────────────
+export type BannerKind = 'image' | 'video';
+export type BannerItem = { id: string; kind: BannerKind; contentType: string; name: string | null };
+export type AdminBanner = BannerItem & { sortOrder: number; active: boolean; createdAt: string };
+
+// 배너 미디어 URL(공개 스트림). <img>/<video> src 로 사용.
+export function bannerFileUrl(id: string): string {
+  return `${GATEWAY_URL}/api/v1/banners/${id}/file`;
+}
+
+export async function fetchBanners(): Promise<BannerItem[]> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/banners`, { method: 'GET' });
+  if (!res.ok) return [];
+  return ((await res.json()) as { banners: BannerItem[] }).banners ?? [];
+}
+
+export async function fetchAdminBanners(): Promise<AdminBanner[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners`, {
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+}
+
+export async function uploadBanner(file: File): Promise<AdminBanner[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+    body: form,
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+}
+
+export async function setBannerActiveApi(id: string, active: boolean): Promise<AdminBanner[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ active }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+}
+
+export async function moveBannerApi(id: string, dir: 'up' | 'down'): Promise<AdminBanner[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}/move?dir=${dir}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+}
+
+export async function deleteBannerApi(id: string): Promise<AdminBanner[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${session.sessionToken}` },
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+}
+
 export async function fetchRoutineToday(): Promise<RoutineTodayResponse> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');

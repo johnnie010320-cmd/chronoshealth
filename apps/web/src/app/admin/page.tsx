@@ -127,6 +127,13 @@ export default function AdminDashboardPage() {
       status: 'active',
     },
     {
+      key: 'banners',
+      href: '/admin/banners',
+      title: '배너 관리',
+      desc: '메인 배너 이미지·동영상 업로드·순서 관리',
+      status: 'active',
+    },
+    {
       key: 'devlog',
       href: '/admin/devlog',
       title: D.actionDevlog,
