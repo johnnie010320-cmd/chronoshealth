@@ -34,7 +34,7 @@
 ## 배포
 
 - Cloudflare Pages 프로젝트: `chronoshealth` (CF 계정 `l2pamerica@gmail.com`)
-- 임시 도메인: `chronoshealth.ever-day.com` (ADR 0006)
+- 도메인: `vitacode.ever-day.com` (주) · `chronoshealth.ever-day.com` (기존 유지) (ADR 0006). 브랜드 표시명 `VITAcode`
 - GitHub: `johnnie010320-cmd/chronoshealth`
 
 ### ⚠️ 대시보드 "Deployments paused" 는 정상 상태 (장애 아님)

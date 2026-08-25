@@ -1,12 +1,13 @@
-# Chronos Health — Claude Code Project Guide
+# VITAcode — Claude Code Project Guide
 
 > 디지털 트윈 헬스케어 × 분산형 인프라(DePIN). AI 기반 노화/질병 위험 예측 + Health-to-Earn 토큰(**CHRO**) 생태계.
+> **브랜드 표시명 = `VITAcode`**(2026-08-25 확정, 구 "Chronos Health"/"caremybody"). 기술 식별자(repo·worker·D1·R2·Pages)는 하이픈 없는 `chronoshealth` 유지. 디지털 트윈 아바타명 = "마이 VITA".
 
 ## 현재 단계
 
 **P1 — 제품 확장 / 실측 전환 준비** (최종 갱신 2026-07-08, 릴리스 `v0.0.48`)
 
-`chronoshealth.ever-day.com` 라이브. 릴리스 이력은 관리자 `/admin/devlog` (analysis D1 `releases` 테이블)가 정본.
+`vitacode.ever-day.com`(및 기존 `chronoshealth.ever-day.com`) 라이브. 릴리스 이력은 관리자 `/admin/devlog` (analysis D1 `releases` 테이블)가 정본.
 
 ### 라이브 (구현·배포 완료)
 
@@ -48,13 +49,13 @@
 
 ## 임시 도메인 (ADR 0006)
 
-- **URL**: `chronoshealth.ever-day.com` (FormCoach `ever-day.com` 하위)
+- **URL**: `vitacode.ever-day.com` (신규 주 도메인) · `chronoshealth.ever-day.com` (기존, 유지) — 둘 다 FormCoach `ever-day.com` 하위
 - **DNS**: Gabia (`ns1.gabia.co.kr`) — CNAME 추가 필요
 - **배포**: Cloudflare Pages 프로젝트 `chronoshealth`
 - **CF 계정**: `l2pamerica@gmail.com` (Account ID `70461e52de37c19b674705151b865aca`, 투윈즈와 공유)
 - **GitHub**: `johnnie010320-cmd/chronoshealth`
 - **이동 시점**: P1 종료 조건 충족 시 정식 도메인 (`chronoshealth.io` 등)으로
-- **표기 규칙**: 모든 기술 식별자는 하이픈 없는 `chronoshealth`. 브랜드 표시명은 "Chronos Health" 2단어.
+- **표기 규칙**: 모든 기술 식별자(repo·CF 프로젝트·worker·D1·R2·서브도메인)는 하이픈 없는 `chronoshealth` 유지. **브랜드 표시명 = `VITAcode`**(2026-08-25 확정, 구 "Chronos Health"/"caremybody"). 디지털 트윈 아바타명 = "마이 VITA".
 
 ## 1차 근거 문서
 

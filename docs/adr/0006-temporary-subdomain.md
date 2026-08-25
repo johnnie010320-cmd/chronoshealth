@@ -51,3 +51,10 @@
 - **Firebase Hosting (FormCoach 멀티사이트)**: 빠르나 production 타겟(CF Pages)과 다른 스택 → 이동 시 마이그레이션 비용. 거부.
 - **vercel.app 기본 도메인 (예: chronos-health.vercel.app)**: 외부 공유 시 외관 약함, 추후 Vercel 의존성. 거부.
 - **정식 도메인 즉시 등록**: 상표 충돌 시 등록 매몰 비용. 거부.
+
+## Amendment — 브랜드/도메인 변경 (2026-08-25, Johnnie)
+
+- 앱 **브랜드 표시명을 `VITAcode`로 확정**(구 "Chronos Health" → "caremybody" → **VITAcode**). 디지털 트윈 아바타명 = "마이 VITA"(ko) / "My VITA"(en) / "マイVITA"(ja) / "Mi VITA"(es).
+- **신규 도메인 `vitacode.ever-day.com` 추가** — Gabia(`ns1.gabia.co.kr`)에 CNAME `vitacode` → `chronoshealth.pages.dev`, CF Pages 커스텀 도메인 연결. 기존 `chronoshealth.ever-day.com`도 **유지**(둘 다 라이브, 프록시·쿠키 무변경).
+- **기술 식별자는 변경 없음**(비가역 결정 유지) — repo·CF Pages 프로젝트·worker(`chronoshealth-gateway`)·D1(`chronoshealth-identity`/`chronoshealth-analysis`)·R2(`chronoshealth-attachments`)·쿠키(`chronos_session`/`chronos_uid`) 모두 `chronoshealth`/`chronos` 표기 유지(데이터 무중단, 사용자 비노출). `CHRO` 토큰 심볼도 유지.
+- 배포: full **`v0.3.0`**. 정식 도메인 이동(§Migration Plan) 시 `vitacode.io` 등 브랜드 정합 도메인을 후보에 포함.
