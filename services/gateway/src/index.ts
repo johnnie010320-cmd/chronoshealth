@@ -47,6 +47,7 @@ app.use(
   '*',
   cors({
     origin: [
+      'https://vitacode.ever-day.com',
       'https://chronoshealth.ever-day.com',
       'https://chronoshealth.pages.dev',
       'http://localhost:3000',

@@ -2,11 +2,11 @@ import type { Dictionary } from './ko';
 
 export const en: Dictionary = {
   meta: {
-    title: 'caremybody',
+    title: 'VITAcode',
     description:
       'Preventive medicine starting from your health data. Get an instant biological age and 5-year risk estimate report.',
   },
-  brand: 'caremybody',
+  brand: 'VITAcode',
   language: {
     label: 'Language',
     ko: '한국어',
@@ -178,7 +178,7 @@ export const en: Dictionary = {
     },
     teaser: {
       eyebrow: 'What is next?',
-      title: 'Your Chronos is growing',
+      title: 'My VITA is growing',
       body: 'Vitality Score What-if, 5 ages, and rankings are coming soon. Launch date is not fixed. This is not medical care.',
       roadmapCta: 'View full roadmap',
       betaSignupCta: 'Get launch notification',
@@ -292,7 +292,7 @@ export const en: Dictionary = {
     more: 'View all notices',
   },
   home: {
-    pageTitle: 'caremybody',
+    pageTitle: 'VITAcode',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: 'Shall we start building your life Twin?',
@@ -1577,7 +1577,7 @@ export const en: Dictionary = {
     nav: 'Roadmap',
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
-      title: 'Building caremybody',
+      title: 'Building VITAcode',
       body: 'AI-based health risk prediction + decentralized data sovereignty + Health-to-Earn. The full picture from early stage to launch.',
     },
     currentLive: {
@@ -1601,7 +1601,7 @@ export const en: Dictionary = {
       m5: { title: 'Data tier 3 — genomics · telomeres', body: 'External lab integration (Macrogen · 23andMe).' },
       m6: { title: 'Leaderboard — world · country · city', body: 'Static distribution → live ranking with monthly delta rewards.' },
       m7: { title: 'Personal simulation — Vitality Score What-if', body: 'Decision-rule → wearable adaptive → ML personalised.' },
-      m8: { title: 'Digital twin avatar — "Chronos"', body: 'Static card → 2D → 3D → game mechanics → optional NFT.' },
+      m8: { title: 'Digital twin avatar — "My VITA"', body: 'Static card → 2D → 3D → game mechanics → optional NFT.' },
       m9: { title: 'Social network', body: 'Short-form video + same-condition patient matching + Q&A.' },
       m10: { title: 'CHRO tokenomics', body: 'Off-chain points → testnet ERC-20 → mainnet + CertiK → LBank listing.' },
       m11: { title: 'Senior care monitoring', body: 'Wearable thresholds → ML anomaly → premium SMS alerts.' },
@@ -1632,15 +1632,15 @@ export const en: Dictionary = {
       cta: 'Join the waitlist',
     },
     disclaimer:
-      'caremybody does not provide medical care. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
+      'VITAcode does not provide medical care. All predictions are shown with confidence intervals. Under-19 signup is blocked. Token rewards are under review.',
     backHome: 'Back to home',
   },
   avatar: {
-    pageTitle: 'My Chronos',
-    nav: 'My Chronos',
+    pageTitle: 'My VITA',
+    nav: 'My VITA',
     eyebrow: 'Digital twin',
-    title: 'My Chronos',
-    nameFallback: 'Chronos',
+    title: 'My VITA',
+    nameFallback: 'My VITA',
     vitalityScore: 'Vitality Score',
     vitalityTiers: {
       excellent: 'Excellent',
@@ -1764,7 +1764,7 @@ export const en: Dictionary = {
       medical: {
         label: 'Medical disclaimer (required)',
         description:
-          'I understand caremybody does not provide medical care, and prediction reports do not replace medical advice.',
+          'I understand VITAcode does not provide medical care, and prediction reports do not replace medical advice.',
       },
       token: {
         label: 'Token rewards under review (required)',

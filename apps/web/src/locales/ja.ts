@@ -2,11 +2,11 @@ import type { Dictionary } from './ko';
 
 export const ja: Dictionary = {
   meta: {
-    title: 'caremybody',
+    title: 'VITAcode',
     description:
       '健康データから始める予防医学。生体年齢と5年以内のリスク推定レポートを即時に発行。',
   },
-  brand: 'caremybody',
+  brand: 'VITAcode',
   language: {
     label: '言語',
     ko: '한국어',
@@ -175,7 +175,7 @@ export const ja: Dictionary = {
     },
     teaser: {
       eyebrow: '次のステップは？',
-      title: 'あなたのクロノスが育っています',
+      title: 'マイVITAが育っています',
       body: 'まもなく活力スコアシミュレーション・5 種年齢・ランキングが登場します。リリース時期は未確定で、医療行為ではありません。',
       roadmapCta: '全体ロードマップを見る',
       betaSignupCta: 'リリース通知を受け取る',
@@ -289,7 +289,7 @@ export const ja: Dictionary = {
     more: 'お知らせ一覧',
   },
   home: {
-    pageTitle: 'caremybody',
+    pageTitle: 'VITAcode',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '生命のTwin作りを始めましょうか?',
@@ -1574,7 +1574,7 @@ export const ja: Dictionary = {
     nav: 'ロードマップ',
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
-      title: 'caremybody を作り上げる道のり',
+      title: 'VITAcode を作り上げる道のり',
       body: 'AI 健康リスク予測 + 分散型データ主権 + Health-to-Earn トークン。初期段階から本格リリースまでの全体像。',
     },
     currentLive: {
@@ -1598,7 +1598,7 @@ export const ja: Dictionary = {
       m5: { title: 'データ 3 次 — ゲノム・テロメア', body: '外部検査機関連携（Macrogen · 23andMe）.' },
       m6: { title: 'ランキング — 世界・国・都市', body: '静的分布 → 実測ランキング + 月次変動報酬.' },
       m7: { title: '個人シミュレーション — Vitality Score What-if', body: '決定ルール → ウェアラブル適応 → ML パーソナライズ.' },
-      m8: { title: 'デジタルツインアバター — 「クロノス」', body: '静的カード → 2D → 3D → ゲームメカニクス → オプション NFT.' },
+      m8: { title: 'デジタルツインアバター — 「マイVITA」', body: '静的カード → 2D → 3D → ゲームメカニクス → オプション NFT.' },
       m9: { title: 'ソーシャルネットワーク', body: 'ショート動画 + 同質患者マッチング + Q&A.' },
       m10: { title: 'CHRO トークノミクス', body: 'オフチェーンポイント → テストネット ERC-20 → メインネット + CertiK → LBank 上場.' },
       m11: { title: 'シニアケアモニタリング', body: 'ウェアラブル閾値 → ML 異常検知 → プレミアム SMS 通知.' },
@@ -1629,15 +1629,15 @@ export const ja: Dictionary = {
       cta: 'ウェイティングリストに参加',
     },
     disclaimer:
-      'caremybody は医療行為を提供しません。すべての予測は信頼区間と共に表示されます。満 19 歳未満の登録はブロックされます。トークン報酬は検討中の機能です。',
+      'VITAcode は医療行為を提供しません。すべての予測は信頼区間と共に表示されます。満 19 歳未満の登録はブロックされます。トークン報酬は検討中の機能です。',
     backHome: 'ホームへ',
   },
   avatar: {
-    pageTitle: 'マイクロノス',
-    nav: 'マイクロノス',
+    pageTitle: 'マイVITA',
+    nav: 'マイVITA',
     eyebrow: 'デジタルツイン',
-    title: 'マイクロノス',
-    nameFallback: 'クロノス',
+    title: 'マイVITA',
+    nameFallback: 'マイVITA',
     vitalityScore: '活力スコア',
     vitalityTiers: {
       excellent: '非常に優秀',
@@ -1761,7 +1761,7 @@ export const ja: Dictionary = {
       medical: {
         label: '医療免責確認（必須）',
         description:
-          'caremybody は医療行為を提供せず、予測レポートは医療相談の代替ではありません。',
+          'VITAcode は医療行為を提供せず、予測レポートは医療相談の代替ではありません。',
       },
       token: {
         label: 'トークン報酬は検討中の確認（必須）',

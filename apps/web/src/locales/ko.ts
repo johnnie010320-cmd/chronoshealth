@@ -1,10 +1,10 @@
 export const ko = {
   meta: {
-    title: 'caremybody',
+    title: 'VITAcode',
     description:
       '내 건강 데이터로 시작하는 예방의학. 생체 나이와 5년 위험 추정 리포트를 즉시 받아보세요.',
   },
-  brand: 'caremybody',
+  brand: 'VITAcode',
   language: {
     label: '언어',
     ko: '한국어',
@@ -171,7 +171,7 @@ export const ko = {
     },
     teaser: {
       eyebrow: '다음 단계는?',
-      title: '당신의 크로노스가 자라고 있습니다',
+      title: '마이 VITA가 자라고 있습니다',
       body: '곧 활력 점수 시뮬레이션 · 5종 나이 · 랭킹이 도착합니다. 출시 시점 미확정, 의료 행위가 아닙니다.',
       roadmapCta: '전체 로드맵 보기',
       betaSignupCta: '출시 알림 받기',
@@ -285,7 +285,7 @@ export const ko = {
     more: '공지사항 전체보기',
   },
   home: {
-    pageTitle: 'caremybody',
+    pageTitle: 'VITAcode',
     plusBadge: 'PLUS +',
     brandLine: 'DID AI',
     twinPromptSignedOut: '나의 생명의 Twin 만들기를 시작해 볼까요?',
@@ -1519,7 +1519,7 @@ export const ko = {
     nav: '로드맵',
     hero: {
       eyebrow: 'Roadmap · 11 modules · 64 weeks',
-      title: 'caremybody를 만들어 가는 길',
+      title: 'VITAcode를 만들어 가는 길',
       body: 'AI 기반 건강 위험 예측 + 분산형 데이터 주권 + Health-to-Earn 토큰. 초기 단계부터 정식 출시까지의 전체 그림.',
     },
     currentLive: {
@@ -1543,7 +1543,7 @@ export const ko = {
       m5: { title: '데이터 3차 — 유전체·텔로미어', body: '외부 검사사 연동 (마크로젠 · 23andMe).' },
       m6: { title: '랭킹 — 세계·국가·도시', body: '정적 분포 → 실측 랭킹 + 월별 변동 보상.' },
       m7: { title: '개인 시뮬레이션 — 활력 점수 What-if', body: '결정형 → 웨어러블 적응형 → ML 개인화.' },
-      m8: { title: '디지털 트윈 아바타 — "크로노스"', body: '정적 카드 → 2D → 3D → 게임 메커닉 → 옵션 NFT.' },
+      m8: { title: '디지털 트윈 아바타 — "마이 VITA"', body: '정적 카드 → 2D → 3D → 게임 메커닉 → 옵션 NFT.' },
       m9: { title: '소셜 네트워킹', body: '숏폼 영상 + 동질 환자 매칭 + Q&A.' },
       m10: { title: 'CHRO 토크노믹스', body: '오프체인 포인트 → 테스트넷 ERC-20 → 메인넷 + CertiK → LBank 상장.' },
       m11: { title: '시니어 돌봄 모니터링', body: '웨어러블 임계치 → ML 이상치 → 응급 SMS 프리미엄.' },
@@ -1574,15 +1574,15 @@ export const ko = {
       cta: '출시 알림 등록',
     },
     disclaimer:
-      'caremybody는 의료 행위를 제공하지 않습니다. 모든 예측은 신뢰구간과 함께 표시됩니다. 만 19세 미만 가입은 차단됩니다. 토큰 보상은 검토 중인 기능입니다.',
+      'VITAcode는 의료 행위를 제공하지 않습니다. 모든 예측은 신뢰구간과 함께 표시됩니다. 만 19세 미만 가입은 차단됩니다. 토큰 보상은 검토 중인 기능입니다.',
     backHome: '홈으로',
   },
   avatar: {
-    pageTitle: '내 크로노스',
-    nav: '내 크로노스',
+    pageTitle: '마이 VITA',
+    nav: '마이 VITA',
     eyebrow: '디지털 트윈',
-    title: '나의 크로노스',
-    nameFallback: '크로노스',
+    title: '마이 VITA',
+    nameFallback: '마이 VITA',
     vitalityScore: '활력 점수',
     vitalityTiers: {
       excellent: '매우 우수',
@@ -1706,7 +1706,7 @@ export const ko = {
       medical: {
         label: '의료 면책 확인 (필수)',
         description:
-          'caremybody는 의료 행위를 제공하지 않으며, 예측 리포트는 의료 자문을 대체하지 않습니다.',
+          'VITAcode는 의료 행위를 제공하지 않으며, 예측 리포트는 의료 자문을 대체하지 않습니다.',
       },
       token: {
         label: '토큰 보상 검토 중 확인 (필수)',
