@@ -21,6 +21,10 @@ Android 는 0.0.1+1 이 Play 내부 테스트에 올라가 있다(2026-10-31).
 | Flutter | **3.38.9** (Android 와 같은 버전. 3.44.4 로 빌드하지 말 것 — 소나기에서 화면 충돌 전례) |
 | 최소 iOS | **14.0** (2026-11-01 맥 지니가 13.0 에서 올림 — `file_picker_darwin` 요구) |
 | App Store Connect 앱 | 이름 VITAcode · 기본 언어 한국어 · 번들 com.chronoshealth.app · SKU `vitacode-ios` |
+| 판매자 이름 | **`Vita Labs Co., Ltd.`** (2026-11-01 죠니가 D-U-N-S 조회로 확정. 첫 앱 레코드 생성 시 영구 확정 — 그 화면에서 이 문자열인지 반드시 확인) |
+| 개인정보처리방침 URL | `https://vitacodeapp.com/privacy/` |
+| 이용약관 URL | `https://vitacodeapp.com/terms/` |
+| 지원 URL | `https://vitalabsinc.com/contact` (⚠️ `vitalabsinc.com/support` 는 없는 경로라 홈으로 떨어진다) |
 
 ## 순서
 1. `git clone https://github.com/johnnie010320-cmd/chronoshealth.git` (처음 한 번) → `git pull --rebase`
