@@ -10,3 +10,4 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 - 요청서: [`docs/IOS_BUILD_0.0.1_WORK_REQUEST.md`](IOS_BUILD_0.0.1_WORK_REQUEST.md)
 - 시작 조건: Vita Labs Co., Ltd. 애플 개발자 멤버십 승인(죠니가 알려 줌). **MIKS 팀 아님**
 - 끝나면: 이 항목을 ✅ 로 바꾸고 결과·App Store 앱 Apple ID 기록
+- 🔧 2026-11-01 맥 지니 선행 확인: **최소 iOS 를 13.0 → 14.0 으로 올렸다** (`file_picker_darwin` 이 14.0 을 요구해 `pod install` 이 실패했다). pbxproj 3곳 · `Flutter/AppFrameworkInfo.plist` · `Podfile` `platform :ios, '14.0'`. 이 상태로 `flutter build ios --release --no-codesign` 통과(Runner.app 16.7MB, Flutter 3.38.9). 멤버십 승인 뒤에는 서명·아카이브·업로드만 남는다

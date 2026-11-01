@@ -19,7 +19,7 @@ Android 는 0.0.1+1 이 Play 내부 테스트에 올라가 있다(2026-10-31).
 | 앱 이름 | `VITAcode` |
 | 버전 | `0.0.1` 빌드 `1` (pubspec `0.0.1+1`, 죠니 지정 번호 — 바꾸지 말 것) |
 | Flutter | **3.38.9** (Android 와 같은 버전. 3.44.4 로 빌드하지 말 것 — 소나기에서 화면 충돌 전례) |
-| 최소 iOS | Flutter 기본값 |
+| 최소 iOS | **14.0** (2026-11-01 맥 지니가 13.0 에서 올림 — `file_picker_darwin` 요구) |
 | App Store Connect 앱 | 이름 VITAcode · 기본 언어 한국어 · 번들 com.chronoshealth.app · SKU `vitacode-ios` |
 
 ## 순서
