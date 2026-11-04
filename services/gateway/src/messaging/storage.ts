@@ -438,6 +438,46 @@ export async function listMessages(
   return results.map(mapMessage);
 }
 
+// 대화 내 검색 — 본문·첨부 파일명에 검색어가 들어간 메시지(삭제 제외), 최신순.
+// LIKE 와일드카드(% _ \)는 글자 그대로 찾도록 이스케이프한다. 영문은 대소문자 무시(SQLite LIKE 기본).
+export type MessageSearchRow = {
+  id: string;
+  senderPseudonymId: string;
+  body: string;
+  createdAt: string;
+  attachmentName: string | null;
+};
+
+export function escapeLike(q: string): string {
+  return q.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+export async function searchMessages(
+  db: D1Database,
+  conversationId: string,
+  query: string,
+  limit: number,
+): Promise<MessageSearchRow[]> {
+  const pattern = `%${escapeLike(query)}%`;
+  const { results } = await db
+    .prepare(
+      `SELECT id, sender_pseudonym_id, body, created_at, attachment_name
+         FROM messages
+        WHERE conversation_id = ? AND deleted_at IS NULL
+          AND (body LIKE ? ESCAPE '\\' OR attachment_name LIKE ? ESCAPE '\\')
+        ORDER BY created_at DESC LIMIT ?`,
+    )
+    .bind(conversationId, pattern, pattern, limit)
+    .all<{ id: string; sender_pseudonym_id: string; body: string; created_at: string; attachment_name: string | null }>();
+  return results.map((r) => ({
+    id: r.id,
+    senderPseudonymId: r.sender_pseudonym_id,
+    body: r.body,
+    createdAt: r.created_at,
+    attachmentName: r.attachment_name,
+  }));
+}
+
 export async function lastMessage(
   db: D1Database,
   conversationId: string,

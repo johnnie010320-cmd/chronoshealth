@@ -4,6 +4,8 @@ import { useI18n } from '@/lib/i18n';
 
 type Basis = 'model' | 'heuristic';
 
+type AgeKey = 'life' | 'vitality' | 'skin' | 'vascular' | 'joint';
+
 type Props = {
   fiveAges: {
     life: number;
@@ -16,25 +18,37 @@ type Props = {
   basis?: Record<keyof Props['fiveAges'], Basis>;
   /** 혈관 나이가 상한(80)에 걸렸으면 "80+" 로 표기 — 단정 표현 금지 */
   vascularCapped?: boolean;
+  /** 표시할 나이 항목(기본 5종 전부). 홈은 생체/혈관/피부/골격 4종만 표시. */
+  keys?: AgeKey[];
+  /** 라벨 오버라이드(현지화 문자열). */
+  labels?: Partial<Record<AgeKey, string>>;
+  /** 섹션 제목 오버라이드. */
+  title?: string;
+  /** 제목을 숨김(상위에서 헤더를 이미 그릴 때). */
+  hideTitle?: boolean;
 };
 
-export function FiveAgesGrid({ fiveAges, basis, vascularCapped }: Props) {
+export function FiveAgesGrid({ fiveAges, basis, vascularCapped, keys, labels, title, hideTitle }: Props) {
   const { t } = useI18n();
   const A = t.avatar.fiveAges;
 
-  const items: { key: keyof Props['fiveAges']; label: string }[] = [
-    { key: 'life', label: A.life },
-    { key: 'vitality', label: A.vitality },
-    { key: 'skin', label: A.skin },
-    { key: 'vascular', label: A.vascular },
-    { key: 'joint', label: A.joint },
-  ];
+  const defaultLabels: Record<AgeKey, string> = {
+    life: A.life,
+    vitality: A.vitality,
+    skin: A.skin,
+    vascular: A.vascular,
+    joint: A.joint,
+  };
+  const order: AgeKey[] = keys ?? ['life', 'vitality', 'skin', 'vascular', 'joint'];
+  const items = order.map((key) => ({ key, label: labels?.[key] ?? defaultLabels[key] }));
 
   return (
     <section>
-      <h2 className="px-1 text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-        {A.title}
-      </h2>
+      {!hideTitle && (
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {title ?? A.title}
+        </h2>
+      )}
       <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {items.map(({ key, label }) => {
           const kind: Basis = basis?.[key] ?? 'heuristic';

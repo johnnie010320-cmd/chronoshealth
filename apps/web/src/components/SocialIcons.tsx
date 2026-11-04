@@ -1,8 +1,22 @@
-// 카카오 / 구글 / 애플 브랜드 로고 SVG.
+// 카카오 / 구글 / 네이버 / 애플 브랜드 로고 SVG.
 
 type IconProps = {
   className?: string;
 };
+
+export function NaverLogo({ className }: IconProps) {
+  // 네이버 'N' 심볼(currentColor) — 초록 버튼 위 흰색 글자로 표시.
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      className={className ?? 'h-5 w-5'}
+    >
+      <path d="M6 4h4.1l3.6 5.8V4H18v16h-4.1l-3.6-5.8V20H6V4Z" />
+    </svg>
+  );
+}
 
 export function AppleLogo({ className }: IconProps) {
   return (

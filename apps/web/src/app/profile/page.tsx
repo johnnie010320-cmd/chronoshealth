@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { useI18n } from '@/lib/i18n';
+import { countryName, countryOptions } from '@/lib/countries';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
 import { useIsAdmin } from '@/lib/admin-state';
 import {
@@ -23,6 +24,12 @@ import {
   ShieldIcon,
   LogoutIcon,
   ChevronRightIcon,
+  BellIcon,
+  BookIcon,
+  UsersIcon,
+  ChatBubbleIcon,
+  MenuIcon,
+  type IconProps,
 } from '@/components/HealthIcons';
 import { resizeImageToDataUrl } from '@/lib/image';
 
@@ -31,13 +38,6 @@ type LoadState =
   | { status: 'ok'; me: MeProfile }
   | { status: 'err'; code: string };
 
-const NATIONALITY_LABEL: Record<string, string> = {
-  KR: '대한민국',
-  US: '미국',
-  JP: '일본',
-  ES: '스페인',
-  OTHER: '기타',
-};
 
 export default function ProfilePage() {
   const { t, locale } = useI18n();
@@ -214,7 +214,8 @@ export default function ProfilePage() {
     }
     await submitLogout(); // ADR 0014 — 서버에서 httpOnly 쿠키 삭제 + 토큰 revoke.
     clearSession();
-    router.push('/');
+    // 소개 페이지로 전체 이동 — 세션/쿠키 상태를 새로 읽도록 강제. trailingSlash: true.
+    window.location.assign('/welcome/?loggedout=1');
   };
 
   return (
@@ -244,8 +245,16 @@ export default function ProfilePage() {
         </Link>
       )}
 
-      <section className="card-shadow mt-4 flex items-center gap-4 rounded-3xl card-sky p-5">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
+      <section className="card-shadow grad-pink relative mt-4 flex items-center gap-4 overflow-hidden rounded-3xl p-6">
+        <span
+          className="blob"
+          style={{ width: 150, height: 150, right: -24, top: -34, background: 'radial-gradient(circle, #fbcfe8, transparent 70%)' }}
+        />
+        <span
+          className="blob"
+          style={{ width: 110, height: 110, left: -28, bottom: -40, background: 'radial-gradient(circle, #f0abfc, transparent 70%)' }}
+        />
+        <div className="relative z-10 h-24 w-24 shrink-0 overflow-hidden rounded-full border-[3px] border-white/90 bg-white/20 shadow-lg backdrop-blur">
           {avatarDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -254,24 +263,24 @@ export default function ProfilePage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-stone-400 dark:text-stone-500">
-              <UserCircleIcon className="h-12 w-12" />
+            <span className="flex h-full w-full items-center justify-center text-white/90">
+              <UserCircleIcon className="h-14 w-14" />
             </span>
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+        <div className="relative z-10 min-w-0 flex-1">
+          <p className="text-base font-bold tracking-tight text-white">
             {A.sectionTitle}
           </p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/85">
             {A.hint}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarBusy}
-              className="rounded-xl bg-stone-900 px-3 py-1.5 text-[12px] font-semibold text-white transition active:scale-[0.97] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+              className="rounded-xl bg-white px-3.5 py-1.5 text-[12px] font-bold text-rose-600 shadow-sm transition active:scale-[0.97] disabled:opacity-60"
             >
               {avatarBusy ? A.uploading : avatarDataUrl ? A.changeCta : A.uploadCta}
             </button>
@@ -280,14 +289,14 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => void handleAvatarDelete()}
                 disabled={avatarBusy}
-                className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-rose-700 transition active:scale-[0.97] disabled:opacity-60 dark:border-rose-900 dark:bg-stone-900 dark:text-rose-300"
+                className="rounded-xl border border-white/60 bg-white/10 px-3.5 py-1.5 text-[12px] font-semibold text-white backdrop-blur transition active:scale-[0.97] disabled:opacity-60"
               >
                 {A.removeCta}
               </button>
             )}
           </div>
           {avatarErr && (
-            <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-300">
+            <p className="mt-2 text-[11px] font-medium text-white">
               {A.errCodes[avatarErr as keyof typeof A.errCodes] ?? A.errCodes.generic}
             </p>
           )}
@@ -305,13 +314,14 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <section className="card-shadow mt-4 rounded-3xl card-amber p-5">
+      <section className="card-shadow mt-4 rounded-3xl card-rose p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-200">
               <UserCircleIcon className="h-5 w-5" />
             </span>
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+              <span className="accent-bar bg-rose-500" />
               {P.sectionAccount}
             </h2>
           </div>
@@ -322,8 +332,8 @@ export default function ProfilePage() {
               disabled={busy}
               className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition active:scale-[0.97] disabled:opacity-60 ${
                 revealed
-                  ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200'
-                  : 'bg-stone-900 text-white dark:bg-white dark:text-stone-900'
+                  ? 'bg-white text-rose-700 shadow-sm dark:bg-stone-900 dark:text-rose-200'
+                  : 'bg-rose-500 text-white shadow-sm'
               }`}
             >
               {revealed ? P.hideCta : P.revealCta}
@@ -339,7 +349,7 @@ export default function ProfilePage() {
 
         {state.status === 'loading' && (
           <div className="flex justify-center py-6">
-            <span className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700 dark:border-stone-700 dark:border-t-brand-400" />
+            <span className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-stone-300 border-t-rose-500 dark:border-stone-700 dark:border-t-rose-400" />
           </div>
         )}
 
@@ -371,7 +381,7 @@ export default function ProfilePage() {
               {state.me.nationality && (
                 <Row
                   label={P.nationalityLabel}
-                  value={NATIONALITY_LABEL[state.me.nationality] ?? state.me.nationality}
+                  value={countryName(state.me.nationality, locale, F.nationality.options.OTHER)}
                 />
               )}
               <Row
@@ -391,7 +401,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => void handleEditStart()}
               disabled={busy}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] disabled:opacity-60"
             >
               {E.cta}
             </button>
@@ -448,13 +458,7 @@ export default function ProfilePage() {
               label={F.nationality.label}
               value={form.nationality}
               onChange={(v) => setForm((s) => ({ ...s, nationality: v }))}
-              options={[
-                { value: 'KR', label: F.nationality.options.KR },
-                { value: 'US', label: F.nationality.options.US },
-                { value: 'JP', label: F.nationality.options.JP },
-                { value: 'ES', label: F.nationality.options.ES },
-                { value: 'OTHER', label: F.nationality.options.OTHER },
-              ]}
+              options={countryOptions(locale, F.nationality.options.OTHER)}
             />
 
             <p className="rounded-xl bg-stone-50 px-3 py-2 text-[11px] leading-relaxed text-stone-500 dark:bg-stone-800/60 dark:text-stone-400">
@@ -473,7 +477,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-stone-900"
+                className="flex-1 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] disabled:opacity-60"
               >
                 {saving ? E.saving : E.save}
               </button>
@@ -482,12 +486,13 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <section className="card-shadow mt-4 rounded-3xl card-rose p-5">
+      <section className="card-shadow mt-4 rounded-3xl card-emerald p-6">
         <div className="mb-3 flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-200">
             <ShieldIcon className="h-5 w-5" />
           </span>
           <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+            <span className="accent-bar bg-rose-500" />
             {P.sectionPrivacy}
           </h2>
         </div>
@@ -517,18 +522,21 @@ export default function ProfilePage() {
         <ul className="divide-y divide-stone-100 dark:divide-stone-800">
           {(
             [
-              ['/notices', t.menu.itemNotices],
-              ['/diary', t.menu.itemProfileDiary],
-              ['/community?mine=1', t.menu.itemProfileMyPosts],
-              ['/feature-requests', t.menu.itemFeatureRequest],
-              ['/menu', t.menu.pageTitle],
-            ] as [string, string][]
-          ).map(([href, label]) => (
+              ['/notices', t.menu.itemNotices, BellIcon, 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-200'],
+              ['/diary', t.menu.itemProfileDiary, BookIcon, 'bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-200'],
+              ['/community?mine=1', t.menu.itemProfileMyPosts, UsersIcon, 'bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-200'],
+              ['/feature-requests', t.menu.itemFeatureRequest, ChatBubbleIcon, 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-200'],
+              ['/menu', t.menu.pageTitle, MenuIcon, 'bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-200'],
+            ] as [string, string, (p: IconProps) => React.ReactElement, string][]
+          ).map(([href, label, Icon, badge]) => (
             <li key={href}>
               <Link
                 href={href}
-                className="flex items-center gap-3 px-5 py-3.5 text-stone-700 transition active:bg-stone-50 dark:text-stone-200 dark:active:bg-stone-800"
+                className="flex items-center gap-3 px-5 py-3.5 text-stone-700 transition active:bg-rose-50/60 dark:text-stone-200 dark:active:bg-stone-800"
               >
+                <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${badge}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
                 <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{label}</span>
                 <ChevronRightIcon className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
               </Link>
@@ -607,7 +615,7 @@ function EditField({
         placeholder={placeholder}
         autoComplete={autoComplete}
         inputMode={type === 'number' ? 'decimal' : type === 'tel' ? 'tel' : undefined}
-        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
+        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
       />
     </label>
   );
@@ -632,7 +640,7 @@ function EditSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:focus:bg-stone-900"
+        className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:focus:bg-stone-900"
       >
         <option value="" disabled>
           —

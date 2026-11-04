@@ -1,13 +1,14 @@
 import { z } from 'zod';
+import { COUNTRY_CODES } from './countries.js';
 
 // ADR 0010 + 0012 + 0013 정합.
 //
-// phone 형식:
-// - 국제 E.164: '+' + 국가코드(1~3) + 6~14자리. 예: '+821012345678'
-// - 한국 표기: '010-XXXX-XXXX' / '0XX-XXXX-XXXX' (3-3,4-4 자리)
-const PHONE_REGEX = /^(\+\d{7,17}|0\d{1,2}-\d{3,4}-\d{4})$/;
+// phone 형식(국제 수용): 선택적 '+' 국가코드 + 숫자/공백/하이픈/괄호/점. 앞뒤는 숫자, 총 7~20.
+// 예: '010-1234-5678', '+82 10 1234 5678', '+1 (234) 567-8900', '03-1234-5678', '2345678900'
+const PHONE_REGEX = /^\+?[0-9][0-9\s().-]{5,18}[0-9]$/;
 
-export const Nationality = z.enum(['KR', 'US', 'JP', 'ES', 'OTHER']);
+// ISO 3166-1 alpha-2 전 국가 + 'OTHER'(2026-10-20 죠니: 전 세계 국가 노출. 기존 KR/US/JP/ES/OTHER 값은 그대로 유효).
+export const Nationality = z.enum([...COUNTRY_CODES, 'OTHER']);
 export type Nationality = z.infer<typeof Nationality>;
 
 // 스토리보드 p12 — 한글/영문/숫자/특수문자, 2~8자.
@@ -51,6 +52,14 @@ export const ProfileUpdateRequest = z
     sex: z.enum(['male', 'female', 'other']),
     nationality: Nationality,
     nickname: NicknameSchema.optional(),
+    // 소셜 신규 가입자의 최초 온보딩 동의(가입 폼을 거치지 않으므로 여기서 수집).
+    // 기존 회원(이미 동의 기록 있음)은 생략. 서버가 미동의 상태면 필수로 강제(CONSENT_REQUIRED).
+    consentMedical: z.boolean().optional(),
+    consentTerms: z.boolean().optional(),
+    consentPrivacy: z.boolean().optional(),
+    consentTermsVersion: z.string().min(1).max(20).optional(),
+    consentPrivacyVersion: z.string().min(1).max(20).optional(),
+    marketingOptIn: z.boolean().optional(),
   })
   .strict();
 export type ProfileUpdateRequest = z.infer<typeof ProfileUpdateRequest>;

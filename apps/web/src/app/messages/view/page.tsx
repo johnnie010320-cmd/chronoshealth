@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ChevronRightIcon, GlobeIcon } from '@/components/HealthIcons';
@@ -14,6 +14,7 @@ import {
   downloadMessageFile,
   fetchConversation,
   fetchMessages,
+  searchConversationMessages,
   markConversationRead,
   removeMessageReaction,
   sendMessage,
@@ -25,9 +26,12 @@ import {
   REACTION_EMOJIS,
   type ChatMessage,
   type ConversationDetail,
+  type MessageSearchResult,
 } from '@/lib/api-client';
 
 const POLL_MS = 4000;
+// 검색 결과로 이동할 때 그 메시지가 아직 안 불러와졌으면 과거 페이지를 이어 받는 최대 횟수(30건 × 60 = 1,800건).
+const JUMP_MAX_PAGES = 60;
 
 // id 기준 합치고 created_at 오름차순 정렬. 겹치면 새 값(b) 우선(읽음·반응 최신 반영).
 function mergeAsc(a: ChatMessage[], b: ChatMessage[]): ChatMessage[] {
@@ -84,6 +88,18 @@ function ThreadInner() {
   const [loadingMore, setLoadingMore] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 대화 검색 — 서버가 대화 전체(본문·첨부 파일명)에서 찾고, 화면은 결과 메시지로 이동·강조한다.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState('');
+  const [searchResults, setSearchResults] = useState<MessageSearchResult[]>([]);
+  const [searchTruncated, setSearchTruncated] = useState(false);
+  const [searchIdx, setSearchIdx] = useState(0); // 0 = 가장 최근 결과
+  const [searchBusy, setSearchBusy] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const [jumping, setJumping] = useState(false);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const activeQ = searchOpen ? searchQ.trim() : '';
 
   const loadMessages = useCallback(async () => {
     if (!id) return;
@@ -167,6 +183,106 @@ function ThreadInner() {
     // 그 외(최초 로드·새 메시지 추가): 맨 아래로.
     bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.length]);
+
+  // 검색어 입력 0.35초 뒤 서버 검색. 결과가 바뀌면 가장 최근 결과로 이동.
+  useEffect(() => {
+    if (!searchOpen || !id) return;
+    const q = searchQ.trim();
+    if (!q) {
+      setSearchResults([]);
+      setSearchTruncated(false);
+      setSearchFailed(false);
+      setFocusId(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(async () => {
+      setSearchBusy(true);
+      setSearchFailed(false);
+      try {
+        const res = await searchConversationMessages(id, q);
+        if (!active) return;
+        setSearchResults(res.results);
+        setSearchTruncated(res.truncated);
+        setSearchIdx(0);
+        if (res.results[0]) void jumpTo(res.results[0]);
+        else setFocusId(null);
+      } catch {
+        if (active) {
+          setSearchResults([]);
+          setSearchFailed(true);
+        }
+      } finally {
+        if (active) setSearchBusy(false);
+      }
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+    // jumpTo 는 messages 에 의존 — 검색어가 바뀔 때만 다시 검색한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQ, searchOpen, id]);
+
+  // 결과 메시지로 이동 — 아직 안 불러온 옛 메시지면 그 메시지가 나올 때까지 과거 페이지를 이어 받는다.
+  async function jumpTo(r: MessageSearchResult) {
+    if (!messages.some((m) => m.id === r.id)) {
+      setJumping(true);
+      try {
+        let cursor = messages[0]?.createdAt;
+        const acc: ChatMessage[] = [];
+        let more = true;
+        for (let i = 0; i < JUMP_MAX_PAGES && more && cursor; i++) {
+          const res = await fetchMessages(id, cursor);
+          acc.push(...res.messages);
+          more = res.hasMore;
+          cursor = res.messages[0]?.createdAt;
+          if (res.messages.some((m) => m.id === r.id) || res.messages.length === 0) break;
+        }
+        if (acc.length > 0) {
+          const el = listRef.current;
+          preserveScrollRef.current = el ? { height: el.scrollHeight, top: el.scrollTop } : null;
+          setMessages((prev) => mergeAsc(acc, prev));
+          setHasMoreOlder(more);
+        }
+      } catch {
+        /* 이동 실패 — 결과 목록은 그대로 두고 다음 이동에서 재시도 */
+      } finally {
+        setJumping(false);
+      }
+    }
+    setFocusId(r.id);
+  }
+
+  // 강조된 메시지를 대화 목록 칸 가운데로(과거 페이지를 붙인 경우 스크롤 복원 뒤에 실행).
+  // scrollIntoView 는 페이지 전체까지 움직여 상단 단추 줄이 가려지므로 목록 칸만 스크롤한다.
+  useEffect(() => {
+    if (!focusId) return;
+    const list = listRef.current;
+    const el = document.getElementById(`msg-${focusId}`);
+    if (!list || !el) return;
+    const offset = el.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    list.scrollTo({
+      top: list.scrollTop + offset - list.clientHeight / 2 + el.offsetHeight / 2,
+      behavior: 'smooth',
+    });
+  }, [focusId, messages]);
+
+  function moveSearch(delta: number) {
+    if (searchResults.length === 0) return;
+    const next = (searchIdx + delta + searchResults.length) % searchResults.length;
+    const target = searchResults[next];
+    if (!target) return;
+    setSearchIdx(next);
+    void jumpTo(target);
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQ('');
+    setSearchResults([]);
+    setFocusId(null);
+  }
 
   // 입력창 자동 높이 — 텍스트가 길어지면 늘어나고, 최대(약 6줄) 도달 시 스크롤.
   useLayoutEffect(() => {
@@ -389,7 +505,27 @@ function ThreadInner() {
         <>
         <div className="flex h-[calc(100vh-8rem)] flex-col">
           {conv && (
-            <div className="flex items-center justify-end pb-1">
+            <div className="flex items-center justify-between pb-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (searchOpen) closeSearch();
+                  else {
+                    setSearchOpen(true);
+                    setTimeout(() => searchInputRef.current?.focus(), 0);
+                  }
+                }}
+                aria-label={M.search}
+                aria-pressed={searchOpen}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold transition ${
+                  searchOpen
+                    ? 'bg-brand-600 text-white'
+                    : 'text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800'
+                }`}
+              >
+                <SearchGlyph />
+                <span className="whitespace-nowrap">{M.search}</span>
+              </button>
               {isRoomOwner ? (
                 <button
                   type="button"
@@ -406,6 +542,82 @@ function ThreadInner() {
                 >
                   {M.leave}
                 </button>
+              )}
+            </div>
+          )}
+
+          {searchOpen && (
+            <div className="mb-1 rounded-2xl border border-stone-200 bg-white px-2.5 py-2 dark:border-stone-800 dark:bg-stone-900">
+              <div className="flex items-center gap-1.5">
+                <SearchGlyph className="h-4 w-4 shrink-0 text-stone-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  data-chat-search
+                  value={searchQ}
+                  maxLength={50}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      moveSearch(e.shiftKey ? -1 : 1);
+                    } else if (e.key === 'Escape') closeSearch();
+                  }}
+                  placeholder={M.searchPlaceholder}
+                  aria-label={M.searchPlaceholder}
+                  className="min-w-0 flex-1 bg-transparent text-[14px] text-stone-900 placeholder:text-stone-400 focus:outline-none dark:text-stone-100"
+                />
+                {activeQ && !searchBusy && searchResults.length > 0 && (
+                  <span className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums text-stone-500 dark:text-stone-400">
+                    {M.searchCount
+                      .replace('{i}', String(searchIdx + 1))
+                      .replace('{n}', String(searchResults.length))}
+                  </span>
+                )}
+                {searchBusy && (
+                  <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-stone-300 border-t-brand-600" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => moveSearch(1)}
+                  disabled={searchResults.length < 2}
+                  aria-label={M.searchPrev}
+                  className="shrink-0 rounded-full p-1 text-stone-500 transition hover:bg-stone-100 disabled:opacity-30 dark:text-stone-400 dark:hover:bg-stone-800"
+                >
+                  <ArrowGlyph up />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveSearch(-1)}
+                  disabled={searchResults.length < 2}
+                  aria-label={M.searchNext}
+                  className="shrink-0 rounded-full p-1 text-stone-500 transition hover:bg-stone-100 disabled:opacity-30 dark:text-stone-400 dark:hover:bg-stone-800"
+                >
+                  <ArrowGlyph />
+                </button>
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  aria-label={M.searchClose}
+                  className="shrink-0 rounded-full p-1 text-stone-500 transition hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="h-4 w-4" aria-hidden>
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              </div>
+              {activeQ && !searchBusy && (searchFailed || searchResults.length === 0 || searchTruncated || jumping) && (
+                <p className="mt-1 px-0.5 text-[11px] text-stone-400 dark:text-stone-500">
+                  {searchFailed
+                    ? M.searchFailed
+                    : jumping
+                      ? M.searchJumping
+                      : searchResults.length === 0
+                        ? M.searchNoResults
+                        : M.searchMore}
+                </p>
               )}
             </div>
           )}
@@ -444,7 +656,10 @@ function ThreadInner() {
                     </div>
                   )}
                 <div
-                  className={`relative flex flex-col ${m.isMine ? 'items-end' : 'items-start'}`}
+                  id={`msg-${m.id}`}
+                  className={`relative flex flex-col rounded-2xl transition ${m.isMine ? 'items-end' : 'items-start'} ${
+                    focusId === m.id ? 'bg-amber-100/70 ring-2 ring-amber-400 dark:bg-amber-900/30' : ''
+                  }`}
                 >
                   {!m.isMine && conv?.kind === 'room' && (
                     <span className="mb-0.5 px-1 text-[10px] font-medium text-stone-400">
@@ -501,7 +716,7 @@ function ThreadInner() {
                               : 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-100'
                           }`}
                         >
-                          <MessageBody body={m.body} mine={m.isMine} />
+                          <MessageBody body={m.body} mine={m.isMine} highlight={activeQ} />
                         </div>
                       </div>
                     )}
@@ -559,7 +774,7 @@ function ThreadInner() {
                         <FileIcon type={m.attachment.type} />
                         <span className="min-w-0">
                           <span className="block truncate text-[13px] font-semibold text-stone-800 dark:text-stone-100">
-                            {m.attachment.name}
+                            <Highlighted text={m.attachment.name} q={activeQ} mine={false} />
                           </span>
                           <span className="block text-[10px] text-stone-500 dark:text-stone-400">
                             {formatSize(m.attachment.size)} ·{' '}
@@ -815,7 +1030,49 @@ function ThreadInner() {
 // http(s):// 절대 URL과 www. 로 시작하는 도메인을 모두 인식.
 const URL_RE = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
 
-function MessageBody({ body, mine }: { body: string; mine: boolean }) {
+function SearchGlyph({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className={className} aria-hidden>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.2-4.2" />
+    </svg>
+  );
+}
+
+function ArrowGlyph({ up = false }: { up?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+      <path d={up ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'} />
+    </svg>
+  );
+}
+
+// 검색어를 노란 표시로 강조(영문 대소문자 무시). 검색어가 없으면 글자 그대로.
+function Highlighted({ text, q, mine }: { text: string; q: string; mine: boolean }) {
+  if (!q) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const needle = q.toLowerCase();
+  const out: ReactNode[] = [];
+  let from = 0;
+  let at = lower.indexOf(needle, from);
+  while (at !== -1) {
+    if (at > from) out.push(text.slice(from, at));
+    out.push(
+      <mark
+        key={at}
+        className={`rounded px-0.5 ${mine ? 'bg-amber-300 text-stone-900' : 'bg-amber-200 text-stone-900 dark:bg-amber-400'}`}
+      >
+        {text.slice(at, at + needle.length)}
+      </mark>,
+    );
+    from = at + needle.length;
+    at = lower.indexOf(needle, from);
+  }
+  if (from < text.length) out.push(text.slice(from));
+  return <>{out}</>;
+}
+
+function MessageBody({ body, mine, highlight = '' }: { body: string; mine: boolean; highlight?: string }) {
   const parts: Array<{ text: string; href: string | null }> = [];
   let last = 0;
   for (const match of body.matchAll(URL_RE)) {
@@ -845,10 +1102,12 @@ function MessageBody({ body, mine }: { body: string; mine: boolean }) {
               mine ? 'text-white decoration-white/70' : 'text-brand-700 dark:text-brand-300'
             }`}
           >
-            {p.text}
+            <Highlighted text={p.text} q={highlight} mine={mine} />
           </a>
         ) : (
-          <span key={i}>{p.text}</span>
+          <span key={i}>
+            <Highlighted text={p.text} q={highlight} mine={mine} />
+          </span>
         ),
       )}
     </>

@@ -130,7 +130,21 @@ export default function AdminDashboardPage() {
       key: 'banners',
       href: '/admin/banners',
       title: '배너 관리',
-      desc: '메인 배너 이미지·동영상 업로드·순서 관리',
+      desc: '앱 홈·회사 사이트 배너(이미지·동영상) 업로드·순서 관리',
+      status: 'active',
+    },
+    {
+      key: 'site-content',
+      href: '/admin/site-content',
+      title: '회사 사이트 콘텐츠',
+      desc: 'vitalabsinc.com 미션·소개 등 문구 편집',
+      status: 'active',
+    },
+    {
+      key: 'app-link',
+      href: '/admin/app-link',
+      title: '앱 받기 링크 (SNS 공유)',
+      desc: '공유 글·그림에 붙는 앱 링크 켜기/끄기 · App Store 주소 · 들어온 수',
       status: 'active',
     },
     {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, HomeIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu } from './UserMenu';
@@ -16,37 +16,62 @@ type Props = {
   children: ReactNode;
   showBack?: boolean;
   backHref?: string;
+  // 뒤로가기를 네비게이션 대신 가로채고 싶을 때(예: 온보딩 이탈 확인). 지정 시 홈 버튼은 숨긴다.
+  onBack?: () => void;
   title?: string;
   decoration?: 'pulse' | 'dots' | 'none';
   hideBottomNav?: boolean;
 };
 
+// 앱 홈 = 루트 '/'. 회사 홍보 사이트는 vitalabsinc.com(별도 프로젝트)로 분리(2026-09-20).
+const APP_HOME = '/';
+
+// 이 SPA 세션에서 AppShell이 마운트된 횟수(= 앱 내부 이동 횟수). 2 이상이면 앱 내부에
+// 직전 페이지가 존재하므로 뒤로가기=브라우저 history.back()이 "그 이전 페이지"로 정확히 간다.
+// 1이면(새로고침/딥링크 직접 진입) history가 없으므로 PARENT_MAP 상위로 폴백한다.
+let appNavCount = 0;
+
 export function AppShell({
   children,
   showBack,
-  backHref = '/',
+  backHref = APP_HOME,
+  onBack,
   title,
   decoration = 'dots',
   hideBottomNav = false,
 }: Props) {
   const { t } = useI18n();
+  const router = useRouter();
   const nickname = useTwinNickname();
   const unread = useUnreadMessages();
   const pathname = usePathname();
   const isAdmin = useIsAdmin();
 
-  // 결정적 상위(부모) 경로 — 브라우저 히스토리(back) 대신 메뉴 계층을 따라 이동(ping-pong 방지).
+  // 앱 내부 이동 1회로 집계(페이지 이동마다 AppShell이 새로 마운트됨).
+  useEffect(() => {
+    appNavCount += 1;
+  }, []);
+
+  // 상위(부모) 경로 — 직접 진입/새로고침 시의 폴백.
   const parentHref = resolveParent(pathname, showBack === true ? backHref : undefined);
-  const showHeaderBack = (showBack ?? pathname !== '/') && pathname !== '/';
+
+  // 뒤로가기: 앱 내부에 직전 페이지가 있으면 실제 history로 "그 이전 페이지"로 이동,
+  // 없으면(딥링크) 상위 경로로 폴백(2026-10-09 죠니 — 다중 진입 페이지의 뒤로가기 오작동 수정).
+  function handleBack() {
+    if (appNavCount > 1) router.back();
+    else router.push(parentHref);
+  }
+  const showHeaderBack = (showBack ?? pathname !== APP_HOME) && pathname !== APP_HOME;
   // 상위가 홈이면 뒤로가기=홈 이므로 홈 버튼 중복 표기 안 함. 상위가 홈이 아닐 때만 홈 버튼 추가.
-  const showHomeButton = showHeaderBack && parentHref !== '/';
+  const showHomeButton = showHeaderBack && parentHref !== APP_HOME;
 
   const iconButtonClass =
     'inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-700 hover:bg-stone-200/60 dark:text-stone-200 dark:hover:bg-stone-800/60';
 
   // 헤더 2층 구조 — 1층은 브랜드/이동 + 고정 액션 아이콘만 두고,
   // 폭이 가변인 요소(제목·닉네임·배지·브랜드라인)는 2층으로 내려 겹침을 원천 차단한다.
-  const showBrandLine = !showHeaderBack;
+  // 'DID AI' 태그라인 제거(기능 없음, 2026-10-07 죠니).
+  const showBrandLine = false;
   const showAdminBadge = isAdmin === true && !showHeaderBack;
   const showNickname = !title && Boolean(nickname);
   const hasSecondRow =
@@ -67,18 +92,34 @@ export function AppShell({
         <div className="flex items-center justify-between gap-2 px-5 pb-1.5 pt-3">
           {showHeaderBack ? (
             <div className="-ml-2 flex shrink-0 items-center gap-0.5">
-              <Link href={parentHref} aria-label={t.common.back} className={iconButtonClass}>
-                <ArrowLeftIcon className="h-5 w-5" />
-              </Link>
-              {showHomeButton && (
-                <Link href="/" aria-label={t.common.home} className={iconButtonClass}>
+              {onBack ? (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  aria-label={t.common.back}
+                  className={iconButtonClass}
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  aria-label={t.common.back}
+                  className={iconButtonClass}
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                </button>
+              )}
+              {!onBack && showHomeButton && (
+                <Link href={APP_HOME} aria-label={t.common.home} className={iconButtonClass}>
                   <HomeIcon className="h-5 w-5" />
                 </Link>
               )}
             </div>
           ) : (
             <Link
-              href="/"
+              href={APP_HOME}
               className="flex min-w-0 items-center gap-2 text-stone-900 dark:text-stone-100"
               aria-label={t.brand}
             >
@@ -149,15 +190,18 @@ export function AppShell({
 // 페이지별 상위(부모) 경로 맵 — "상위 메뉴류"로 이동. 대부분 콘텐츠 페이지는 전체메뉴(/menu) 허브 하위.
 // 홈 히어로/카드에서 직접 진입하는 페이지(survey·health-diary)는 홈(/)이 상위.
 const PARENT_MAP: Record<string, string> = {
-  '/menu': '/',
-  '/survey': '/',
+  '/menu': APP_HOME,
+  '/survey': APP_HOME,
+  '/intro': APP_HOME,
   '/simulate': '/reports',
-  '/health-diary': '/',
-  '/twin': '/menu',
+  '/health-diary': APP_HOME,
+  '/twin': '/reports',
+  '/vita-test': '/reports',
+  '/twin-sim': '/reports',
   '/routine': '/menu',
-  '/my-routine': '/',
-  '/ai-diagnosis': '/',
-  '/reports': '/',
+  '/my-routine': '/menu',
+  '/ai-diagnosis': APP_HOME,
+  '/reports': APP_HOME,
   '/care': '/menu',
   '/rewards': '/menu',
   '/profile': '/menu',
@@ -180,7 +224,7 @@ function resolveParent(pathname: string, explicitBackHref?: string): string {
     parts.pop();
     return '/' + parts.join('/');
   }
-  return '/';
+  return APP_HOME;
 }
 
 // 신규 메시지 알림 배지 — 미읽음>0 일 때 빨간 점+숫자.

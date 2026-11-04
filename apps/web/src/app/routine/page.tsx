@@ -7,6 +7,7 @@ import { LoginRequired } from '@/components/LoginRequired';
 import { ChevronRightIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
+import { loadHealthProfile } from '@/lib/health-profile';
 import { fileToFoodshotB64 } from '@/lib/foodshot-image';
 import {
   estimateCalories,
@@ -15,6 +16,8 @@ import {
   fetchRoutineRange,
   submitRoutineDaily,
   type CalorieEstimateLine,
+  type ExerciseIntensity,
+  type ExerciseType,
   type RoutineEntry,
   type RoutineSummary,
 } from '@/lib/api-client';
@@ -43,11 +46,85 @@ const EMPTY_FORM: FormState = {
   note: '',
 };
 
+// 운동 종류 — MET(대사당량) + 백엔드 분류(exerciseType/intensity) 매핑.
+type ExKey = 'walk' | 'run' | 'yoga' | 'cycle' | 'strength';
+const EXERCISES: { key: ExKey; met: number; cat: ExerciseType; intensity: ExerciseIntensity }[] = [
+  { key: 'walk', met: 3.0, cat: 'cardio', intensity: 'low' },
+  { key: 'run', met: 8.3, cat: 'cardio', intensity: 'high' },
+  { key: 'yoga', met: 2.5, cat: 'both', intensity: 'low' },
+  { key: 'cycle', met: 7.0, cat: 'cardio', intensity: 'medium' },
+  { key: 'strength', met: 5.0, cat: 'strength', intensity: 'medium' },
+];
+const DURATIONS = [15, 30, 45, 60, 90];
+const REST_KEYS = ['reading', 'pet', 'plant', 'meditation'] as const;
+type RestKey = (typeof REST_KEYS)[number];
+type RestState = Record<RestKey, { on: boolean; min: string }>;
+const EMPTY_REST: RestState = {
+  reading: { on: false, min: '' },
+  pet: { on: false, min: '' },
+  plant: { on: false, min: '' },
+  meditation: { on: false, min: '' },
+};
+
 function parseNumberOrNull(value: string): number | null {
   const trimmed = value.trim();
   if (trimmed === '') return null;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
+}
+
+// 취침~기상(HH:MM) → 수면 시간(시간, 소수 2자리). 자정을 넘어가는 경우 +24h 보정.
+function sleepHoursFrom(bed: string, wake: string): number | null {
+  if (!/^\d{2}:\d{2}$/.test(bed) || !/^\d{2}:\d{2}$/.test(wake)) return null;
+  const bp = bed.split(':');
+  const wp = wake.split(':');
+  const bh = Number(bp[0]);
+  const bm = Number(bp[1]);
+  const wh = Number(wp[0]);
+  const wm = Number(wp[1]);
+  if (![bh, bm, wh, wm].every(Number.isFinite)) return null;
+  let mins = wh * 60 + wm - (bh * 60 + bm);
+  if (mins <= 0) mins += 24 * 60;
+  return Math.round((mins / 60) * 100) / 100;
+}
+
+function hoursToHm(h: number): string {
+  const total = Math.round(h * 60);
+  return `${Math.floor(total / 60)}시간 ${total % 60}분`;
+}
+
+// 오늘의 상세(운동 종류·취침/기상·휴식 활동)는 로컬 보관(백엔드 수치는 별도 저장).
+const DETAIL_KEY = 'chronos.routineDetail';
+type StoredDetail = {
+  pseudonymId: string;
+  date: string;
+  exKey: ExKey | null;
+  bed: string;
+  wake: string;
+  rest: RestState;
+};
+function loadDetail(date: string): Partial<StoredDetail> | null {
+  if (typeof window === 'undefined') return null;
+  const session = readSession();
+  if (!session) return null;
+  try {
+    const raw = window.localStorage.getItem(`${DETAIL_KEY}.${date}`);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as StoredDetail;
+    if (p.pseudonymId !== session.userPseudonymId || p.date !== date) return null;
+    return p;
+  } catch {
+    return null;
+  }
+}
+function saveDetail(date: string, detail: Omit<StoredDetail, 'pseudonymId' | 'date'>): void {
+  if (typeof window === 'undefined') return;
+  const session = readSession();
+  if (!session) return;
+  window.localStorage.setItem(
+    `${DETAIL_KEY}.${date}`,
+    JSON.stringify({ ...detail, pseudonymId: session.userPseudonymId, date }),
+  );
 }
 
 type FoodRow = { name: string; amount: string };
@@ -56,6 +133,9 @@ export default function RoutinePage() {
   const { t, locale } = useI18n();
   const R = t.routine;
   const F = R.food;
+  const EX = R.exercise;
+  const RS = R.rest;
+  const ST = R.sectionTitles;
   const [signedIn, setSignedIn] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [entries, setEntries] = useState<RoutineEntry[]>([]);
@@ -69,6 +149,12 @@ export default function RoutinePage() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoErr, setPhotoErr] = useState<string | null>(null);
   const [photoApplied, setPhotoApplied] = useState(false);
+  // 운동/휴식 상세
+  const [exKey, setExKey] = useState<ExKey | null>(null);
+  const [bed, setBed] = useState('');
+  const [wake, setWake] = useState('');
+  const [rest, setRest] = useState<RestState>(EMPTY_REST);
+  const [weightKg] = useState<number>(() => loadHealthProfile()?.weightKg ?? 65);
 
   useEffect(() => {
     if (!readSession()) {
@@ -76,6 +162,13 @@ export default function RoutinePage() {
       return;
     }
     setSignedIn(true);
+    const detail = loadDetail(todayIso());
+    if (detail) {
+      if (detail.exKey) setExKey(detail.exKey);
+      if (detail.bed) setBed(detail.bed);
+      if (detail.wake) setWake(detail.wake);
+      if (detail.rest) setRest({ ...EMPTY_REST, ...detail.rest });
+    }
     void Promise.all([
       fetchRoutineToday().catch(() => null),
       fetchRoutineRange(daysAgoIso(6), todayIso()).catch(() => null),
@@ -96,6 +189,21 @@ export default function RoutinePage() {
     });
   }, []);
 
+  // 취침/기상이 모두 입력되면 수면 시간 자동 반영.
+  const sleepFromTimes = useMemo(() => sleepHoursFrom(bed, wake), [bed, wake]);
+  useEffect(() => {
+    if (sleepFromTimes != null) {
+      setForm((f) => ({ ...f, sleepHours: String(sleepFromTimes) }));
+    }
+  }, [sleepFromTimes]);
+
+  const exMin = parseNumberOrNull(form.exerciseMinutes);
+  const burnKcal = useMemo(() => {
+    const ex = EXERCISES.find((e) => e.key === exKey);
+    if (!ex || !exMin || exMin <= 0) return null;
+    return Math.round(ex.met * weightKg * (exMin / 60));
+  }, [exKey, exMin, weightKg]);
+
   const maxBar = useMemo(() => {
     if (entries.length === 0) return { calories: 1, exercise: 1, sleep: 1 };
     let cal = 0;
@@ -115,6 +223,13 @@ export default function RoutinePage() {
         <LoginRequired />
       </AppShell>
     );
+  }
+
+  function pickExercise(key: ExKey) {
+    setExKey((cur) => (cur === key ? null : key));
+  }
+  function pickDuration(min: number) {
+    setForm((f) => ({ ...f, exerciseMinutes: String(min) }));
   }
 
   async function handleEstimate() {
@@ -148,7 +263,6 @@ export default function RoutinePage() {
         setPhotoErr('errPhoto');
         return;
       }
-      // 인식 결과로 음식 항목과 칼로리를 자동 채움(최대 10항목).
       setFoodRows(
         res.estimatedItems.slice(0, 10).map((it) => ({ name: it.name, amount: it.amount })),
       );
@@ -173,15 +287,20 @@ export default function RoutinePage() {
     e.preventDefault();
     setStatus('saving');
     setErrCode(null);
+    const ex = EXERCISES.find((x) => x.key === exKey);
     try {
       const body: RoutineEntry = {
         entryDate: todayIso(),
         caloriesKcal: parseNumberOrNull(form.caloriesKcal),
         exerciseMinutes: parseNumberOrNull(form.exerciseMinutes),
+        exerciseType: ex ? ex.cat : null,
+        exerciseIntensity: ex ? ex.intensity : null,
         sleepHours: parseNumberOrNull(form.sleepHours),
         note: form.note.trim() === '' ? null : form.note.trim(),
       };
       await submitRoutineDaily(body);
+      // 운동 종류/취침·기상/휴식 활동 상세는 로컬에 보관.
+      saveDetail(todayIso(), { exKey, bed, wake, rest });
       const range = await fetchRoutineRange(daysAgoIso(6), todayIso());
       setEntries(range.entries);
       setSummary(range.summary);
@@ -193,6 +312,15 @@ export default function RoutinePage() {
     }
   }
 
+  function scrollToHistory() {
+    if (typeof document !== 'undefined') {
+      document.getElementById('routine-weekly')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  const caloriesNum = parseNumberOrNull(form.caloriesKcal);
+  const sleepNum = parseNumberOrNull(form.sleepHours);
+
   return (
     <AppShell title={R.pageTitle} decoration="dots">
       <section className="card-shadow mt-4 rounded-3xl bg-gradient-to-br from-brand-700 via-teal-600 to-emerald-500 px-6 py-6 text-white">
@@ -203,9 +331,21 @@ export default function RoutinePage() {
         <p className="mt-1 text-[12px] text-white/80">
           {R.todayLabel}: {todayIso()}
         </p>
+        {/* 오늘 요약 — 현재 입력값 기준 */}
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <HeroStat label={R.barLabels.calories} value={caloriesNum != null ? `${caloriesNum}` : '—'} unit={R.unitCal} />
+          <HeroStat
+            label={R.barLabels.exercise}
+            value={burnKcal != null ? `~${burnKcal}` : exMin != null ? `${exMin}` : '—'}
+            unit={burnKcal != null ? R.unitCal : R.unitMin}
+          />
+          <HeroStat label={R.barLabels.sleep} value={sleepNum != null ? `${sleepNum}` : '—'} unit={R.unitHr} />
+        </div>
       </section>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+        {/* ── 1. 식사 ─────────────────────────────────────────── */}
+        <SectionTitle title={ST.food} tone="text-emerald-600 dark:text-emerald-400" />
         <section className="card-shadow space-y-2 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900">
           <div className="flex items-center justify-between">
             <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300">
@@ -219,7 +359,7 @@ export default function RoutinePage() {
             {F.sectionHint}
           </p>
 
-          {/* 사진으로 칼로리 추정 — 카메라/갤러리 → AI Vision(foodshot) */}
+          {/* 사진으로 칼로리 추정 */}
           <div className="rounded-xl border border-stone-200 bg-stone-50/70 px-3 py-2.5 dark:border-stone-800 dark:bg-stone-800/30">
             <p className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">
               {F.photoTitle}
@@ -375,27 +515,174 @@ export default function RoutinePage() {
               <p className="mt-1 text-[10px] opacity-70">{F.estimateNote}</p>
             </div>
           )}
+
+          <NumberField
+            label={R.fieldCalories.label}
+            placeholder={R.fieldCalories.placeholder}
+            value={form.caloriesKcal}
+            onChange={(v) => setForm((f) => ({ ...f, caloriesKcal: v }))}
+          />
         </section>
 
-        <NumberField
-          label={R.fieldCalories.label}
-          placeholder={R.fieldCalories.placeholder}
-          value={form.caloriesKcal}
-          onChange={(v) => setForm((f) => ({ ...f, caloriesKcal: v }))}
-        />
-        <NumberField
-          label={R.fieldExercise.label}
-          placeholder={R.fieldExercise.placeholder}
-          value={form.exerciseMinutes}
-          onChange={(v) => setForm((f) => ({ ...f, exerciseMinutes: v }))}
-        />
-        <NumberField
-          label={R.fieldSleep.label}
-          placeholder={R.fieldSleep.placeholder}
-          value={form.sleepHours}
-          onChange={(v) => setForm((f) => ({ ...f, sleepHours: v }))}
-          allowDecimal
-        />
+        {/* ── 2. 운동 ─────────────────────────────────────────── */}
+        <SectionTitle title={ST.exercise} tone="text-sky-600 dark:text-sky-400" />
+        <section className="card-shadow space-y-3 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900">
+          <p className="text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+            {EX.sectionHint}
+          </p>
+          <div>
+            <p className="mb-1.5 text-[11px] font-bold text-stone-600 dark:text-stone-300">
+              {EX.typeTitle}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {EXERCISES.map((e) => (
+                <button
+                  key={e.key}
+                  type="button"
+                  onClick={() => pickExercise(e.key)}
+                  className={`rounded-xl border px-3 py-2 text-[12px] font-semibold transition active:scale-[0.97] ${
+                    exKey === e.key
+                      ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-950/40 dark:text-sky-200'
+                      : 'border-stone-200 bg-white text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200'
+                  }`}
+                >
+                  {EX.types[e.key]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-bold text-stone-600 dark:text-stone-300">
+              {EX.timeTitle}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => pickDuration(d)}
+                  className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition active:scale-[0.97] ${
+                    exMin === d
+                      ? 'border-sky-500 bg-sky-500 text-white'
+                      : 'border-stone-200 bg-white text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200'
+                  }`}
+                >
+                  {d}
+                  {R.unitMin}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {burnKcal != null && exKey && (
+            <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-3 py-2.5 text-[12.5px] text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+              <span className="font-bold">{EX.resultPrefix}:</span> {EX.types[exKey]} ({exMin}
+              {R.unitMin}) → {EX.burnPrefix} <span className="font-extrabold">{burnKcal}</span>{' '}
+              {EX.burnSuffix}
+            </div>
+          )}
+
+          <NumberField
+            label={EX.manualLabel}
+            placeholder={R.fieldExercise.placeholder}
+            value={form.exerciseMinutes}
+            onChange={(v) => setForm((f) => ({ ...f, exerciseMinutes: v }))}
+          />
+
+          <button
+            type="button"
+            onClick={scrollToHistory}
+            className="inline-flex w-full items-center justify-center gap-1 rounded-xl border border-sky-300 bg-white px-3 py-2 text-[12px] font-semibold text-sky-700 transition active:scale-[0.97] dark:border-sky-800 dark:bg-stone-900 dark:text-sky-300"
+          >
+            {EX.historyCta}
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </button>
+        </section>
+
+        {/* ── 3. 휴식 (수면) ──────────────────────────────────── */}
+        <SectionTitle title={ST.rest} tone="text-violet-600 dark:text-violet-400" />
+        <section className="card-shadow space-y-3 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900">
+          <div>
+            <p className="mb-1.5 text-[11px] font-bold text-stone-600 dark:text-stone-300">
+              {RS.sleepTitle}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <TimeField label={RS.bedLabel} value={bed} onChange={setBed} />
+              <TimeField label={RS.wakeLabel} value={wake} onChange={setWake} />
+            </div>
+            {sleepFromTimes != null && (
+              <p className="mt-2 rounded-xl bg-violet-50 px-3 py-2 text-[12px] font-semibold text-violet-800 dark:bg-violet-950/40 dark:text-violet-200">
+                {RS.summaryPrefix}: {bed} ~ {wake} ({hoursToHm(sleepFromTimes)})
+              </p>
+            )}
+            <div className="mt-2">
+              <NumberField
+                label={R.fieldSleep.label}
+                placeholder={R.fieldSleep.placeholder}
+                value={form.sleepHours}
+                onChange={(v) => setForm((f) => ({ ...f, sleepHours: v }))}
+                allowDecimal
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold text-stone-600 dark:text-stone-300">
+              {RS.activitiesTitle}
+            </p>
+            <p className="mb-1.5 text-[10px] leading-relaxed text-stone-500 dark:text-stone-400">
+              {RS.activitiesHint}
+            </p>
+            <div className="space-y-2">
+              {REST_KEYS.map((k) => (
+                <div
+                  key={k}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 dark:border-stone-800 dark:bg-stone-900"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setRest((r) => ({ ...r, [k]: { ...r[k], on: !r[k].on } }))}
+                    className="flex items-center gap-2"
+                    aria-pressed={rest[k].on}
+                  >
+                    <span
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
+                        rest[k].on ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white transition ${
+                          rest[k].on ? 'translate-x-4' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </span>
+                    <span className="text-[12.5px] font-semibold text-stone-800 dark:text-stone-200">
+                      {RS.activities[k]}
+                    </span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={rest[k].min}
+                      disabled={!rest[k].on}
+                      onChange={(e) =>
+                        setRest((r) => ({ ...r, [k]: { ...r[k], min: e.target.value.replace(/[^0-9]/g, '') } }))
+                      }
+                      placeholder="0"
+                      maxLength={3}
+                      className="w-14 rounded-lg border border-stone-200 bg-white px-2 py-1 text-right text-[12px] text-stone-900 disabled:opacity-40 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                    />
+                    <span className="text-[11px] text-stone-500 dark:text-stone-400">{RS.minutesUnit}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 메모 */}
         <TextField
           label={R.fieldNote.label}
           placeholder={R.fieldNote.placeholder}
@@ -426,7 +713,7 @@ export default function RoutinePage() {
       </form>
 
       {summary && (
-        <section className="mt-5">
+        <section id="routine-weekly" className="mt-5 scroll-mt-20">
           <div className="mb-2 flex items-center justify-between gap-2 px-1">
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {R.weeklyTitle}
@@ -498,6 +785,46 @@ export default function RoutinePage() {
         </Link>
       </div>
     </AppShell>
+  );
+}
+
+function SectionTitle({ title, tone }: { title: string; tone: string }) {
+  return (
+    <h2 className={`px-1 pt-1 text-[15px] font-extrabold ${tone}`}>{title}</h2>
+  );
+}
+
+function HeroStat({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="rounded-2xl bg-white/15 px-3 py-2 text-center backdrop-blur">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/75">{label}</p>
+      <p className="mt-0.5 text-[15px] font-extrabold leading-none">
+        {value}
+        <span className="ml-0.5 text-[10px] font-semibold text-white/80">{unit}</span>
+      </p>
+    </div>
+  );
+}
+
+function TimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300">{label}</span>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 block w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-brand-500 focus:outline-none dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+      />
+    </label>
   );
 }
 

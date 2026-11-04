@@ -12,20 +12,38 @@ import {
   setBannerActiveApi,
   moveBannerApi,
   bannerFileUrl,
+  fetchSiteContent,
+  upsertSiteContentApi,
   type AdminBanner,
+  type BannerPlacement,
 } from '@/lib/api-client';
+
+// vitalabs 배너 자동 넘김 간격을 담는 site_content 키(마이그레이션 불필요).
+const VITALABS_INTERVAL_KEY = 'vitalabs_banner_interval_ms';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,video/mp4,video/webm,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov';
 
+const PLACEMENTS: { id: BannerPlacement; label: string }[] = [
+  { id: 'app', label: 'VITAcode 앱 홈' },
+  { id: 'vitalabs', label: '회사 사이트(vitalabsinc.com)' },
+];
+
 export default function AdminBannersPage() {
   const [state, setState] = useState<'loading' | 'ok' | 'forbidden' | 'error'>('loading');
+  const [placement, setPlacement] = useState<BannerPlacement>('app');
   const [banners, setBanners] = useState<AdminBanner[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  // vitalabs 배너 자동 넘김 간격(초).
+  const [intervalSec, setIntervalSec] = useState('6');
+  const [intervalSaving, setIntervalSaving] = useState(false);
+  const [intervalMsg, setIntervalMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAdminBanners()
+    setState('loading');
+    setMsg(null);
+    fetchAdminBanners(placement)
       .then((list) => {
         setBanners(list);
         setState('ok');
@@ -34,7 +52,39 @@ export default function AdminBannersPage() {
         const code = e instanceof Error ? e.message : '';
         setState(code === 'FORBIDDEN' || code === 'UNAUTHORIZED' ? 'forbidden' : 'error');
       });
-  }, []);
+  }, [placement]);
+
+  // vitalabs 탭일 때 현재 저장된 간격을 불러온다(공개 site-content로 충분).
+  useEffect(() => {
+    if (placement !== 'vitalabs') return;
+    setIntervalMsg(null);
+    fetchSiteContent()
+      .then((c) => {
+        const ms = parseInt(c[VITALABS_INTERVAL_KEY] ?? '', 10);
+        if (!Number.isNaN(ms)) setIntervalSec(String(Math.round(ms / 1000)));
+      })
+      .catch(() => {
+        /* 실패 시 기본값(6초) 유지 */
+      });
+  }, [placement]);
+
+  async function saveInterval() {
+    const sec = Number(intervalSec);
+    if (!Number.isFinite(sec) || sec < 2 || sec > 60) {
+      setIntervalMsg('2~60초 사이로 입력하세요.');
+      return;
+    }
+    setIntervalSaving(true);
+    setIntervalMsg(null);
+    try {
+      await upsertSiteContentApi(VITALABS_INTERVAL_KEY, String(Math.round(sec * 1000)));
+      setIntervalMsg('저장되었습니다. (회사 사이트에 즉시 반영)');
+    } catch {
+      setIntervalMsg('저장에 실패했습니다.');
+    } finally {
+      setIntervalSaving(false);
+    }
+  }
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -44,7 +94,7 @@ export default function AdminBannersPage() {
     let failed = 0;
     for (const file of Array.from(files)) {
       try {
-        last = await uploadBanner(file);
+        last = await uploadBanner(file, placement);
       } catch {
         failed += 1;
       }
@@ -68,6 +118,25 @@ export default function AdminBannersPage() {
 
   return (
     <AdminShell title="배너 관리">
+      {state !== 'forbidden' && (
+        <div className="mt-3 flex gap-1.5 rounded-2xl bg-stone-100 p-1 dark:bg-stone-800">
+          {PLACEMENTS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={busy}
+              onClick={() => setPlacement(p.id)}
+              className={`flex-1 rounded-xl px-3 py-2 text-[12px] font-semibold transition disabled:opacity-50 ${
+                placement === p.id
+                  ? 'bg-white text-brand-700 shadow-sm dark:bg-stone-900 dark:text-brand-300'
+                  : 'text-stone-500 dark:text-stone-400'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
       {state === 'loading' ? (
         <div className="mt-10 flex justify-center">
           <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700 dark:border-stone-700 dark:border-t-brand-400" />
@@ -78,6 +147,40 @@ export default function AdminBannersPage() {
         </div>
       ) : (
         <div className="space-y-4 pb-10 pt-3">
+          {/* vitalabs 전용 — 자동 넘김 간격(시퀀싱 타임) */}
+          {placement === 'vitalabs' && (
+            <div className="card-shadow rounded-2xl bg-white px-4 py-4 dark:bg-stone-900">
+              <p className="text-[14px] font-bold text-stone-900 dark:text-stone-100">자동 넘김 간격</p>
+              <p className="mt-0.5 text-[11px] text-stone-500 dark:text-stone-400">
+                회사 사이트(vitalabsinc.com) 배너가 다음 배너로 자동 전환되는 시간. 2~60초.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  step={1}
+                  value={intervalSec}
+                  disabled={intervalSaving}
+                  onChange={(e) => setIntervalSec(e.target.value)}
+                  className="w-24 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-[14px] text-stone-900 focus:border-brand-500 focus:outline-none disabled:opacity-50 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+                />
+                <span className="text-[13px] text-stone-500 dark:text-stone-400">초</span>
+                <button
+                  type="button"
+                  disabled={intervalSaving}
+                  onClick={() => void saveInterval()}
+                  className="ml-auto rounded-xl bg-stone-900 px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-stone-900"
+                >
+                  {intervalSaving ? '저장 중…' : '저장'}
+                </button>
+              </div>
+              {intervalMsg && (
+                <p className="mt-2 text-[12px] font-medium text-stone-600 dark:text-stone-300">{intervalMsg}</p>
+              )}
+            </div>
+          )}
+
           {/* 업로드 */}
           <div className="card-shadow rounded-2xl bg-white px-4 py-4 dark:bg-stone-900">
             <p className="text-[14px] font-bold text-stone-900 dark:text-stone-100">배너 업로드</p>
@@ -147,7 +250,7 @@ export default function AdminBannersPage() {
                     <button
                       type="button"
                       disabled={busy || i === 0}
-                      onClick={() => void act(() => moveBannerApi(b.id, 'up'))}
+                      onClick={() => void act(() => moveBannerApi(b.id, 'up', placement))}
                       className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 disabled:opacity-40 dark:border-stone-700 dark:text-stone-300"
                     >
                       ↑ 위로
@@ -155,7 +258,7 @@ export default function AdminBannersPage() {
                     <button
                       type="button"
                       disabled={busy || i === banners.length - 1}
-                      onClick={() => void act(() => moveBannerApi(b.id, 'down'))}
+                      onClick={() => void act(() => moveBannerApi(b.id, 'down', placement))}
                       className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 disabled:opacity-40 dark:border-stone-700 dark:text-stone-300"
                     >
                       ↓ 아래로
@@ -163,7 +266,7 @@ export default function AdminBannersPage() {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => void act(() => setBannerActiveApi(b.id, !b.active))}
+                      onClick={() => void act(() => setBannerActiveApi(b.id, !b.active, placement))}
                       className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 disabled:opacity-40 dark:border-stone-700 dark:text-stone-300"
                     >
                       {b.active ? '비활성화' : '활성화'}
@@ -173,7 +276,7 @@ export default function AdminBannersPage() {
                       disabled={busy}
                       onClick={() => {
                         if (typeof window !== 'undefined' && !window.confirm('이 배너를 삭제할까요?')) return;
-                        void act(() => deleteBannerApi(b.id));
+                        void act(() => deleteBannerApi(b.id, placement));
                       }}
                       className="rounded-lg border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 disabled:opacity-40 dark:border-rose-900 dark:text-rose-300"
                     >

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" width="1600" height="600" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="0.55" stop-color="#0e4d64"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="600" fill="url(#bg1)"/>
+  <circle cx="1330" cy="150" r="260" fill="#ffffff" opacity="0.05"/>
+  <circle cx="1420" cy="470" r="180" fill="#5eead4" opacity="0.08"/>
+  <path d="M980 380 h120 l40 -90 l60 170 l45 -110 h240" fill="none" stroke="url(#accent1)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  <text x="110" y="150" fill="#5eead4" font-size="30" font-weight="700" letter-spacing="8">VITA LABS</text>
+  <text x="108" y="290" fill="#ffffff" font-size="78" font-weight="800">디지털 트윈으로 그리는</text>
+  <text x="108" y="378" fill="#ffffff" font-size="78" font-weight="800">건강의 미래</text>
+  <text x="110" y="452" fill="#cbd5e1" font-size="34" font-weight="500">AI가 노화·질병 위험을 예측하는 디지털 트윈 헬스케어</text>
+  <rect x="110" y="500" width="360" height="4" rx="2" fill="url(#accent1)"/>
+</svg>

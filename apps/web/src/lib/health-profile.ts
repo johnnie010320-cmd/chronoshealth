@@ -24,6 +24,11 @@ export type StableHealthProfile = {
   familyHistoryCardiovascular: boolean;
   // 기타 가족력 자유 입력(복수) — 가족력은 변화가 거의 없어 프리필 대상.
   familyHistoryOther: string[];
+  // 디지털 트윈 프로필 폼용 생활습관(로컬 프리필). 정밀 분석은 VITA test/설문이 수행.
+  smoking?: '' | 'none' | 'past' | 'current';
+  alcohol?: '' | 'none' | 'sometimes' | 'often';
+  exerciseHoursPerWeek?: number | null;
+  sleepHours?: number | null;
 };
 
 type StoredProfile = StableHealthProfile & {
@@ -52,6 +57,10 @@ export function loadHealthProfile(): StableHealthProfile | null {
       familyHistoryOther: Array.isArray(p.familyHistoryOther)
         ? p.familyHistoryOther.filter((s): s is string => typeof s === 'string')
         : [],
+      smoking: p.smoking === 'none' || p.smoking === 'past' || p.smoking === 'current' ? p.smoking : '',
+      alcohol: p.alcohol === 'none' || p.alcohol === 'sometimes' || p.alcohol === 'often' ? p.alcohol : '',
+      exerciseHoursPerWeek: typeof p.exerciseHoursPerWeek === 'number' ? p.exerciseHoursPerWeek : null,
+      sleepHours: typeof p.sleepHours === 'number' ? p.sleepHours : null,
     };
   } catch {
     window.localStorage.removeItem(STORAGE_KEY);

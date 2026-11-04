@@ -392,14 +392,14 @@ describe('CORS', () => {
     const res = await app.request('/api/v1/risk-estimate', {
       method: 'OPTIONS',
       headers: {
-        Origin: 'https://chronoshealth.ever-day.com',
+        Origin: 'https://vitacodeapp.com',
         'Access-Control-Request-Method': 'POST',
         'Access-Control-Request-Headers': 'Content-Type,Authorization',
       },
     });
     expect(res.status).toBeLessThan(400);
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
-      'https://chronoshealth.ever-day.com',
+      'https://vitacodeapp.com',
     );
   });
 

@@ -88,37 +88,6 @@ export default function RoadmapPage() {
         </div>
       </section>
 
-      <section className="card-shadow mt-6 rounded-3xl bg-white p-5 dark:bg-stone-900">
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-          {R.currentLive.badge}
-        </span>
-        <h2 className="mt-3 text-base font-bold text-stone-900 dark:text-stone-100">
-          {R.currentLive.title}
-        </h2>
-        <ul className="mt-3 space-y-2">
-          {R.currentLive.items.map((item, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-2 text-[13px] leading-relaxed text-stone-700 dark:text-stone-300"
-            >
-              <span
-                aria-hidden
-                className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600 dark:bg-brand-400"
-              />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        <Link
-          href="/survey"
-          className="mt-5 inline-flex w-full items-center justify-between rounded-2xl bg-stone-900 px-4 py-3 text-sm font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
-        >
-          <span>{R.currentLive.cta}</span>
-          <ChevronRightIcon className="h-4 w-4" />
-        </Link>
-      </section>
-
       <section className="mt-10">
         <h2 className="px-1 text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
           {R.phaseTimelineTitle}

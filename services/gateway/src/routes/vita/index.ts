@@ -5,7 +5,7 @@ import { VitaSubmitRequest } from '../../schemas/vita.js';
 import { readLatestVitaResult, saveVitaResult } from '../../vita/storage.js';
 import type { Bindings } from '../../bindings.js';
 
-const MODEL_VERSION = 'vita-v0.1.0';
+const MODEL_VERSION = 'vita-v8.0.0';
 
 export const vitaRoute = new Hono<{
   Bindings: Bindings;

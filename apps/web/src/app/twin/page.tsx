@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
+import type { Nationality } from '@/lib/signup-schema';
 import {
   addSurgery,
   checkNicknameAvailable,
@@ -159,7 +160,7 @@ export default function TwinPage() {
         phone: me.phone ?? '',
         birthYear: me.birthYear ?? new Date().getFullYear() - 20,
         sex: me.sex ?? 'other',
-        nationality: (me.nationality as 'KR' | 'US' | 'JP' | 'ES' | 'OTHER') ?? 'OTHER',
+        nationality: (me.nationality as Nationality | null) ?? 'OTHER',
         nickname: nick,
       });
       setMe(updated.profile);
@@ -273,7 +274,7 @@ export default function TwinPage() {
           onToggleNone={() => toggleNone('chronic')}
           onAddCustom={(text) => addCustom('chronic', text)}
           onRemoveCode={(code) => removeCode('chronic', code)}
-          onSave={() => void persistCategory('chronic')}
+          onSave={() => persistCategory('chronic')}
           labels={T.chronicCodes}
           text={{
             none: T.noneLabel,
@@ -294,7 +295,7 @@ export default function TwinPage() {
           onToggleNone={() => toggleNone('critical')}
           onAddCustom={(text) => addCustom('critical', text)}
           onRemoveCode={(code) => removeCode('critical', code)}
-          onSave={() => void persistCategory('critical')}
+          onSave={() => persistCategory('critical')}
           labels={T.criticalCodes}
           text={{
             none: T.noneLabel,
@@ -315,7 +316,7 @@ export default function TwinPage() {
           onToggleNone={() => toggleNone('family')}
           onAddCustom={(text) => addCustom('family', text)}
           onRemoveCode={(code) => removeCode('family', code)}
-          onSave={() => void persistCategory('family')}
+          onSave={() => persistCategory('family')}
           labels={T.familyCodes}
           text={{
             none: T.noneLabel,
@@ -433,11 +434,23 @@ function ConditionCategorySection({
   onToggleNone: () => void;
   onAddCustom: (text: string) => void;
   onRemoveCode: (code: string) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   labels: Record<string, string>;
   text: { none: string; customPlaceholder: string; customAdd: string; save: string };
 }) {
   const [customInput, setCustomInput] = useState('');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'done' | 'err'>('idle');
+
+  async function handleSave() {
+    setSaveState('saving');
+    try {
+      await onSave();
+      setSaveState('done');
+      setTimeout(() => setSaveState('idle'), 2000);
+    } catch {
+      setSaveState('err');
+    }
+  }
   const noneSelected = picked.has(NONE_CODE);
   // 사용자가 직접 입력한 항목(카탈로그에 없는 custom: 코드)만 칩으로 별도 표시.
   const customCodes = Array.from(picked).filter((c) => c.startsWith(CUSTOM_PREFIX));
@@ -467,20 +480,17 @@ function ConditionCategorySection({
             </span>
           </label>
         ))}
+        {/* 해당 없음 — 그리드 마지막 칸(마지막 질환 옆)에 배치해 줄 수를 줄임. 선택 시 다른 항목 해제. */}
+        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] dark:border-stone-800 dark:bg-stone-800/60">
+          <input
+            type="checkbox"
+            checked={noneSelected}
+            onChange={onToggleNone}
+            className="h-4 w-4 accent-brand-600"
+          />
+          <span className="font-semibold text-stone-700 dark:text-stone-200">{text.none}</span>
+        </label>
       </div>
-
-      {/* 해당 없음 — 선택 시 다른 항목을 모두 해제 */}
-      <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] dark:border-stone-800 dark:bg-stone-800/60">
-        <input
-          type="checkbox"
-          checked={noneSelected}
-          onChange={onToggleNone}
-          className="h-4 w-4 accent-brand-600"
-        />
-        <span className="font-semibold text-stone-700 dark:text-stone-200">
-          {text.none}
-        </span>
-      </label>
 
       {/* 직접 입력한 항목 칩 */}
       {customCodes.length > 0 && (
@@ -533,11 +543,24 @@ function ConditionCategorySection({
 
       <button
         type="button"
-        onClick={onSave}
-        className="mt-3 inline-flex w-full items-center justify-between rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-stone-900"
+        onClick={() => void handleSave()}
+        disabled={saveState === 'saving'}
+        className={`mt-3 inline-flex w-full items-center justify-center gap-1 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:opacity-70 ${
+          saveState === 'done'
+            ? 'bg-emerald-600'
+            : saveState === 'err'
+              ? 'bg-rose-600'
+              : 'bg-gradient-to-r from-cyan-600 to-blue-600'
+        }`}
       >
-        <span>{text.save}</span>
-        <ChevronRightIcon className="h-4 w-4" />
+        {saveState === 'saving'
+          ? '저장 중…'
+          : saveState === 'done'
+            ? '저장되었습니다 ✓'
+            : saveState === 'err'
+              ? '저장 실패 · 다시 시도'
+              : text.save}
+        {saveState === 'idle' && <ChevronRightIcon className="h-4 w-4" />}
       </button>
     </section>
   );

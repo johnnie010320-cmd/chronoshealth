@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
+import { ChatBubbleIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -250,12 +251,32 @@ export default function FeatureRequestsPage() {
 
   return (
     <AppShell title={F.pageTitle} decoration="dots">
-      <p className="mt-3 px-1 text-[12px] leading-relaxed text-stone-500 dark:text-stone-400">
-        {F.intro}
-      </p>
+      <section className="grad-violet card-shadow relative mt-3 overflow-hidden rounded-3xl px-5 py-5">
+        <span
+          className="blob"
+          style={{
+            width: 130,
+            height: 130,
+            right: -22,
+            top: -30,
+            background: 'radial-gradient(circle, #f0abfc, transparent 70%)',
+          }}
+        />
+        <div className="relative flex items-start gap-3">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+            <ChatBubbleIcon className="h-6 w-6 text-white" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold leading-tight tracking-tight text-white">
+              {F.pageTitle}
+            </h1>
+            <p className="mt-1 text-[12px] leading-relaxed text-white/85">{F.intro}</p>
+          </div>
+        </div>
+      </section>
 
       {/* 작성/수정 폼 */}
-      <section className="card-shadow mt-3 rounded-2xl bg-white p-4 dark:bg-stone-900">
+      <section className="card-shadow card-violet mt-3 rounded-2xl p-4">
         <div className="flex gap-2">
           {(['feature', 'bug'] as const).map((k) => (
             <button
@@ -543,7 +564,7 @@ export default function FeatureRequestsPage() {
           {items.map((item) => (
             <li
               key={item.id}
-              className="card-shadow rounded-2xl bg-white p-4 dark:bg-stone-900"
+              className="card-shadow card-violet rounded-2xl p-4"
             >
               <div className="flex items-center gap-2">
                 <span

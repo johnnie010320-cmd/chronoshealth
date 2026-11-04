@@ -100,8 +100,14 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { itemKey: 'itemData1', href: '/survey' },
       { itemKey: 'itemData2', href: '/twin' },
-      { itemKey: 'itemData3', href: '/menu', disabled: true, phaseHint: 'phaseHintP2' },
+      { itemKey: 'itemData3', href: '/checkup' },
       { itemKey: 'itemWearable', href: '/menu', disabled: true, phaseHint: 'phaseHintP2' },
+    ],
+  },
+  {
+    groupKey: 'groupRoutine',
+    items: [
+      { itemKey: 'itemRoutineDaily', href: '/my-routine' },
     ],
   },
   {

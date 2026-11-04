@@ -56,6 +56,10 @@ body {
   background:
     radial-gradient(120% 55% at 100% 0%, #ddd6fe 0%, transparent 55%),
     linear-gradient(160deg, #ede9fe 0%, #f5f3ff 45%, #faf5ff 100%);
+  /* 한글 줄바꿈을 띄어쓰기(어절) 단위로만 — "만들어보세요"가 "…보세/요"처럼
+     마지막 글자만 떨어지는 고아 문자 현상 방지. 긴 라틴/URL은 필요시만 분해. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -142,6 +146,92 @@ button {
   }
 }
 
+/* ===================================================================
+   생동감 컬러 시스템 (삼성/애플 헬스식) — 2026-10-07 죠니.
+   도메인 시그니처 색: 홈=violet · 디지털트윈=cyan · VITA코드=emerald
+   · 커뮤니티=amber · My=rose. 지표/건강나이 타일은 대비색 vivid 그라데이션.
+   향후 모든 페이지에 이 클래스를 재사용해 일관된 생동감을 준다.
+   =================================================================== */
+
+/* vivid 지표 타일 — 흰 글자. 작은 수치/상태 카드에 사용. */
+.tile-emerald {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  color: #fff;
+}
+.tile-rose {
+  background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+  color: #fff;
+}
+.tile-amber {
+  background: linear-gradient(135deg, #fbbf24 0%, #ea8a04 100%);
+  color: #fff;
+}
+.tile-sky {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  color: #fff;
+}
+.tile-violet {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  color: #fff;
+}
+.tile-teal {
+  background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%);
+  color: #fff;
+}
+
+/* 큰 히어로/CTA 카드용 포화 그라데이션 (삼성 헬스식). 흰 글자. */
+.grad-cyan {
+  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 55%, #6366f1 100%);
+  color: #fff;
+}
+.grad-violet {
+  background: linear-gradient(135deg, #c084fc 0%, #a855f7 50%, #7c3aed 100%);
+  color: #fff;
+}
+.grad-sunset {
+  background: linear-gradient(135deg, #fbbf24 0%, #fb7185 55%, #ec4899 100%);
+  color: #fff;
+}
+.grad-emerald {
+  background: linear-gradient(135deg, #4ade80 0%, #10b981 55%, #0d9488 100%);
+  color: #fff;
+}
+.grad-pink {
+  background: linear-gradient(135deg, #f472b6 0%, #ec4899 55%, #db2777 100%);
+  color: #fff;
+}
+.grad-indigo {
+  background: linear-gradient(135deg, #38bdf8 0%, #6366f1 55%, #8b5cf6 100%);
+  color: #fff;
+}
+
+/* 그라데이션 텍스트 (브랜드 무지개) */
+.grad-text {
+  background: linear-gradient(100deg, #7c3aed 0%, #d946ef 45%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 소프트 글로우 블롭 — 카드 코너 장식(삼성식 일러스트 대체). */
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(6px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* 섹션 좌측 컬러 악센트 바(제목 강조). */
+.accent-bar {
+  display: inline-block;
+  width: 3px;
+  height: 0.9em;
+  border-radius: 9999px;
+  vertical-align: -0.1em;
+  margin-right: 0.4rem;
+}
+
 /* 카드 부드러운 그림자 */
 .card-shadow {
   box-shadow:
@@ -157,6 +247,69 @@ button {
   }
 }
 
+/* ===================================================================
+   마케팅 사이트 (공개 웹, vitacodeapp.com) — 앱셸과 분리된 풀폭 레이아웃.
+   진단 리포트/생체 스펙트럼 시각언어: 보라(임상적 정밀) + teal↔rose(축 양극).
+   =================================================================== */
+.mkt {
+  --mkt-ink: #191029;
+  --mkt-paper: #f7f5ff;
+  --mkt-surface: #ffffff;
+  --mkt-violet: #6d28d9;
+  --mkt-violet-lite: #8b5cf6;
+  --mkt-signal: #0ea5a5; /* 최적 축(primary) 극 */
+  --mkt-warn: #f43f5e; /* 주의 축(secondary) 극 */
+  --mkt-muted: #6b6580;
+  --mkt-line: rgba(25, 16, 41, 0.1);
+  --font-sora: 'Sora'; /* 마케팅 라틴/코드 디스플레이 (Google Fonts <link> 로 로드) */
+  min-height: 100dvh;
+  background: var(--mkt-paper);
+  color: var(--mkt-ink);
+  font-family:
+    'Pretendard', ui-sans-serif, system-ui, -apple-system,
+    'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+.mkt-display {
+  font-family:
+    var(--font-sora), 'Sora', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+.mkt-code {
+  font-family: var(--font-sora), 'Sora', ui-monospace, monospace;
+  letter-spacing: 0.06em;
+}
+@media (prefers-color-scheme: dark) {
+  .mkt {
+    --mkt-ink: #f3f0ff;
+    --mkt-paper: #100a1e;
+    --mkt-surface: #191130;
+    --mkt-muted: #a49dbb;
+    --mkt-line: rgba(255, 255, 255, 0.12);
+    background: var(--mkt-paper);
+    color: var(--mkt-ink);
+  }
+}
+/* 축 스펙트럼 트랙 — teal(최적)→rose(주의) 그라데이션 */
+.mkt-spectrum {
+  background: linear-gradient(
+    90deg,
+    var(--mkt-signal) 0%,
+    #a78bfa 50%,
+    var(--mkt-warn) 100%
+  );
+}
+.mkt-hero-grid {
+  background-image:
+    linear-gradient(var(--mkt-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mkt-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mkt-marker {
+    transition: left 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
 /* 커뮤니티 본문 리치 에디터 — 빈 상태 placeholder */
 .rich-editor:empty::before {
   content: attr(data-placeholder);
@@ -165,4 +318,20 @@ button {
 }
 .rich-editor:focus {
   outline: none;
+}
+
+/* 외부정보 업데이트 안내(UpdateNotice) — 등장 팝 + 이모지 가벼운 흔들림 */
+@keyframes updatePop {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.update-pop { animation: updatePop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes updateBob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-2px) rotate(4deg); }
+}
+.update-bob { animation: updateBob 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .update-pop, .update-bob { animation: none; }
 }

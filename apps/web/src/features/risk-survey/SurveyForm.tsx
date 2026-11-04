@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { RiskSurveyRequest, type RiskSurveyRequest as TRiskSurveyRequest, type RiskSurveyResponse } from '@/lib/schemas';
 import { submitRiskEstimate } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
@@ -49,13 +50,31 @@ export function SurveyForm({ onSuccess }: Props) {
   const [alcohols, setAlcohols] = useState<AlcoholEntry[]>([]);
   const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
   const [familyOther, setFamilyOther] = useState<string[]>([]);
+  // 재설문(디지털 트윈 시뮬레이션→설문 다시 하기) 진입 시, 기본 인적사항·생활 습관은
+  // 디지털 트윈 만들기에서 입력한 값(health-profile)을 쓰고 설문에서는 생략한다(중복 제거).
+  const [simplified, setSimplified] = useState(false);
+  // 가족력 "해당 없음" 토글 — 체크 시 세부 가족력을 모두 없음 처리.
+  const [noFamily, setNoFamily] = useState(false);
 
   useEffect(() => {
     const loaded = loadHealthProfile();
     setProfile(loaded);
     setFamilyOther(loaded?.familyHistoryOther ?? []);
+    try {
+      setSimplified(new URLSearchParams(window.location.search).get('redo') === '1');
+    } catch {
+      /* noop */
+    }
     setProfileLoaded(true);
   }, []);
+
+  // 재설문 모드에서 디지털 트윈 프로필에 반드시 필요한 핵심 값이 있는지.
+  const profileCoreReady =
+    !!profile &&
+    typeof profile.birthYear === 'number' &&
+    (profile.sex === 'male' || profile.sex === 'female' || profile.sex === 'other') &&
+    typeof profile.heightCm === 'number' &&
+    typeof profile.weightKg === 'number';
 
   function handleClearProfile() {
     clearHealthProfile();
@@ -101,30 +120,47 @@ export function SurveyForm({ onSuccess }: Props) {
       const cleanAlcohols = alcohols.filter((a) => a.amountPerWeek > 0);
       const cleanExercises = exercises.filter((x) => x.minutesPerWeek > 0);
       const cleanFamilyOther = familyOther.map((s) => s.trim()).filter((s) => s !== '');
+
+      // 재설문 모드: 기본 인적사항·생활 습관은 디지털 트윈 프로필에서 가져온다(설문에서 생략).
+      const useProfile = simplified && !!profile;
+      const smokingFromProfile =
+        profile?.smoking === 'current' ? 'current' : profile?.smoking === 'past' ? 'former' : 'never';
+      const alcoholFromProfile =
+        profile?.alcohol === 'often' ? 10 : profile?.alcohol === 'sometimes' ? 3 : 0;
+      const exerciseMinFromProfile = Math.min(
+        2000,
+        Math.max(0, Math.round((profile?.exerciseHoursPerWeek ?? 0) * 60)),
+      );
+
       const raw = {
-        birthYear: numOrNaN(fd.get('birthYear')),
-        sex: fd.get('sex') as string,
-        heightCm: numOrNaN(fd.get('heightCm')),
-        weightKg: numOrNaN(fd.get('weightKg')),
-        smoking: smokingVal,
-        smokingPacksPerWeek:
-          smokingVal === 'current' ? nullableNum(fd.get('smokingPacksPerWeek')) : null,
-        alcoholEntries: cleanAlcohols,
+        birthYear: useProfile ? (profile!.birthYear ?? NaN) : numOrNaN(fd.get('birthYear')),
+        sex: useProfile ? profile!.sex : (fd.get('sex') as string),
+        heightCm: useProfile ? (profile!.heightCm ?? NaN) : numOrNaN(fd.get('heightCm')),
+        weightKg: useProfile ? (profile!.weightKg ?? NaN) : numOrNaN(fd.get('weightKg')),
+        smoking: useProfile ? smokingFromProfile : smokingVal,
+        smokingPacksPerWeek: useProfile
+          ? null
+          : smokingVal === 'current'
+            ? nullableNum(fd.get('smokingPacksPerWeek'))
+            : null,
+        alcoholEntries: useProfile ? [] : cleanAlcohols,
         // 계산 입력(표준잔/주 합계)은 주종·주량 목록에서 파생.
-        alcoholDrinksPerWeek: deriveAlcoholDrinksPerWeek(cleanAlcohols),
-        exercises: cleanExercises,
+        alcoholDrinksPerWeek: useProfile ? alcoholFromProfile : deriveAlcoholDrinksPerWeek(cleanAlcohols),
+        exercises: useProfile ? [] : cleanExercises,
         // 계산 입력(강도가중 유효분/주)은 운동 목록에서 파생.
-        exerciseMinutesPerWeek: deriveExerciseMinutesPerWeek(cleanExercises),
-        sleepHoursPerNight: numOrNaN(fd.get('sleepHoursPerNight')),
+        exerciseMinutesPerWeek: useProfile ? exerciseMinFromProfile : deriveExerciseMinutesPerWeek(cleanExercises),
+        sleepHoursPerNight: useProfile
+          ? (profile!.sleepHours ?? 7)
+          : numOrNaN(fd.get('sleepHoursPerNight')),
         systolicBp: nullableNum(fd.get('systolicBp')),
         diastolicBp: nullableNum(fd.get('diastolicBp')),
         fastingGlucose: nullableNum(fd.get('fastingGlucose')),
         ldlCholesterol: nullableNum(fd.get('ldlCholesterol')),
         hdlCholesterol: nullableNum(fd.get('hdlCholesterol')),
-        familyHistoryDiabetes: fd.has('familyHistoryDiabetes'),
-        familyHistoryHypertension: fd.has('familyHistoryHypertension'),
-        familyHistoryCardiovascular: fd.has('familyHistoryCardiovascular'),
-        familyHistoryOther: cleanFamilyOther,
+        familyHistoryDiabetes: noFamily ? false : fd.has('familyHistoryDiabetes'),
+        familyHistoryHypertension: noFamily ? false : fd.has('familyHistoryHypertension'),
+        familyHistoryCardiovascular: noFamily ? false : fd.has('familyHistoryCardiovascular'),
+        familyHistoryOther: noFamily ? [] : cleanFamilyOther,
         stressLevel: fd.get('stressLevel') as string,
         selfRatedHealth: fd.get('selfRatedHealth') as string,
         consentToStore: fd.has('consentToStore'),
@@ -144,16 +180,25 @@ export function SurveyForm({ onSuccess }: Props) {
       }
 
       // 변화가 거의 없는 기본 정보만 이 기기에 저장 → 다음 설문 자동 입력.
-      saveHealthProfile({
-        birthYear: parsed.data.birthYear,
-        sex: parsed.data.sex,
-        heightCm: parsed.data.heightCm,
-        weightKg: parsed.data.weightKg,
-        familyHistoryDiabetes: parsed.data.familyHistoryDiabetes,
-        familyHistoryHypertension: parsed.data.familyHistoryHypertension,
-        familyHistoryCardiovascular: parsed.data.familyHistoryCardiovascular,
-        familyHistoryOther: parsed.data.familyHistoryOther,
-      });
+      // 재설문 모드에서는 디지털 트윈 프로필(생활 습관 포함)을 덮어쓰지 않도록 저장 생략.
+      if (!simplified) {
+        saveHealthProfile({
+          ...(profile ?? {
+            smoking: '',
+            alcohol: '',
+            exerciseHoursPerWeek: null,
+            sleepHours: null,
+          }),
+          birthYear: parsed.data.birthYear,
+          sex: parsed.data.sex,
+          heightCm: parsed.data.heightCm,
+          weightKg: parsed.data.weightKg,
+          familyHistoryDiabetes: parsed.data.familyHistoryDiabetes,
+          familyHistoryHypertension: parsed.data.familyHistoryHypertension,
+          familyHistoryCardiovascular: parsed.data.familyHistoryCardiovascular,
+          familyHistoryOther: parsed.data.familyHistoryOther,
+        });
+      }
 
       const data = await submitRiskEstimate(parsed.data);
       onSuccess(data, parsed.data);
@@ -180,11 +225,15 @@ export function SurveyForm({ onSuccess }: Props) {
 
   return (
     <form key={formKey} onSubmit={handleSubmit} className="space-y-6 pb-32">
-      <header className="space-y-2 px-1">
-        <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
+      <header className="grad-indigo card-shadow relative overflow-hidden rounded-3xl px-5 py-6">
+        <span
+          className="blob"
+          style={{ width: 150, height: 150, right: -24, top: -32, background: 'radial-gradient(circle, #a5b4fc, transparent 70%)' }}
+        />
+        <h1 className="relative z-10 text-2xl font-black tracking-tight text-white">
           {S.heroTitle}
         </h1>
-        <p className="text-[13px] leading-relaxed text-stone-600 dark:text-stone-400">
+        <p className="relative z-10 mt-1.5 text-[13px] leading-relaxed text-white/85">
           {S.heroBody}
         </p>
       </header>
@@ -214,6 +263,36 @@ export function SurveyForm({ onSuccess }: Props) {
         </div>
       )}
 
+      {simplified && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 dark:border-cyan-900 dark:bg-cyan-950/40">
+          <span className="text-[12px] font-medium leading-snug text-cyan-800 dark:text-cyan-200">
+            기본 인적사항·생활 습관은 디지털 트윈 만들기에서 입력한 값으로 자동 반영됩니다.
+          </span>
+          <Link
+            href="/reports"
+            className="shrink-0 rounded-lg px-2 py-1 text-[12px] font-semibold text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300"
+          >
+            수정
+          </Link>
+        </div>
+      )}
+
+      {simplified && !profileCoreReady && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/40">
+          <span className="text-[12px] font-semibold leading-snug text-amber-800 dark:text-amber-200">
+            디지털 트윈 만들기에서 기본 정보(출생연도·성별·키·몸무게)를 먼저 입력해 주세요.
+          </span>
+          <Link
+            href="/reports"
+            className="shrink-0 rounded-lg bg-amber-500 px-2.5 py-1 text-[12px] font-bold text-white"
+          >
+            만들기
+          </Link>
+        </div>
+      )}
+
+      {!simplified && (
+      <>
       <Section
         icon={<UsersIcon className="h-5 w-5" />}
         title={S.section.demographics}
@@ -318,11 +397,13 @@ export function SurveyForm({ onSuccess }: Props) {
           defaultValue={7}
         />
       </Section>
+      </>
+      )}
 
       <Section
         icon={<DropletIcon className="h-5 w-5" />}
         title={S.section.vitals}
-        n="3"
+        n={simplified ? '1' : '3'}
         hint={S.section.vitalsHint}
       >
         <Field
@@ -370,34 +451,65 @@ export function SurveyForm({ onSuccess }: Props) {
       <Section
         icon={<HeartPulseIcon className="h-5 w-5" />}
         title={S.section.familyHistory}
-        n="4"
+        n={simplified ? '2' : '4'}
       >
-        <Checkbox
-          name="familyHistoryDiabetes"
-          label={F.familyHistoryDiabetes.label}
-          defaultChecked={p?.familyHistoryDiabetes}
-        />
-        <Checkbox
-          name="familyHistoryHypertension"
-          label={F.familyHistoryHypertension.label}
-          defaultChecked={p?.familyHistoryHypertension}
-        />
-        <Checkbox
-          name="familyHistoryCardiovascular"
-          label={F.familyHistoryCardiovascular.label}
-          defaultChecked={p?.familyHistoryCardiovascular}
-        />
-        <FamilyOtherList
-          items={familyOther}
-          onChange={setFamilyOther}
-          labels={F.familyHistoryOther}
-        />
+        {/* 해당 없음 토글 — 체크 시 아래 세부 가족력을 비활성화. */}
+        <button
+          type="button"
+          onClick={() => setNoFamily((v) => !v)}
+          aria-pressed={noFamily}
+          className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition active:scale-[0.99] ${
+            noFamily
+              ? 'border-brand-500 bg-brand-50 dark:border-brand-500 dark:bg-brand-950/40'
+              : 'border-stone-200 dark:border-stone-700'
+          }`}
+        >
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+              noFamily
+                ? 'border-brand-600 bg-brand-600 text-white'
+                : 'border-stone-300 dark:border-stone-600'
+            }`}
+          >
+            {noFamily && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            )}
+          </span>
+          <span className="text-[13px] font-semibold text-stone-800 dark:text-stone-100">
+            {F.familyHistoryNone}
+          </span>
+        </button>
+
+        <div className={noFamily ? 'pointer-events-none select-none opacity-40' : ''} aria-hidden={noFamily}>
+          <Checkbox
+            name="familyHistoryDiabetes"
+            label={F.familyHistoryDiabetes.label}
+            defaultChecked={p?.familyHistoryDiabetes}
+          />
+          <Checkbox
+            name="familyHistoryHypertension"
+            label={F.familyHistoryHypertension.label}
+            defaultChecked={p?.familyHistoryHypertension}
+          />
+          <Checkbox
+            name="familyHistoryCardiovascular"
+            label={F.familyHistoryCardiovascular.label}
+            defaultChecked={p?.familyHistoryCardiovascular}
+          />
+          <FamilyOtherList
+            items={familyOther}
+            onChange={setFamilyOther}
+            labels={F.familyHistoryOther}
+          />
+        </div>
       </Section>
 
       <Section
         icon={<BrainIcon className="h-5 w-5" />}
         title={S.section.perception}
-        n="5"
+        n={simplified ? '3' : '5'}
       >
         <SelectField
           label={F.stressLevel.label}
@@ -425,7 +537,7 @@ export function SurveyForm({ onSuccess }: Props) {
       <Section
         icon={<ShieldIcon className="h-5 w-5" />}
         title={S.section.consent}
-        n="6"
+        n={simplified ? '4' : '6'}
       >
         <Checkbox
           name="consentToStore"

@@ -448,3 +448,23 @@ export function ScopeFilledIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+// 디지털 트윈(인체 + 스캔) — 데이터 입력 탭.
+export function TwinIcon({ className, strokeWidth }: IconProps) {
+  return (
+    <svg {...baseProps(className, strokeWidth)}>
+      <circle cx="12" cy="6" r="3.2" />
+      <path d="M5.5 20v-.5a6.5 6.5 0 0 1 13 0v.5" />
+      <path d="M9 13.5h6" />
+    </svg>
+  );
+}
+
+export function TwinFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...filledProps(className)}>
+      <path d="M12 2.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Z" />
+      <path d="M12 10.4c-3.65 0-6.6 2.95-6.6 6.6V20h13.2v-3c0-3.65-2.95-6.6-6.6-6.6Z" />
+    </svg>
+  );
+}

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { readSession, clearSession, type StoredSession } from '@/lib/session';
 import { submitLogout } from '@/lib/api-client';
@@ -14,7 +13,6 @@ import { UserCircleIcon, LogoutIcon, MenuIcon, ChatBubbleIcon } from './HealthIc
 // 로그인  → 내 정보 + 로그아웃
 export function UserMenu() {
   const { t } = useI18n();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
   const nickname = useTwinNickname();
@@ -53,7 +51,9 @@ export function UserMenu() {
     clearSession();
     setSession(null);
     setOpen(false);
-    router.push('/');
+    // 소개 페이지로 전체 이동(full navigation) — 같은 경로 push 로는 화면이 안 바뀌던 문제 해결 +
+    // 쿠키/세션 상태를 새로 읽도록 강제. trailingSlash: true 라 끝 슬래시 포함.
+    window.location.assign('/welcome/?loggedout=1');
   };
 
   const isLoggedIn = session !== null;

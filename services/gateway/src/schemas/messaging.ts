@@ -60,3 +60,12 @@ export const ListMessagesQuery = z
   })
   .strict();
 export type ListMessagesQuery = z.infer<typeof ListMessagesQuery>;
+
+// 대화 내 검색 — 검색어 1~50자(앞뒤 공백 제거), 결과 최대 100건(최신순).
+export const SearchMessagesQuery = z
+  .object({
+    q: z.string().trim().min(1).max(50),
+    limit: z.coerce.number().int().min(1).max(100).default(100),
+  })
+  .strict();
+export type SearchMessagesQuery = z.infer<typeof SearchMessagesQuery>;

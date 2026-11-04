@@ -7,6 +7,7 @@ import {
   ListMessagesQuery,
   OpenDmRequest,
   ReactionRequest,
+  SearchMessagesQuery,
   SendMessageRequest,
 } from '../../schemas/messaging.js';
 import {
@@ -30,6 +31,7 @@ import {
   messageExistsInConversation,
   readConversation,
   removeReaction,
+  searchMessages,
   softDeleteMessage,
   unreadCount,
   unreadTotal,
@@ -318,6 +320,39 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(120,
   return c.json({
     messages,
     hasMore: rows.length === parsed.data.limit,
+    modelVersion: MODEL_VERSION,
+  });
+});
+
+// ── 대화 내 검색 ──────────────────────────────────────────────────────────
+// 대화 멤버만. 본문·첨부 파일명에서 검색어를 찾아 최신순 최대 100건. 화면은 결과 id 로 그 메시지까지 이동한다.
+messagingRoute.get('/conversations/:id/search', authMiddleware, rateLimit(60, MINUTE_MS), async (c) => {
+  const me = c.get('userPseudonymId');
+  const id = c.req.param('id');
+  if (!(await isMember(c.env.DB, id, me))) {
+    return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
+  }
+  const parsed = SearchMessagesQuery.safeParse({
+    q: c.req.query('q') ?? '',
+    limit: c.req.query('limit'),
+  });
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+
+  const rows = await searchMessages(c.env.DB, id, parsed.data.q, parsed.data.limit);
+  const nicks = await resolveNicknames(
+    c.env.IDENTITY_DB,
+    rows.map((r) => r.senderPseudonymId),
+  );
+  return c.json({
+    results: rows.map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      senderNickname: nicks.get(r.senderPseudonymId) ?? null,
+      isMine: r.senderPseudonymId === me,
+      body: r.body,
+      attachmentName: r.attachmentName,
+    })),
+    truncated: rows.length === parsed.data.limit,
     modelVersion: MODEL_VERSION,
   });
 });

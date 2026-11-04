@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
+import { BellIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import {
   fetchNotices,
@@ -36,6 +37,30 @@ export default function NoticesPage() {
 
   return (
     <AppShell title={N.pageTitle} showBack backHref="/" decoration="dots">
+      <section className="grad-violet card-shadow relative mt-3 overflow-hidden rounded-3xl px-5 py-5">
+        <span
+          className="blob"
+          style={{
+            width: 130,
+            height: 130,
+            right: -22,
+            top: -30,
+            background: 'radial-gradient(circle, #f0abfc, transparent 70%)',
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+            <BellIcon className="h-6 w-6 text-white" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80">
+              {N.homeEyebrow}
+            </p>
+            <h1 className="text-lg font-extrabold tracking-tight text-white">{N.pageTitle}</h1>
+          </div>
+        </div>
+      </section>
+
       {loading && (
         <div className="mt-10 flex justify-center">
           <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700 dark:border-stone-700 dark:border-t-brand-400" />
@@ -43,7 +68,7 @@ export default function NoticesPage() {
       )}
 
       {!loading && notices.length === 0 && (
-        <div className="card-shadow mt-5 rounded-2xl bg-white px-4 py-8 text-center text-[12px] text-stone-500 dark:bg-stone-900 dark:text-stone-400">
+        <div className="card-shadow card-violet mt-5 rounded-2xl px-4 py-8 text-center text-[12px] text-stone-500 dark:text-stone-400">
           {N.empty}
         </div>
       )}
@@ -53,7 +78,7 @@ export default function NoticesPage() {
           {notices.map((n) => (
             <li
               key={n.id}
-              className="card-shadow rounded-2xl bg-white px-4 py-4 dark:bg-stone-900"
+              className="card-shadow card-violet rounded-2xl px-4 py-4"
             >
               <div className="flex items-center gap-2">
                 {n.pinned && (
@@ -61,8 +86,9 @@ export default function NoticesPage() {
                     {N.pinnedTag}
                   </span>
                 )}
-                <h2 className="min-w-0 flex-1 truncate text-sm font-bold text-stone-900 dark:text-stone-100">
-                  {n.title}
+                <h2 className="flex min-w-0 flex-1 items-center text-sm font-bold text-stone-900 dark:text-stone-100">
+                  <span className="accent-bar shrink-0 bg-violet-500" />
+                  <span className="truncate">{n.title}</span>
                 </h2>
                 <span className="shrink-0 text-[10px] text-stone-400 dark:text-stone-500">
                   {new Date(n.createdAt).toLocaleDateString()}

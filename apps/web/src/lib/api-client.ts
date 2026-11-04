@@ -9,6 +9,7 @@ import type {
   SetPasswordRequest,
 } from './signup-schema';
 import { readSession } from './session';
+import type { Nationality } from './signup-schema';
 
 // ADR 0014 — same-origin 상대경로. `/api/*` 는 CF Pages Function 프록시가 게이트웨이로 전달.
 // same-origin 이므로 쿠키 자동 전송(fetch credentials 기본 'same-origin').
@@ -80,6 +81,34 @@ export async function submitSetPassword(
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as LoginResponse;
+}
+
+// 비밀번호 재설정(이메일 링크) — gateway /api/v1/auth/password-reset/*.
+// request 는 계정 유무와 무관하게 항상 같은 응답(계정 존재 비노출). 실패는 RATE_LIMITED 등만.
+async function postPasswordReset(path: string, body: unknown): Promise<void> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/auth/password-reset/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await throwOnError(res);
+}
+
+export function requestPasswordReset(
+  email: string,
+  locale: 'ko' | 'en' | 'ja' | 'es',
+): Promise<void> {
+  return postPasswordReset('request', { email, locale });
+}
+
+// 링크 유효성만 확인(소모 X). 실패 시 Error(RESET_TOKEN_INVALID|EXPIRED|USED).
+export function verifyPasswordResetToken(token: string): Promise<void> {
+  return postPasswordReset('verify', { token });
+}
+
+// 새 비밀번호 설정 — 성공 시 서버가 모든 세션을 무효화(재로그인 필요).
+export function confirmPasswordReset(token: string, password: string): Promise<void> {
+  return postPasswordReset('confirm', { token, password });
 }
 
 // ADR 0014 — 로그아웃. httpOnly 쿠키는 서버만 삭제 가능 → /logout 호출로 revoke + 쿠키 삭제.
@@ -354,8 +383,15 @@ export type ProfileUpdateBody = {
   phone: string;
   birthYear: number;
   sex: 'male' | 'female' | 'other';
-  nationality: 'KR' | 'US' | 'JP' | 'ES' | 'OTHER';
+  nationality: Nationality;
   nickname?: string;
+  // 소셜 신규 가입자 최초 온보딩 동의(미동의 상태일 때만 전송).
+  consentMedical?: boolean;
+  consentTerms?: boolean;
+  consentPrivacy?: boolean;
+  consentTermsVersion?: string;
+  consentPrivacyVersion?: string;
+  marketingOptIn?: boolean;
 };
 
 export async function submitProfileUpdate(
@@ -1037,6 +1073,58 @@ export async function fetchNhisCheckup(): Promise<{ source: string; checkup: Nhi
   return (await res.json()) as { source: string; checkup: NhisCheckup };
 }
 
+// 간편인증 2단계(인증 요청 → 결과 조회). 공급자 mock(표본) 기본, tilko 실연동은 키 확보 후.
+export type NhisAuthProvider =
+  | 'kakao'
+  | 'naver'
+  | 'pass'
+  | 'samsung'
+  | 'kb'
+  | 'shinhan'
+  | 'payco';
+export type NhisAuthInput = {
+  provider: NhisAuthProvider;
+  name: string;
+  birthDate: string; // YYYYMMDD
+  phone: string; // 숫자만
+};
+export type NhisAuthHandle = Record<string, string>;
+export type NhisCheckupFull = NhisCheckup & {
+  source?: string;
+  hba1c?: number | null;
+  creatinine?: number | null;
+  egfr?: number | null;
+  debugItems?: { name: string; unit: string }[];
+};
+
+export async function requestNhisAuth(
+  input: NhisAuthInput,
+): Promise<{ handle: NhisAuthHandle; live: boolean; provider: string }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/nhis/auth/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { handle: NhisAuthHandle; live: boolean; provider: string };
+}
+
+export async function completeNhisAuth(
+  handle: NhisAuthHandle,
+): Promise<{ source: string; live: boolean; checkups: NhisCheckupFull[] }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/nhis/auth/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ handle }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { source: string; live: boolean; checkups: NhisCheckupFull[] };
+}
+
 // ── 웨어러블 연동 — 인터페이스 + MOCK(집계사 실연동 키는 추후) ──
 export type WearableMetrics = {
   sleepDurationH: number;
@@ -1083,7 +1171,9 @@ export async function fetchWearableSummary(): Promise<WearableSummary> {
 }
 
 // ── 메인 배너(홈 히어로) — 공개 조회 + 관리자 CRUD ──────────────────────────
+// placement: 'app'(VITAcode 앱 홈) | 'vitalabs'(회사 홍보 사이트). 서버 기본 'app'.
 export type BannerKind = 'image' | 'video';
+export type BannerPlacement = 'app' | 'vitalabs';
 export type BannerItem = { id: string; kind: BannerKind; contentType: string; name: string | null };
 export type AdminBanner = BannerItem & { sortOrder: number; active: boolean; createdAt: string };
 
@@ -1092,27 +1182,31 @@ export function bannerFileUrl(id: string): string {
   return `${GATEWAY_URL}/api/v1/banners/${id}/file`;
 }
 
-export async function fetchBanners(): Promise<BannerItem[]> {
-  const res = await fetch(`${GATEWAY_URL}/api/v1/banners`, { method: 'GET' });
+export async function fetchBanners(placement: BannerPlacement = 'app'): Promise<BannerItem[]> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/banners?placement=${placement}`, { method: 'GET' });
   if (!res.ok) return [];
   return ((await res.json()) as { banners: BannerItem[] }).banners ?? [];
 }
 
-export async function fetchAdminBanners(): Promise<AdminBanner[]> {
+export async function fetchAdminBanners(placement: BannerPlacement = 'app'): Promise<AdminBanner[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
-  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners`, {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners?placement=${placement}`, {
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
   return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
 }
 
-export async function uploadBanner(file: File): Promise<AdminBanner[]> {
+export async function uploadBanner(
+  file: File,
+  placement: BannerPlacement = 'app',
+): Promise<AdminBanner[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const form = new FormData();
   form.append('file', file);
+  form.append('placement', placement);
   const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${session.sessionToken}` },
@@ -1122,10 +1216,14 @@ export async function uploadBanner(file: File): Promise<AdminBanner[]> {
   return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
 }
 
-export async function setBannerActiveApi(id: string, active: boolean): Promise<AdminBanner[]> {
+export async function setBannerActiveApi(
+  id: string,
+  active: boolean,
+  placement: BannerPlacement = 'app',
+): Promise<AdminBanner[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
-  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}`, {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}?placement=${placement}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
     body: JSON.stringify({ active }),
@@ -1134,26 +1232,79 @@ export async function setBannerActiveApi(id: string, active: boolean): Promise<A
   return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
 }
 
-export async function moveBannerApi(id: string, dir: 'up' | 'down'): Promise<AdminBanner[]> {
+export async function moveBannerApi(
+  id: string,
+  dir: 'up' | 'down',
+  placement: BannerPlacement = 'app',
+): Promise<AdminBanner[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
-  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}/move?dir=${dir}`, {
-    method: 'POST',
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/admin/banners/${id}/move?dir=${dir}&placement=${placement}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+    },
+  );
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+}
+
+export async function deleteBannerApi(
+  id: string,
+  placement: BannerPlacement = 'app',
+): Promise<AdminBanner[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}?placement=${placement}`, {
+    method: 'DELETE',
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
   return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
 }
 
-export async function deleteBannerApi(id: string): Promise<AdminBanner[]> {
+// ── 회사 홍보 사이트(vitalabsinc.com) 편집 콘텐츠 — 키-값 ─────────────────────
+export type SiteContentItem = { key: string; value: string; updatedAt: string };
+
+export async function fetchSiteContent(): Promise<Record<string, string>> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/site-content`, { method: 'GET' });
+  if (!res.ok) return {};
+  return ((await res.json()) as { content: Record<string, string> }).content ?? {};
+}
+
+export async function fetchAdminSiteContent(): Promise<SiteContentItem[]> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
-  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/banners/${id}`, {
-    method: 'DELETE',
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/site-content`, {
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
-  return ((await res.json()) as { banners: AdminBanner[] }).banners ?? [];
+  return ((await res.json()) as { items: SiteContentItem[] }).items ?? [];
+}
+
+export async function upsertSiteContentApi(key: string, value: string): Promise<SiteContentItem[]> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(`${GATEWAY_URL}/api/v1/admin/site-content`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
+    body: JSON.stringify({ key, value }),
+  });
+  if (!res.ok) await throwOnError(res);
+  return ((await res.json()) as { items: SiteContentItem[] }).items ?? [];
+}
+
+// ── 관리자 · 앱 받기 링크(SNS 공유) 들어온 수 ─────────────────────────────────
+export type AppLinkStats = {
+  total: number;
+  week: number;
+  bySource: Record<string, number>;
+  byOs: Record<string, number>;
+};
+
+export async function fetchAppLinkStats(): Promise<AppLinkStats> {
+  return (await adminJson('/api/v1/admin/app-link/stats', 'GET')) as AppLinkStats;
 }
 
 export async function fetchRoutineToday(): Promise<RoutineTodayResponse> {
@@ -2505,6 +2656,30 @@ export async function fetchMessages(
   });
   if (!res.ok) await throwOnError(res);
   return (await res.json()) as { messages: ChatMessage[]; hasMore: boolean };
+}
+
+// 대화 내 검색 — 본문·첨부 파일명, 최신순 최대 100건(truncated=true 면 더 있음).
+export type MessageSearchResult = {
+  id: string;
+  createdAt: string;
+  senderNickname: string | null;
+  isMine: boolean;
+  body: string;
+  attachmentName: string | null;
+};
+
+export async function searchConversationMessages(
+  id: string,
+  q: string,
+): Promise<{ results: MessageSearchResult[]; truncated: boolean }> {
+  const session = readSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  const res = await fetch(
+    `${GATEWAY_URL}/api/v1/messages/conversations/${id}/search?q=${encodeURIComponent(q)}`,
+    { method: 'GET', headers: authHeaders(session.sessionToken) },
+  );
+  if (!res.ok) await throwOnError(res);
+  return (await res.json()) as { results: MessageSearchResult[]; truncated: boolean };
 }
 
 export async function sendMessage(

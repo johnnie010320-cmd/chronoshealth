@@ -139,9 +139,12 @@ export function AvatarReport() {
       </section>
 
       <section>
-        <SectionHeader Icon={ScopeIcon} tone="violet" title={R.fiveAgesSectionTitle} />
+        <SectionHeader Icon={ScopeIcon} tone="violet" title={A.fiveAges.title4} />
         <FiveAgesGrid
           fiveAges={state.data.fiveAges}
+          keys={['life', 'vascular', 'skin', 'joint']}
+          labels={{ life: A.fiveAges.biological, joint: A.fiveAges.skeletal }}
+          hideTitle
           {...(state.data.fiveAgesBasis ? { basis: state.data.fiveAgesBasis } : {})}
           {...(state.data.vascularAgeCapped !== undefined
             ? { vascularCapped: state.data.vascularAgeCapped }
@@ -200,12 +203,9 @@ export function AvatarReport() {
         </Link>
       </section>
 
-      <div className="rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
-        {R.disclaimer}
-        <span className="mt-1 block text-[10px] text-stone-400 dark:text-stone-500">
-          {R.lastReportLabel} {new Date(state.data.lastReportAt).toLocaleString()}
-        </span>
-      </div>
+      <p className="px-1 text-[10px] text-stone-400 dark:text-stone-500">
+        {R.lastReportLabel} {new Date(state.data.lastReportAt).toLocaleString()}
+      </p>
     </div>
   );
 }

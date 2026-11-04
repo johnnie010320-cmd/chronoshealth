@@ -34,7 +34,9 @@
 ## 배포
 
 - Cloudflare Pages 프로젝트: `chronoshealth` (CF 계정 `l2pamerica@gmail.com`)
-- 도메인: `vitacode.ever-day.com` (주) · `chronoshealth.ever-day.com` (기존 유지) (ADR 0006). 브랜드 표시명 `VITAcode`
+- 도메인(v0.5.0, 2026-09-21 라이브): **`vitacodeapp.com` = 이 앱(웹) 전용, 루트 `/`=앱 홈**. 구 `vitacode/chronoshealth.ever-day.com` 폐지. ADR 0006 Amendment. 브랜드 표시명 `VITAcode`
+- **회사 홍보 사이트는 별도**: `vitalabsinc.com` = 신규 정적 사이트 `apps/vitalabs`(CF Pages 프로젝트 `vitalabs`). 이 앱과 무관(링크만).
+- **관리자 CMS**(이 앱 `/admin`): 배너 관리에 **placement 탭**(app=이 앱 홈 / vitalabs=회사 사이트), **회사 사이트 콘텐츠** 편집(site_content). gateway 라우트 `/api/v1/banners?placement=`·`/api/v1/site-content`.
 - GitHub: `johnnie010320-cmd/chronoshealth`
 
 ### ⚠️ 대시보드 "Deployments paused" 는 정상 상태 (장애 아님)

@@ -59,11 +59,21 @@ type BetaIdentityRow = {
   created_at: string;
 };
 
+// 비밀번호 재설정 링크 토큰 (migration identity/0010).
+export type ResetTokenRow = {
+  token_hash: string;
+  user_pseudonym_id: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+};
+
 export type MockD1State = {
   users: UserRow[];
   tokens: SessionRow[];
   consents: ConsentRow[];
   betaIdentity: BetaIdentityRow[];
+  resetTokens: ResetTokenRow[];
 };
 
 export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
@@ -75,6 +85,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
     tokens: initial?.tokens ?? [],
     consents: initial?.consents ?? [],
     betaIdentity: initial?.betaIdentity ?? [],
+    resetTokens: initial?.resetTokens ?? [],
   };
 
   function runStmt(sql: string, args: unknown[]): {
@@ -173,6 +184,52 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         revoked_at: null,
       });
       return { success: true };
+    }
+
+    // 비밀번호 재설정 — 사용자 세션 전체 삭제.
+    if (trimmed.startsWith('DELETE FROM session_tokens WHERE user_pseudonym_id = ?')) {
+      const [pseudo] = args as [string];
+      const before = state.tokens.length;
+      state.tokens = state.tokens.filter((t) => t.user_pseudonym_id !== pseudo);
+      return { success: true, meta: { changes: before - state.tokens.length } };
+    }
+
+    // 비밀번호 재설정 토큰 (auth/password-reset.ts).
+    if (trimmed.startsWith('INSERT INTO password_reset_tokens')) {
+      const [token_hash, user_pseudonym_id, created_at, expires_at] = args as [
+        string, string, string, string,
+      ];
+      if (state.resetTokens.some((r) => r.token_hash === token_hash)) {
+        throw new Error('UNIQUE constraint failed: password_reset_tokens.token_hash');
+      }
+      state.resetTokens.push({ token_hash, user_pseudonym_id, created_at, expires_at, used_at: null });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (
+      trimmed.startsWith('UPDATE password_reset_tokens SET used_at = ?') &&
+      trimmed.includes('WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?')
+    ) {
+      const [used_at, token_hash, now] = args as [string, string, string];
+      const r = state.resetTokens.find(
+        (x) => x.token_hash === token_hash && x.used_at === null && x.expires_at > now,
+      );
+      if (!r) return { success: true, meta: { changes: 0 } };
+      r.used_at = used_at;
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (
+      trimmed.startsWith('UPDATE password_reset_tokens SET used_at = ?') &&
+      trimmed.includes('WHERE user_pseudonym_id = ? AND used_at IS NULL')
+    ) {
+      const [used_at, pseudo] = args as [string, string];
+      let changes = 0;
+      for (const r of state.resetTokens) {
+        if (r.user_pseudonym_id === pseudo && r.used_at === null) {
+          r.used_at = used_at;
+          changes++;
+        }
+      }
+      return { success: true, meta: { changes } };
     }
 
     if (trimmed.startsWith('UPDATE session_tokens SET revoked_at')) {
@@ -281,6 +338,28 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       return hit ? { '1': 1 } : null;
     }
 
+    // 비밀번호 재설정 — 이메일로 계정 조회(pseudonym 만).
+    if (trimmed.startsWith('SELECT user_pseudonym_id FROM users WHERE lower(email) = ?')) {
+      const [email] = args as [string];
+      const needle = String(email).toLowerCase();
+      const u = state.users.find((x) => x.email.toLowerCase() === needle);
+      return u ? { user_pseudonym_id: u.user_pseudonym_id } : null;
+    }
+    if (trimmed.startsWith('SELECT COUNT(*) AS c FROM password_reset_tokens')) {
+      const [pseudo, since] = args as [string, string];
+      return {
+        c: state.resetTokens.filter((r) => r.user_pseudonym_id === pseudo && r.created_at > since)
+          .length,
+      };
+    }
+    if (trimmed.includes('FROM password_reset_tokens') && trimmed.includes('WHERE token_hash = ?')) {
+      const [token_hash] = args as [string];
+      const r = state.resetTokens.find((x) => x.token_hash === token_hash);
+      return r
+        ? { user_pseudonym_id: r.user_pseudonym_id, expires_at: r.expires_at, used_at: r.used_at }
+        : null;
+    }
+
     if (trimmed.includes('FROM session_tokens WHERE token = ?')) {
       const [token] = args as [string];
       const t = state.tokens.find((x) => x.token === token);
@@ -387,6 +466,14 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
       return { c: state.users.length };
     }
 
+    if (trimmed.includes('FROM oauth_accounts WHERE user_pseudonym_id = ?')) {
+      // 소셜 연결 여부 — 기본 없음(비소셜 계정). oauthAccounts state 가 있으면 조회.
+      const [pseudo] = args as [string];
+      const links =
+        (state as { oauthAccounts?: Array<{ user_pseudonym_id: string }> }).oauthAccounts ?? [];
+      return links.some((l) => l.user_pseudonym_id === pseudo) ? { '1': 1 } : null;
+    }
+
     throw new Error(`mock-d1 unknown first(): ${trimmed.substring(0, 80)}`);
   }
 
@@ -477,6 +564,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         tokens: [...state.tokens],
         consents: [...state.consents],
         betaIdentity: [...state.betaIdentity],
+        resetTokens: state.resetTokens.map((r) => ({ ...r })),
       };
       try {
         const results = [];
@@ -489,6 +577,7 @@ export function makeMockIdentityDb(initial?: Partial<MockD1State>): {
         state.tokens = snapshot.tokens;
         state.consents = snapshot.consents;
         state.betaIdentity = snapshot.betaIdentity;
+        state.resetTokens = snapshot.resetTokens;
         throw e;
       }
     },
@@ -806,7 +895,7 @@ function seedCareAffiliates(): CareAffiliateMockRow[] {
     slug,
     category,
     partner,
-    cta_url: `https://chronoshealth.ever-day.com/care#${hash}`,
+    cta_url: `https://vitacodeapp.com/care#${hash}`,
     coming_soon: 1,
     sort_order: sort,
     active: 1,
@@ -1761,6 +1850,15 @@ export function makeMockAnalysisDb(): {
   function firstStmtAnalysis(sql: string, args: unknown[]): unknown {
     const trimmed = sql.trim();
 
+    // 앱 업데이트 안내 — component 별 최신 버전
+    if (trimmed.startsWith('SELECT version FROM releases WHERE component = ?')) {
+      const [component] = args as [string];
+      const row = state.releases
+        .filter((r) => r.component === component)
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))[0];
+      return row ? { version: row.version } : null;
+    }
+
     // R9 메시징 ─────────────────────────────────────────────────────────
     if (trimmed.includes('FROM conversations WHERE id = ?')) {
       const [id] = args as [string];
@@ -2319,6 +2417,29 @@ export function makeMockAnalysisDb(): {
           id: n.id, title: n.title, body: n.body,
           pinned: n.pinned, published: n.published,
           created_at: n.created_at, updated_at: n.updated_at,
+        }));
+      return { results: rows };
+    }
+    // 대화 내 검색 — body/attachment_name LIKE ? ESCAPE '\'. 패턴의 \% \_ \\ 는 글자 그대로, 영문 대소문자 무시.
+    if (trimmed.includes('FROM messages') && trimmed.includes("LIKE ? ESCAPE")) {
+      const [conversationId, pattern, , limit] = args as [string, string, string, number];
+      const needle = pattern.slice(1, -1).replace(/\\([\\%_])/g, '$1').toLowerCase();
+      const has = (s: string | null) => !!s && s.toLowerCase().includes(needle);
+      const rows = state.messages
+        .filter(
+          (m) =>
+            m.conversation_id === conversationId &&
+            m.deleted_at === null &&
+            (has(m.body) || has(m.attachment_name)),
+        )
+        .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
+        .slice(0, limit)
+        .map((m) => ({
+          id: m.id,
+          sender_pseudonym_id: m.sender_pseudonym_id,
+          body: m.body,
+          created_at: m.created_at,
+          attachment_name: m.attachment_name,
         }));
       return { results: rows };
     }

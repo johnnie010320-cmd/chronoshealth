@@ -1,21 +1,27 @@
 import type { VitaSectionScores } from '../schemas/vita.js';
 
-// VITA 분류(서버 정본). 대사(energy,glucose) / 정화(gut,inflammation,detox) /
-// 순환(circulation,hormone,sleep) / 신경(musculoskeletal,neuro). 축 소속 영역 중
-// 하나라도 13점 이상이면 Impaired 문자, 아니면 Good 문자. 코드 순서=[대사][정화][순환][신경].
-const OPTIMAL_MAX = 12;
+// VITA CODE V8 분류(서버 정본 — 클라이언트 engine.ts와 동일 로직).
+// 1축 대사·에너지 V/F: energy,glucose · 2축 심혈관·순환 I/G: circulation ·
+// 3축 장·간·해독 T/L: gut,inflammation,detox · 4축 호르몬·리듬 A/S: hormone,sleep,musculoskeletal,neuro.
+// 축 평균 증상 부하(0~100)가 최적 경계(20) 초과 → 보존 엔진(F/G/L/S), 이하 → 주 엔진(V/I/T/A).
+// 코드 순서=[1축][2축][3축][4축]. 전 영역 최적이면 'VITA'.
+const OPTIMAL_MAX = 20;
+
+function secondary(...vals: number[]): boolean {
+  const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  return avg > OPTIMAL_MAX;
+}
 
 export function classifyVita(s: VitaSectionScores): { code: string; totalScore: number } {
-  const metabolic = s.energy > OPTIMAL_MAX || s.glucose > OPTIMAL_MAX;
-  const detox = s.gut > OPTIMAL_MAX || s.inflammation > OPTIMAL_MAX || s.detox > OPTIMAL_MAX;
-  const circulation =
-    s.circulation > OPTIMAL_MAX || s.hormone > OPTIMAL_MAX || s.sleep > OPTIMAL_MAX;
-  const neuro = s.musculoskeletal > OPTIMAL_MAX || s.neuro > OPTIMAL_MAX;
+  const metabolic = secondary(s.energy, s.glucose);
+  const circulation = secondary(s.circulation);
+  const gutliver = secondary(s.gut, s.inflammation, s.detox);
+  const hormonal = secondary(s.hormone, s.sleep, s.musculoskeletal, s.neuro);
   const code =
-    (metabolic ? 'M' : 'E') +
-    (detox ? 'D' : 'G') +
-    (circulation ? 'H' : 'C') +
-    (neuro ? 'N' : 'S');
+    (metabolic ? 'F' : 'V') +
+    (circulation ? 'G' : 'I') +
+    (gutliver ? 'L' : 'T') +
+    (hormonal ? 'S' : 'A');
   const totalScore = Object.values(s).reduce((sum, v) => sum + v, 0);
   return { code, totalScore };
 }

@@ -4,7 +4,11 @@
 // 배너가 없으면 기존 히어로 이미지로 폴백. 2개 이상이면 좌우 화살표 + 점으로 이동.
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { fetchBanners, bannerFileUrl, type BannerItem } from '@/lib/api-client';
+
+// 배너 클릭 시 "Digital Twin & VITA code" 설명 페이지로 이동.
+const BANNER_LINK = '/intro';
 
 export function BannerCarousel() {
   const [banners, setBanners] = useState<BannerItem[] | null>(null);
@@ -20,8 +24,10 @@ export function BannerCarousel() {
   if (banners === null || banners.length === 0) {
     return (
       <section className="card-shadow mt-3 overflow-hidden rounded-2xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/caremybody-hero.png" alt="" className="block w-full" />
+        <Link href={BANNER_LINK} className="block" aria-label="Digital Twin & VITA code 안내">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/caremybody-hero.png" alt="" className="block w-full" />
+        </Link>
       </section>
     );
   }
@@ -33,20 +39,22 @@ export function BannerCarousel() {
 
   return (
     <section className="card-shadow relative mt-3 overflow-hidden rounded-2xl bg-black">
-      {cur.kind === 'video' ? (
-        <video
-          key={cur.id}
-          src={bannerFileUrl(cur.id)}
-          className="block w-full"
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img key={cur.id} src={bannerFileUrl(cur.id)} alt={cur.name ?? ''} className="block w-full" />
-      )}
+      <Link href={BANNER_LINK} className="block" aria-label="Digital Twin & VITA code 안내">
+        {cur.kind === 'video' ? (
+          <video
+            key={cur.id}
+            src={bannerFileUrl(cur.id)}
+            className="block w-full"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={cur.id} src={bannerFileUrl(cur.id)} alt={cur.name ?? ''} className="block w-full" />
+        )}
+      </Link>
 
       {banners.length > 1 && (
         <>

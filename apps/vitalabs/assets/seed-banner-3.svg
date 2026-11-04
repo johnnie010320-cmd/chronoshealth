@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" width="1600" height="600" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#047857"/>
+      <stop offset="0.55" stop-color="#065f56"/>
+      <stop offset="1" stop-color="#0f2438"/>
+    </linearGradient>
+    <linearGradient id="accent3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="600" fill="url(#bg3)"/>
+  <circle cx="1340" cy="300" r="250" fill="#ffffff" opacity="0.05"/>
+  <g transform="translate(1300 300)">
+    <circle r="120" fill="none" stroke="#6ee7b7" stroke-width="6" opacity="0.5"/>
+    <circle r="120" fill="#10b981" opacity="0.15"/>
+    <text x="0" y="26" fill="#d1fae5" font-size="78" font-weight="800" text-anchor="middle">CHRO</text>
+  </g>
+  <text x="110" y="150" fill="#6ee7b7" font-size="30" font-weight="700" letter-spacing="8">VITA LABS</text>
+  <text x="108" y="300" fill="#ffffff" font-size="82" font-weight="800">건강이 자산이 되다</text>
+  <text x="110" y="380" fill="#d1fae5" font-size="34" font-weight="500">Health-to-Earn · 건강 데이터 보상 생태계</text>
+  <text x="110" y="428" fill="#d1fae5" font-size="34" font-weight="500">분산형 헬스 인프라(DePIN)와 CHRO 토큰</text>
+  <rect x="110" y="480" width="360" height="4" rx="2" fill="url(#accent3)"/>
+</svg>

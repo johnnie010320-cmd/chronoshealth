@@ -58,3 +58,24 @@
 - **신규 도메인 `vitacode.ever-day.com` 추가** — Gabia(`ns1.gabia.co.kr`)에 CNAME `vitacode` → `chronoshealth.pages.dev`, CF Pages 커스텀 도메인 연결. 기존 `chronoshealth.ever-day.com`도 **유지**(둘 다 라이브, 프록시·쿠키 무변경).
 - **기술 식별자는 변경 없음**(비가역 결정 유지) — repo·CF Pages 프로젝트·worker(`chronoshealth-gateway`)·D1(`chronoshealth-identity`/`chronoshealth-analysis`)·R2(`chronoshealth-attachments`)·쿠키(`chronos_session`/`chronos_uid`) 모두 `chronoshealth`/`chronos` 표기 유지(데이터 무중단, 사용자 비노출). `CHRO` 토큰 심볼도 유지.
 - 배포: full **`v0.3.0`**. 정식 도메인 이동(§Migration Plan) 시 `vitacode.io` 등 브랜드 정합 도메인을 후보에 포함.
+
+## Amendment — 정식 도메인 이전 + 웹/앱 분리 (2026-09-19, Johnnie)
+
+임시 서브도메인(ever-day.com)에서 **자체 정식 도메인 2종**으로 이전한다.
+
+- **앱(주) 도메인 = `vitacodeapp.com`** — CF Pages `chronoshealth` 커스텀 도메인. 정본(canonical).
+- **회사 도메인 = `vitalabsinc.com`** — CF Redirect Rules로 `vitacodeapp.com`에 **301** 리디렉트(경로·쿼리 보존). 어느 도메인으로 들어와도 동일 경험.
+- **`vitacode.ever-day.com` · `chronoshealth.ever-day.com` 폐지** — CF Pages 커스텀 도메인 제거 + Gabia CNAME(`vitacode`·`chronoshealth`) 삭제. FormCoach `www.ever-day.com`은 무영향.
+- **DNS 방식**: 두 도메인을 CF 계정 `l2pamerica`에 존으로 편입(네임서버 이관). SSL·리디렉트·커스텀도메인 단일 계정 제어.
+- **웹/앱 분리(정상 웹페이지화)**: 루트 `/` = 공개 마케팅 사이트(색인 허용, 풀폭 레이아웃, route group `(marketing)`). 로그인 후 앱 홈은 **`/dashboard`**(앱셸·하단탭 유지). 마케팅 카피는 한국어 우선(앱 대시보드는 기존 4개국어 유지).
+- **코드 영향**: gateway CORS 허용목록 → `vitacodeapp.com`(+www), care 자리표시자 URL·D1 `care_affiliates.cta_url`(migration 0043) → vitacodeapp.com, 앱 홈 기준점 `/`→`/dashboard`(AppShell·BottomNav·로그인/온보딩 리다이렉트). 기술 식별자(chronoshealth 등)·쿠키·CHRO는 계속 유지.
+- 배포는 모든 도메인 존 Active 후 컷오버(gateway migration 0043 → worker → Pages). 배포 시 릴리스 버전은 죠니 승인 후 부여.
+
+## Amendment 2 — 역할 재정의: 회사 사이트 ≠ 리다이렉트 (2026-09-21, v0.5.0 라이브)
+
+Amendment(2026-09-19)의 "회사=301→앱, 앱=마케팅 랜딩(/) + 대시보드(/dashboard)"를 **죠니 지시로 변경**한다.
+
+- **`vitacodeapp.com` = VITAcode 앱(웹) 전용.** 루트 `/`=앱 홈(분리 원복 — `(marketing)`·`/dashboard` 제거, 앱은 다시 루트).
+- **`vitalabsinc.com` = 회사 홍보 사이트(별도).** 신규 CF Pages 프로젝트 **`vitalabs`**(정적 다중 페이지 `apps/vitalabs/`: `/`·`/product`·`/about`·`/contact`, Sora+Pretendard, same-origin `/api` 프록시). 301 리다이렉트는 쓰지 않음. 이메일=CF Email Routing.
+- **관리자 CMS**(vitacodeapp.com/admin, 같은 gateway): 배너 **placement**(app/vitalabs 분리 — 동영상·이미지·순서), **site_content** 키-값(회사 카피 편집, 비우면 사이트 기본값). migration 0044(placement)·0045(site_content).
+- 구 `vitacode/chronoshealth.ever-day.com` CF 커스텀도메인 **제거 완료**(Gabia CNAME 삭제만 잔여). NS 이관·DNS는 CF `l2pamerica` 존에서 관리(배포토큰은 DNS 권한 없음 → 별도 DNS 토큰).

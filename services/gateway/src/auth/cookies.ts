@@ -1,5 +1,5 @@
 // ADR 0014 — 세션을 httpOnly 쿠키로. same-origin Pages Function 프록시 경유라
-// Domain 미지정(host-only) → chronoshealth.ever-day.com first-party 쿠키가 됨.
+// Domain 미지정(host-only) → vitacodeapp.com first-party 쿠키가 됨.
 
 import { setCookie, deleteCookie } from 'hono/cookie';
 import type { Context } from 'hono';

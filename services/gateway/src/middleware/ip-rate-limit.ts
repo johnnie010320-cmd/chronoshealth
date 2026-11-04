@@ -33,6 +33,40 @@ export const ipRateLimit = (maxPerDay: number) =>
     return;
   });
 
+// 라우트 전용 버킷 + 임의 창(windowMs) 버전 — 위 ipRateLimit 은 모든 라우트가 IP 카운터 1개를 공유한다.
+// 비밀번호 재설정처럼 '로그인 한도와 섞이면 안 되는' 라우트용. 미들웨어 인스턴스마다 독립 카운터.
+const bucketLog = new Map<string, number[]>();
+let bucketSeq = 0;
+
+export const ipRateLimitWindow = (max: number, windowMs: number) => {
+  const bucket = `ipb${bucketSeq++}`;
+  return createMiddleware(async (c, next) => {
+    const key = `${bucket}:${clientIp(c)}`;
+    const now = Date.now();
+    const recent = (bucketLog.get(key) ?? []).filter((t) => t > now - windowMs);
+    if (recent.length >= max) {
+      return c.json({ error: { code: 'RATE_LIMITED' } }, 429);
+    }
+    recent.push(now);
+    bucketLog.set(key, recent);
+    await next();
+    return;
+  });
+};
+
+// 임의 키(예: 정규화한 이메일)별 제한 — 판정만 하고 기록까지 한다. 초과 시 false.
+// 계정 존재 여부와 무관하게 같은 입력이면 같은 결과를 내므로 계정 존재를 드러내지 않는다.
+export function hitKeyLimit(namespace: string, key: string, max: number, windowMs: number): boolean {
+  const k = `key:${namespace}:${key}`;
+  const now = Date.now();
+  const recent = (bucketLog.get(k) ?? []).filter((t) => t > now - windowMs);
+  if (recent.length >= max) return false;
+  recent.push(now);
+  bucketLog.set(k, recent);
+  return true;
+}
+
 export const __clearIpRateLimit = (): void => {
   requestLog.clear();
+  bucketLog.clear();
 };

@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { useI18n } from '@/lib/i18n';
-import { readSession } from '@/lib/session';
+import { countryOptions } from '@/lib/countries';
+import { readSession, clearSession } from '@/lib/session';
 import {
   fetchMeProfile,
   submitProfileUpdate,
+  submitLogout,
   type ProfileUpdateBody,
 } from '@/lib/api-client';
 import {
@@ -17,8 +19,12 @@ import {
 } from '@/components/HealthIcons';
 import { ProfileUpdateRequest } from '@/lib/signup-schema';
 
+// 동의 버전 — 회원가입 폼(SignupForm)과 동일 값 유지.
+const TERMS_VERSION = 'v1.0';
+const PRIVACY_VERSION = 'v1.0';
+
 export default function OnboardingPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const O = t.onboarding;
   const S = t.signup;
   const F = S.fields;
@@ -26,6 +32,12 @@ export default function OnboardingPage() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // 소셜 신규 가입자 등 동의 기록이 없는 경우에만 동의 블록 노출.
+  const [needsConsent, setNeedsConsent] = useState(false);
+  // 뒤로가기(이탈) 확인 모달 — 홈은 미완료 프로필을 다시 /onboarding 으로 보내므로
+  // 그냥 뒤로가면 무한 루프가 된다. 확인을 받고 가입을 취소(세션 종료)해 루프를 끊는다.
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     if (!readSession()) {
@@ -38,6 +50,7 @@ export default function OnboardingPage() {
         if (data.profile.isProfileComplete) {
           router.replace('/');
         } else {
+          setNeedsConsent(!data.profile.consentRecordedAt);
           setReady(true);
         }
       })
@@ -47,6 +60,14 @@ export default function OnboardingPage() {
   }, [router]);
 
   if (!ready) return null;
+
+  // 진행 중이던(미완료) 회원가입을 취소 — 세션 종료 후 로그인/회원가입 화면으로.
+  async function confirmExit() {
+    setExiting(true);
+    await submitLogout();
+    clearSession();
+    window.location.assign('/login/');
+  }
 
   function numOrNaN(v: FormDataEntryValue | null): number {
     const s = String(v ?? '').trim();
@@ -78,10 +99,38 @@ export default function OnboardingPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
-      await submitProfileUpdate(parsed.data as ProfileUpdateBody);
+
+      const body: ProfileUpdateBody = parsed.data as ProfileUpdateBody;
+      if (needsConsent) {
+        const agreed =
+          fd.get('consentMedical') === 'on' &&
+          fd.get('consentTerms') === 'on' &&
+          fd.get('consentPrivacy') === 'on';
+        if (!agreed) {
+          setError(O.error.CONSENT_REQUIRED);
+          setSubmitting(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        body.consentMedical = true;
+        body.consentTerms = true;
+        body.consentPrivacy = true;
+        body.consentTermsVersion = TERMS_VERSION;
+        body.consentPrivacyVersion = PRIVACY_VERSION;
+        body.marketingOptIn = fd.get('marketingOptIn') === 'on';
+      }
+      await submitProfileUpdate(body);
       router.replace('/');
     } catch (err) {
       const code = err instanceof Error ? err.message : 'generic';
+      // 전화번호가 이미 다른 계정에 등록된 경우 → 이 (미완료) 가입은 완료할 수 없다.
+      // 가입을 취소(세션 종료)하고 로그인 화면으로 돌려보내, 기존 방법으로 로그인하도록 안내.
+      if (code === 'PHONE_EXISTS') {
+        await submitLogout();
+        clearSession();
+        window.location.assign('/login/?error=phone_conflict');
+        return;
+      }
       setError((O.error as Record<string, string>)[code] ?? O.error.generic);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
@@ -90,7 +139,13 @@ export default function OnboardingPage() {
   }
 
   return (
-    <AppShell title={O.pageTitle} decoration="dots" hideBottomNav>
+    <AppShell
+      title={O.pageTitle}
+      decoration="dots"
+      hideBottomNav
+      showBack
+      onBack={() => setShowExitConfirm(true)}
+    >
       <form onSubmit={handleSubmit} className="space-y-5 pb-32">
         <header className="space-y-2 px-1 pt-3">
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
@@ -160,16 +215,28 @@ export default function OnboardingPage() {
               label={F.nationality.label}
               name="nationality"
               required
-              options={[
-                { value: 'KR', label: F.nationality.options.KR },
-                { value: 'US', label: F.nationality.options.US },
-                { value: 'JP', label: F.nationality.options.JP },
-                { value: 'ES', label: F.nationality.options.ES },
-                { value: 'OTHER', label: F.nationality.options.OTHER },
-              ]}
+              options={countryOptions(locale, F.nationality.options.OTHER)}
             />
           </div>
         </section>
+
+        {needsConsent && (
+          <section className="card-shadow rounded-3xl bg-white p-5 dark:bg-stone-900">
+            <div className="mb-3">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+                {O.consentSectionTitle}
+              </h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-stone-600 dark:text-stone-400">
+                {O.consentNote}
+              </p>
+            </div>
+            <div className="space-y-2.5">
+              <ConsentCheckbox name="consentMedical" label={S.consent.medical.label} />
+              <ConsentCheckbox name="consentTerms" label={S.consent.terms.label} />
+              <ConsentCheckbox name="consentPrivacy" label={S.consent.privacy.label} />
+            </div>
+          </section>
+        )}
 
         <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-stone-200/60 bg-white/80 px-5 pt-3 pb-5 backdrop-blur-md dark:border-stone-800/60 dark:bg-stone-950/80">
           <button
@@ -182,6 +249,45 @@ export default function OnboardingPage() {
           </button>
         </div>
       </form>
+
+      {showExitConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="onboarding-exit-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl dark:bg-stone-900">
+            <h2
+              id="onboarding-exit-title"
+              className="text-lg font-bold text-stone-900 dark:text-stone-100"
+            >
+              {O.exit.title}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
+              {O.exit.body}
+            </p>
+            <div className="mt-6 space-y-2.5">
+              <button
+                type="button"
+                onClick={confirmExit}
+                disabled={exiting}
+                className="w-full rounded-2xl bg-rose-600 px-5 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {O.exit.confirm}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowExitConfirm(false)}
+                disabled={exiting}
+                className="w-full rounded-2xl border border-stone-200 px-5 py-3.5 text-sm font-semibold text-stone-700 transition active:scale-[0.98] disabled:opacity-60 dark:border-stone-700 dark:text-stone-200"
+              >
+                {O.exit.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
@@ -228,6 +334,21 @@ function Field({
         }
         className="block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:bg-stone-900"
       />
+    </label>
+  );
+}
+
+function ConsentCheckbox({ name, label }: { name: string; label: string }) {
+  return (
+    <label className="flex items-start gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-stone-800 dark:bg-stone-950">
+      <input
+        type="checkbox"
+        name={name}
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 text-brand-600 focus:ring-brand-500 dark:border-stone-700"
+      />
+      <span className="text-[13px] leading-relaxed text-stone-700 dark:text-stone-300">
+        {label}
+      </span>
     </label>
   );
 }

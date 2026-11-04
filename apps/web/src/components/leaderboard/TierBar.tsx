@@ -7,29 +7,33 @@ type Tier = 'excellent' | 'good' | 'fair' | 'attention';
 type Props = {
   distribution: Record<Tier, number>;
   userTier: Tier;
+  /** 색만 page 에서 지정(상위=금, 중간=violet/sky). 로직/문구 동일. */
+  colors?: Record<Tier, string>;
 };
 
 const ORDER: Tier[] = ['excellent', 'good', 'fair', 'attention'];
 
-const TIER_BG: Record<Tier, string> = {
+const DEFAULT_BG: Record<Tier, string> = {
   excellent: 'bg-emerald-500',
   good: 'bg-brand-500',
   fair: 'bg-amber-500',
   attention: 'bg-rose-500',
 };
 
-export function TierBar({ distribution, userTier }: Props) {
+export function TierBar({ distribution, userTier, colors }: Props) {
   const { t } = useI18n();
   const L = t.leaderboard;
+  const TIER_BG = colors ?? DEFAULT_BG;
   const total = ORDER.reduce((acc, k) => acc + distribution[k], 0);
 
   return (
     <section>
-      <h2 className="px-1 text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+      <h2 className="flex items-center px-1 text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        <span className="accent-bar bg-violet-500" />
         {L.tierDistribution}
       </h2>
-      <div className="mt-3 overflow-hidden rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
-        <div className="flex h-3 w-full">
+      <div className="card-shadow mt-3 overflow-hidden rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+        <div className="flex h-4 w-full">
           {ORDER.map((k) => {
             const pct = total > 0 ? (distribution[k] / total) * 100 : 0;
             return (

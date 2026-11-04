@@ -196,6 +196,62 @@ export async function updateMeProfile(
   }
 }
 
+// 이 회원이 소셜(OAuth)로 연결된 계정인지 — 소셜 신규 가입자 동의 강제 판별용.
+export async function hasOAuthLink(
+  identityDb: D1Database,
+  userPseudonymId: string,
+): Promise<boolean> {
+  const row = await identityDb
+    .prepare('SELECT 1 FROM oauth_accounts WHERE user_pseudonym_id = ? LIMIT 1')
+    .bind(userPseudonymId)
+    .first<{ '1': number }>();
+  return row !== null;
+}
+
+// 소셜 신규 가입자 최초 온보딩 동의 기록 — signup.ts 와 동일한 consent_log 3종 + 버전 컬럼.
+// 이미 동의 기록이 있는 회원(비밀번호 가입자 등)에게는 호출하지 않는다(라우트에서 판별).
+export async function recordOnboardingConsent(
+  identityDb: D1Database,
+  userPseudonymId: string,
+  opts: { termsVersion: string; privacyVersion: string; marketingOptIn: boolean },
+): Promise<void> {
+  const recordedAt = new Date().toISOString();
+  await identityDb.batch([
+    identityDb
+      .prepare(
+        `UPDATE users SET
+           consent_terms_version = ?, consent_privacy_version = ?,
+           consent_recorded_at = ?, marketing_opt_in = ?
+         WHERE user_pseudonym_id = ?`,
+      )
+      .bind(
+        opts.termsVersion,
+        opts.privacyVersion,
+        recordedAt,
+        opts.marketingOptIn ? 1 : 0,
+        userPseudonymId,
+      ),
+    identityDb
+      .prepare(
+        `INSERT INTO consent_log (user_pseudonym_id, consent_kind, granted, source)
+         VALUES (?, 'medical', 1, 'onboarding_social')`,
+      )
+      .bind(userPseudonymId),
+    identityDb
+      .prepare(
+        `INSERT INTO consent_log (user_pseudonym_id, consent_kind, granted, source)
+         VALUES (?, 'terms', 1, 'onboarding_social')`,
+      )
+      .bind(userPseudonymId),
+    identityDb
+      .prepare(
+        `INSERT INTO consent_log (user_pseudonym_id, consent_kind, granted, source)
+         VALUES (?, 'research', 1, 'onboarding_social_privacy')`,
+      )
+      .bind(userPseudonymId),
+  ]);
+}
+
 export async function existsEmail(
   identityDb: D1Database,
   email: string,

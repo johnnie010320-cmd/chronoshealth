@@ -29,4 +29,39 @@ export type Bindings = {
   SUPERADMIN_PSEUDONYM_IDS?: string;
   // 폼코치 SSO 핸드오프 서명 시크릿 — 폼코치 워커와 동일 값. wrangler secret 으로 주입.
   FORMCOACH_SSO_SECRET?: string;
+  // 메일 발송(Resend) — 비밀번호 재설정 링크 등. 둘 다 없으면 발송 생략 + logger 기록.
+  //   $ wrangler secret put RESEND_API_KEY
+  //   $ wrangler secret put MAIL_FROM   # 예: VITAcode <no-reply@vitacodeapp.com> (Resend 검증 도메인)
+  RESEND_API_KEY?: string;
+  MAIL_FROM?: string;
+
+  // ── SNS 로그인(OAuth) ─────────────────────────────────────────────
+  // 브라우저 실제 접속 오리진. 정상 경로는 프록시가 X-Forwarded-Host 로 넘기므로 선택.
+  // 미전달 시 fallback(예: 'https://vitacodeapp.com').
+  APP_PUBLIC_ORIGIN?: string;
+  // OAuth state/PKCE 서명 HMAC 키. wrangler secret put OAUTH_STATE_SECRET.
+  OAUTH_STATE_SECRET?: string;
+  // 카카오 — REST API 키(=client_id) + (선택)Client Secret.
+  KAKAO_REST_API_KEY?: string;
+  KAKAO_CLIENT_SECRET?: string;
+  // 구글 — OAuth 2.0 Client ID / Secret.
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  // 네이버 — 애플리케이션 Client ID / Secret.
+  NAVER_CLIENT_ID?: string;
+  NAVER_CLIENT_SECRET?: string;
+  // 애플 — Sign in with Apple(web). client_secret은 아래 값들로 ES256 JWT를 코드가 생성.
+  APPLE_TEAM_ID?: string;
+  APPLE_SERVICE_ID?: string; // Services ID = client_id
+  APPLE_KEY_ID?: string;
+  APPLE_PRIVATE_KEY?: string; // .p8 PEM 전체(멀티라인)
+
+  // ── 국민건강보험공단 검진 연동(간편인증 중개: Tilko) ─────────────────────
+  // NHIS_PROVIDER: 'mock'(기본·표본) | 'tilko'(실연동). tilko 선택 시 아래 키 필요.
+  //   $ wrangler secret put TILKO_API_KEY     # 틸코 발급 API 키
+  //   TILKO_API_HOST 는 [vars] 또는 secret (기본 https://api.tilko.net)
+  // 실연동 크립토는 키 확보 후 실서버 대조 검증하여 활성화(project 메모 참조).
+  NHIS_PROVIDER?: 'mock' | 'tilko';
+  TILKO_API_KEY?: string;
+  TILKO_API_HOST?: string;
 };

@@ -36,7 +36,7 @@ export type AffiliateRow = {
 
 // 자기 도메인(/care) 을 가리키면 아직 실제 제휴처가 연결되지 않은 자리표시자다.
 // 관리자가 comingSoon=false 로 바꿔도 URL 이 자리표시자면 게이트웨이가 준비중으로 강제한다.
-const PLACEHOLDER_URL = 'https://chronoshealth.ever-day.com/care';
+const PLACEHOLDER_URL = 'https://vitacodeapp.com/care';
 
 function isPlaceholder(url: string): boolean {
   return url.startsWith(PLACEHOLDER_URL);

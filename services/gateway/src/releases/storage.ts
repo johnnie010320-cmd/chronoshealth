@@ -46,6 +46,18 @@ export async function listReleases(db: D1Database, limit: number): Promise<Relea
   }));
 }
 
+// 한 component 의 가장 최근 기록 버전 (앱 업데이트 안내 — 'android' = 공개 최신, 'android-min' = 최소 지원).
+export async function latestReleaseVersion(db: D1Database, component: string): Promise<string | null> {
+  const row = await db
+    .prepare(
+      `SELECT version FROM releases WHERE component = ?
+        ORDER BY created_at DESC LIMIT 1`,
+    )
+    .bind(component)
+    .first<{ version: string }>();
+  return row?.version ?? null;
+}
+
 export async function deleteRelease(db: D1Database, id: string): Promise<boolean> {
   const res = await db.prepare('DELETE FROM releases WHERE id = ?').bind(id).run();
   return (res.meta?.changes ?? 0) > 0;

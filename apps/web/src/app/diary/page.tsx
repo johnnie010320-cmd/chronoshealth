@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
+import { BookIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import {
@@ -73,8 +74,31 @@ export default function DiaryPage() {
 
   return (
     <AppShell title={D.pageTitle} decoration="dots">
-      <section className="card-shadow mt-4 rounded-2xl bg-white p-4 dark:bg-stone-900">
-        <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+      <section className="grad-sunset card-shadow relative mt-4 overflow-hidden rounded-3xl px-5 py-5">
+        <span
+          className="blob"
+          style={{
+            width: 130,
+            height: 130,
+            right: -22,
+            top: -30,
+            background: 'radial-gradient(circle, #fde68a, transparent 70%)',
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+            <BookIcon className="h-6 w-6 text-white" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold tracking-tight text-white">{D.pageTitle}</h1>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-white/85">{D.composeHint}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="card-shadow card-amber mt-4 rounded-2xl p-4">
+        <h2 className="flex items-center text-sm font-bold text-stone-900 dark:text-stone-100">
+          <span className="accent-bar bg-amber-500" />
           {D.composeTitle}
         </h2>
         <p className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">{D.composeHint}</p>
@@ -92,7 +116,7 @@ export default function DiaryPage() {
               onClick={() => setMood(mood === m ? null : m)}
               className={`rounded-full px-3 py-1 text-[12px] font-semibold transition ${
                 mood === m
-                  ? 'bg-brand-700 text-white'
+                  ? 'tile-amber text-white'
                   : 'border border-stone-200 bg-white text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300'
               }`}
             >
@@ -124,15 +148,16 @@ export default function DiaryPage() {
       </section>
 
       <section className="mt-5">
-        <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        <h2 className="mb-2 flex items-center px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          <span className="accent-bar bg-amber-500" />
           {D.recentTitle}
         </h2>
         {entries.length === 0 ? (
-          <div className="card-shadow rounded-2xl bg-white px-4 py-6 text-center text-[12px] text-stone-500 dark:bg-stone-900 dark:text-stone-400">
+          <div className="card-shadow card-amber rounded-2xl px-4 py-6 text-center text-[12px] text-stone-500 dark:text-stone-400">
             {D.empty}
           </div>
         ) : (
-          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+          <ul className="card-shadow card-amber divide-y divide-amber-100 overflow-hidden rounded-2xl dark:divide-amber-900/30">
             {entries.map((e) => (
               <li key={e.id} className="flex items-start gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">

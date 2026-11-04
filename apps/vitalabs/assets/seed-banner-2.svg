@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" width="1600" height="600" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4338ca"/>
+      <stop offset="0.55" stop-color="#3b2f8f"/>
+      <stop offset="1" stop-color="#1e1b3a"/>
+    </linearGradient>
+    <linearGradient id="accent2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="600" fill="url(#bg2)"/>
+  <circle cx="1350" cy="300" r="230" fill="#ffffff" opacity="0.05"/>
+  <g opacity="0.9">
+    <rect x="1050" y="330" width="46" height="150" rx="10" fill="#a78bfa" opacity="0.55"/>
+    <rect x="1120" y="270" width="46" height="210" rx="10" fill="#818cf8" opacity="0.7"/>
+    <rect x="1190" y="200" width="46" height="280" rx="10" fill="#60a5fa" opacity="0.85"/>
+    <rect x="1260" y="150" width="46" height="330" rx="10" fill="#38bdf8"/>
+  </g>
+  <text x="110" y="150" fill="#a78bfa" font-size="30" font-weight="700" letter-spacing="8">VITA LABS</text>
+  <text x="108" y="300" fill="#ffffff" font-size="82" font-weight="800">AI 건강 예측 리포트</text>
+  <text x="110" y="380" fill="#e2e8f0" font-size="34" font-weight="500">활력 점수 · 5종 나이 · 예측 잔여 연수</text>
+  <text x="110" y="428" fill="#e2e8f0" font-size="34" font-weight="500">생애 예상 의료비까지 한눈에</text>
+  <rect x="110" y="480" width="360" height="4" rx="2" fill="url(#accent2)"/>
+</svg>

@@ -34,7 +34,7 @@ P0/P1 단계에서 사용자가 이름·전화번호·이메일·생년·성별�
 - 이메일 OTP / 전화 OTP
 - OAuth (Google / Kakao / Apple)
 - 본인 인증 (PASS, KMC 등)
-- 비밀번호 찾기 / 계정 복구
+- 비밀번호 찾기 / 계정 복구 — *(2026-10-18 이메일 링크 재설정 도입, §4.5)*
 - 멀티 디바이스 로그인 / 토큰 갱신 (refresh token)
 - 회원 정보 수정 (이름·전화·이메일 변경)
 - 회원 탈퇴 (P1 후반 별도 슬라이스)
@@ -136,6 +136,22 @@ const SignupResponse = z.object({
 
 - 기존 `risk-survey` Slice 02 `auth.ts`는 mock 토큰 (`"test-token-123"`) 검증 → 본 슬라이스 완료 후 실제 세션 토큰 검증으로 교체
 - 교체는 본 슬라이스 완료 정의에 포함
+
+### 4.5 비밀번호 재설정 — 이메일 링크 (2026-10-18 갱신, 구 P1 지식기반 방식 대체)
+
+> 이력: P1 재설정은 `POST /api/v1/auth/reset-password` 에 **가입 이메일 + 전화번호**를 내면 바로 새 비밀번호를 설정했다(지식기반 확인). 두 값을 아는 제3자가 비밀번호를 바꿀 수 있어 "P2 에서 이메일 OTP/링크로 강화" 예정이었고, 본 갱신으로 **이메일 링크 방식으로 교체**했다. 구 경로는 제거(404). 레거시 계정용 `POST /auth/set-password`(비밀번호 미설정 계정 최초 설정)는 별개로 유지.
+
+| 단계 | API | 동작 |
+|---|---|---|
+| 요청 | `POST /api/v1/auth/password-reset/request` `{ email, locale? }` | 계정 유무와 무관하게 항상 `200 { ok:true }`(계정 존재 비노출). 계정이 있으면 1회용 토큰 발급 + Resend 메일(링크 `https://vitacodeapp.com/reset-password?token=…`). 메일은 `waitUntil` 로 응답 뒤 발송(응답 시간 차 비노출) |
+| 확인 | `POST /api/v1/auth/password-reset/verify` `{ token }` | 유효 `200 { valid:true }` / `400 RESET_TOKEN_INVALID·EXPIRED·USED`. **토큰을 소모하지 않음**(메일 스캐너 선열람 대비, 페이지 JS 가 호출) |
+| 설정 | `POST /api/v1/auth/password-reset/confirm` `{ token, password }` | 비밀번호 정책 검사 → 조건부 UPDATE 로 토큰 소모(1회용) → 비밀번호 교체 + 해당 사용자 `session_tokens` 전부 삭제 + 남은 링크 무효화. 새 세션은 발급하지 않음(웹은 `/login?reset=1` 로 이동해 재로그인) |
+
+- 토큰: 32바이트 랜덤 base64url. DB(`identity` D1 `password_reset_tokens`, migration `identity/0010`)에는 **SHA-256 hex 만** 저장. 만료 30분. 새 링크 요청 시 이전 미사용 링크 무효화
+- 호출 제한: IP당 request 10회/시간, 이메일당 5회/시간(초과 `429`, 계정 유무 무관), **계정당 발급 3회/시간**(초과분은 응답은 동일 `200`, 발급·발송만 생략). verify 60회/시간·confirm 20회/시간(IP)
+- 메일 링크 오리진은 허용 목록(`vitacodeapp.com`, `www.vitacodeapp.com`)만 — 그 밖의 `X-Forwarded-Host` 는 무시(Host 위조로 타인 메일에 외부 링크가 실리는 것 차단)
+- 메일 비밀값: `RESEND_API_KEY`, `MAIL_FROM` (wrangler secret). 없으면 발송 생략 + `lib/logger` 에 `password_reset.mail_failed`(NOT_CONFIGURED) 기록, 응답은 동일
+- 웹: `/forgot-password`(이메일 입력) → `/reset-password?token=`(진입 시 verify, 새 비밀번호 2회 입력). 무효·만료·사용됨 → 안내 + "새 링크 받기"
 
 ---
 

@@ -1,17 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 import { AlertIcon } from '@/components/HealthIcons';
-import { KakaoLogo, GoogleLogo, AppleLogo } from '@/components/SocialIcons';
+import { KakaoLogo, GoogleLogo, NaverLogo, AppleLogo } from '@/components/SocialIcons';
+import { BusinessFooter } from '@/components/BusinessFooter';
 import { PasswordField } from '@/components/PasswordField';
 import { fetchMeProfile } from '@/lib/api-client';
-import {
-  submitLogin,
-  submitSetPassword,
-} from '@/lib/api-client';
+import { submitLogin, submitSetPassword } from '@/lib/api-client';
 import { writeSession } from '@/lib/session';
 import { validatePasswordPolicy } from '@/lib/signup-schema';
 
@@ -28,9 +26,31 @@ export function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsSetPassword, setNeedsSetPassword] = useState(false);
+  // 비밀번호 재설정 완료 후 /login?reset=1 로 돌아오면 안내 표시.
+  const [resetDone, setResetDone] = useState(false);
 
-  const notifySocial = () => {
-    if (typeof window !== 'undefined') window.alert(L.unavailable);
+  // 콜백이 실패 시 /login?error=oauth_* 로 되돌리므로 진입 시 표시.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') === '1') {
+      setResetDone(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    const code = params.get('error');
+    if (code) {
+      setError((L.error as Record<string, string>)[code] ?? L.error.generic);
+      // 새로고침 시 에러 잔류 방지 — 쿼리 제거.
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // SNS 로그인 — 게이트웨이 서버 플로우로 전체 페이지 이동(same-origin 프록시 경유).
+  const startOAuth = (provider: 'kakao' | 'google' | 'naver' | 'apple') => {
+    if (typeof window !== 'undefined') {
+      window.location.assign(`/api/v1/auth/oauth/${provider}/start`);
+    }
   };
 
   async function handleLogin(e: React.FormEvent) {
@@ -93,6 +113,15 @@ export function LoginForm() {
         </div>
       )}
 
+      {resetDone && !error && (
+        <div
+          role="status"
+          className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:border-brand-800 dark:bg-brand-900/40 dark:text-brand-200"
+        >
+          {L.resetDone}
+        </div>
+      )}
+
       {error && (
         <div
           role="alert"
@@ -135,6 +164,15 @@ export function LoginForm() {
             {submitting ? L.email.submitting : L.email.submit}
           </button>
         </form>
+        <p className="mt-3 text-center">
+          {/* 이메일 재설정 링크 방식(/forgot-password → 메일 → /reset-password). */}
+          <Link
+            href="/forgot-password"
+            className="text-[12px] text-stone-500 hover:underline dark:text-stone-400"
+          >
+            {L.forgotPasswordCta}
+          </Link>
+        </p>
       </section>
 
       <Divider label={L.divider} />
@@ -142,7 +180,7 @@ export function LoginForm() {
       <div className="space-y-3">
         <button
           type="button"
-          onClick={notifySocial}
+          onClick={() => startOAuth('kakao')}
           className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#FEE500] px-6 py-3.5 text-sm font-semibold text-[#191919] transition active:scale-[0.98] hover:brightness-95"
         >
           <KakaoLogo className="h-5 w-5" />
@@ -150,7 +188,7 @@ export function LoginForm() {
         </button>
         <button
           type="button"
-          onClick={notifySocial}
+          onClick={() => startOAuth('google')}
           className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-stone-300 bg-white px-6 py-3.5 text-sm font-semibold text-stone-800 transition active:scale-[0.98] hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
         >
           <GoogleLogo className="h-5 w-5" />
@@ -158,7 +196,15 @@ export function LoginForm() {
         </button>
         <button
           type="button"
-          onClick={notifySocial}
+          onClick={() => startOAuth('naver')}
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#03C75A] px-6 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] hover:brightness-95"
+        >
+          <NaverLogo className="h-5 w-5" />
+          {L.naver}
+        </button>
+        <button
+          type="button"
+          onClick={() => startOAuth('apple')}
           className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-black px-6 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-stone-800"
         >
           <AppleLogo className="h-5 w-5" />
@@ -175,6 +221,22 @@ export function LoginForm() {
           {L.signupCta}
         </Link>
       </p>
+
+      <p className="text-center text-[11px] text-stone-400 dark:text-stone-500">
+        <Link href="/health-data" className="hover:underline">
+          건강데이터 처리방침
+        </Link>
+        {' · '}
+        <Link href="/terms" className="hover:underline">
+          서비스 약관
+        </Link>
+        {' · '}
+        <Link href="/privacy" className="hover:underline">
+          개인정보처리방침
+        </Link>
+      </p>
+
+      <BusinessFooter className="mt-1 space-y-0.5 border-t border-stone-100 pt-3 text-center text-[11px] leading-relaxed text-stone-400 dark:border-stone-800 dark:text-stone-500" />
     </div>
   );
 }

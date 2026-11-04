@@ -1,5 +1,6 @@
 // VITAcode Android 앱 — vitacodeapp.com 을 앱 화면 안(WebView)에서 연다.
-// 앱이 따로 갖는 것: 뒤로 가기, 첨부 파일 고르기, 외부 앱 연결(전화·메일·카카오 등), 연결 끊김 화면, 업데이트 안내.
+// 앱이 따로 갖는 것: 뒤로 가기, 첨부 파일 고르기, 외부 앱 연결(전화·메일·카카오 등), 연결 끊김 화면, 업데이트 안내,
+// SNS 공유(웹이 넘긴 결과 그림·글을 휴대폰 공유 창으로).
 import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
+import 'share_bridge.dart';
 import 'strings.dart';
 import 'update_check.dart';
 
@@ -64,7 +66,11 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
           if (e.isForMainFrame ?? false) setState(() => _failed = true);
         },
         onNavigationRequest: _onNavigate,
-      ));
+      ))
+      // 웹의 'VITAcode 공유하기' → 휴대폰 공유 창 (share_bridge.dart)
+      ..addJavaScriptChannel(kShareChannel, onMessageReceived: (m) {
+        if (mounted) shareFromWeb(context, m.message, _s);
+      });
     final platform = _web.platform;
     if (platform is AndroidWebViewController) {
       platform.setOnShowFileSelector(_pickFiles);

@@ -1,0 +1,194 @@
+/* VITA Labs 회사 홍보 사이트 (vitalabsinc.com) — 정적.
+   진단 리포트/생체 스펙트럼 시각언어: 보라(임상적 정밀) + teal↔rose(축 양극). */
+
+:root {
+  --ink: #191029;
+  --paper: #f7f5ff;
+  --surface: #ffffff;
+  --violet: #6d28d9;
+  --violet-lite: #8b5cf6;
+  --signal: #0ea5a5;
+  --warn: #f43f5e;
+  --muted: #6b6580;
+  --line: rgba(25, 16, 41, 0.1);
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Pretendard', ui-sans-serif, system-ui, -apple-system,
+    'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f3f0ff;
+    --paper: #100a1e;
+    --surface: #191130;
+    --muted: #a49dbb;
+    --line: rgba(255, 255, 255, 0.12);
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+img, video { max-width: 100%; display: block; }
+.display { font-family: var(--font-display); letter-spacing: -0.01em; }
+.mono { font-family: var(--font-display); letter-spacing: 0.06em; }
+/* 풀스크린 활용 — 중앙 1080px 박스 제거. 화면 가장자리엔 최소 반응형 여백만. */
+.container { width: 100%; max-width: 100%; margin: 0 auto; padding: 0 clamp(16px, 3vw, 40px); }
+.muted { color: var(--muted); }
+
+/* ── Header ── */
+.site-header {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header .bar {
+  height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand img { width: 30px; height: 30px; border-radius: 8px; }
+.brand b { font-family: var(--font-display); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.nav { display: flex; align-items: center; gap: 26px; }
+.nav a { font-size: 14px; font-weight: 500; color: var(--muted); transition: color 0.15s; }
+.nav a:hover, .nav a.active { color: var(--ink); }
+.header-cta { display: flex; align-items: center; gap: 12px; }
+.menu-btn { display: none; background: none; border: 0; color: var(--ink); cursor: pointer; padding: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 600; font-size: 14px;
+  padding: 10px 20px; border-radius: 999px; cursor: pointer; border: 1px solid transparent;
+  transition: filter 0.15s, background 0.15s;
+}
+.btn-primary { background: var(--violet); color: #fff; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-ghost { border-color: var(--line); color: var(--ink); background: transparent; }
+.btn-ghost:hover { background: var(--surface); }
+.btn-lg { padding: 14px 28px; font-size: 16px; }
+
+/* 모바일 메뉴 */
+.mobile-nav { display: none; border-top: 1px solid var(--line); padding: 12px 20px; }
+.mobile-nav.open { display: block; }
+.mobile-nav a { display: block; padding: 10px 4px; font-size: 15px; font-weight: 500; }
+.mobile-nav .btn { width: 100%; margin-top: 6px; }
+@media (max-width: 820px) {
+  .nav, .header-cta .btn-desktop { display: none; }
+  .menu-btn { display: inline-flex; }
+}
+
+/* ── Sections ── */
+.section { padding: 72px 0; border-top: 1px solid var(--line); }
+.section:first-of-type { border-top: 0; }
+.section h2 { font-family: var(--font-display); font-size: 30px; font-weight: 800; line-height: 1.15; margin: 0 0 8px; }
+.section .lead { color: var(--muted); font-size: 15px; max-width: 640px; margin: 0; }
+.eyebrow { color: var(--violet); font-weight: 600; font-size: 14px; margin: 0 0 14px; }
+
+/* ── Hero ── */
+.hero { position: relative; overflow: hidden; padding: 72px 0 88px; }
+.hero-grid {
+  position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.hero .inner { position: relative; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; }
+.hero h1 { font-family: var(--font-display); font-size: 52px; font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; margin: 14px 0 0; }
+.hero p.sub { color: var(--muted); font-size: 17px; max-width: 460px; margin: 22px 0 0; }
+.hero .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.hero .note { color: var(--muted); font-size: 13px; margin-top: 18px; }
+@media (max-width: 860px) {
+  .hero .inner { grid-template-columns: 1fr; gap: 32px; }
+  .hero h1 { font-size: 38px; }
+}
+
+/* ── VITA 코드 카드 ── */
+.code-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 24px;
+  padding: 28px; box-shadow: 0 20px 50px -20px rgba(109, 40, 217, 0.25);
+}
+.code-card .cap { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-weight: 600; }
+.code-card .code { font-family: var(--font-display); letter-spacing: 0.08em; font-size: 60px; font-weight: 800; line-height: 1; margin: 8px 0 4px; }
+.code-card .nick { color: var(--violet); font-weight: 600; font-size: 14px; }
+.axis { margin-top: 16px; }
+.axis .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+.axis .row .lbl { font-weight: 500; }
+.axis .row .poles { font-family: var(--font-display); color: var(--muted); }
+.track { position: relative; height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--signal) 0%, #a78bfa 50%, var(--warn) 100%); }
+.marker { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 999px;
+  background: var(--ink); border: 2px solid #fff; transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3); left: 50%; transition: left 0.9s cubic-bezier(0.22,1,0.36,1); }
+@media (prefers-reduced-motion: reduce) { .marker { transition: none; } }
+
+/* ── 그리드/카드 ── */
+.type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 36px; }
+.type { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 16px; transition: border-color 0.15s; }
+.type:hover { border-color: var(--violet); }
+.type .c { font-family: var(--font-display); letter-spacing: 0.06em; font-size: 22px; font-weight: 800; color: var(--violet); }
+.type .n { font-size: 13px; line-height: 1.35; margin-top: 6px; }
+@media (max-width: 820px) { .type-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.step-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; margin-top: 36px; }
+.step { background: var(--surface); padding: 28px; }
+.step .n { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--violet); }
+.step h3 { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin: 8px 0 6px; }
+.step p { color: var(--muted); font-size: 14px; margin: 0; }
+@media (max-width: 700px) { .step-grid { grid-template-columns: 1fr; } }
+
+.cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+.info-card { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 24px; }
+.info-card .tag { font-family: var(--font-display); display: inline-block; background: color-mix(in oklab, var(--violet) 12%, transparent); color: var(--violet); font-weight: 700; font-size: 12px; padding: 4px 12px; border-radius: 999px; }
+.info-card h3 { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin: 12px 0 6px; }
+.info-card p { color: var(--muted); font-size: 14px; margin: 0; }
+@media (max-width: 820px) { .cards-3 { grid-template-columns: 1fr; } }
+
+/* 가치 / 편집 텍스트 패널 */
+.value-panel { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 24px 26px; margin-top: 24px; font-size: 15px; line-height: 1.95; }
+.ml { white-space: pre-line; }
+.statement { border-left: 3px solid var(--violet); padding: 4px 0 4px 18px; margin-top: 20px; font-size: 20px; font-family: var(--font-display); font-weight: 600; line-height: 1.4; }
+.prose { font-size: 15px; line-height: 1.85; color: var(--ink); max-width: 680px; margin-top: 18px; }
+
+/* 배너 캐러셀 */
+.banner { position: relative; overflow: hidden; border-radius: 20px; background: #000; margin-top: 8px; }
+.banner .slide { display: none; }
+.banner .slide.on { display: block; }
+.banner .slide img, .banner .slide video { width: 100%; display: block; }
+.banner .dots { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; gap: 6px; }
+.banner .dots button { width: 7px; height: 7px; border-radius: 999px; border: 0; background: rgba(255,255,255,0.5); cursor: pointer; padding: 0; }
+.banner .dots button.on { width: 18px; background: #fff; }
+.banner .arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 999px; border: 0; background: rgba(0,0,0,0.35); color: #fff; cursor: pointer; font-size: 20px; }
+.banner .arrow.prev { left: 10px; } .banner .arrow.next { right: 10px; }
+
+/* CTA 밴드 */
+.cta-band { text-align: center; }
+.cta-band h2 { font-size: 34px; }
+.cta-band p { color: var(--muted); max-width: 460px; margin: 14px auto 0; }
+.cta-band .btn { margin-top: 26px; }
+
+/* 문의/사업자정보 */
+.biz { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 24px; margin-top: 24px; }
+.biz dl { display: grid; grid-template-columns: 120px 1fr; gap: 10px 16px; margin: 0; font-size: 14px; }
+.biz dt { color: var(--muted); }
+.biz dd { margin: 0; }
+@media (max-width: 600px) { .biz dl { grid-template-columns: 1fr; gap: 2px 0; } .biz dd { margin-bottom: 10px; } }
+
+/* ── Footer ── */
+.footer { border-top: 1px solid var(--line); padding: 48px 0; }
+.footer .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 32px; }
+.footer h4 { font-family: var(--font-display); font-size: 13px; font-weight: 700; margin: 0 0 12px; }
+.footer ul { list-style: none; padding: 0; margin: 0; }
+.footer li { margin-bottom: 8px; }
+.footer li a { font-size: 13px; color: var(--muted); }
+.footer li a:hover { color: var(--ink); }
+.footer .about { color: var(--muted); font-size: 13px; max-width: 300px; margin: 12px 0 0; }
+.footer .legal { border-top: 1px solid var(--line); margin-top: 32px; padding-top: 24px; color: var(--muted); font-size: 12px; }
+@media (max-width: 700px) { .footer .cols { grid-template-columns: 1fr 1fr; gap: 24px; } }

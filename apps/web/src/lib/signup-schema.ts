@@ -1,10 +1,15 @@
 import { z } from 'zod';
+import { COUNTRY_CODES } from './countries';
 
 // services/gateway/src/schemas/signup.ts와 동기. ADR 0013 — 2단계 가입.
 
-const PHONE_REGEX = /^(\+\d{7,17}|0\d{1,2}-\d{3,4}-\d{4})$/;
+// 국제 전화번호 수용 — 선택적 '+' 국가코드 + 숫자/공백/하이픈/괄호/점.
+// 앞뒤는 숫자, 총 길이 7~20(E.164 최대 15자리 + 구분자 여유).
+// 예: 010-1234-5678 · +82 10 1234 5678 · +1 (234) 567-8900 · 03-1234-5678 · 2345678900
+const PHONE_REGEX = /^\+?[0-9][0-9\s().-]{5,18}[0-9]$/;
 
-export const Nationality = z.enum(['KR', 'US', 'JP', 'ES', 'OTHER']);
+// ISO 3166-1 alpha-2 전 국가 + 'OTHER'. 선택지·국가명은 lib/countries.ts.
+export const Nationality = z.enum([...COUNTRY_CODES, 'OTHER']);
 export type Nationality = z.infer<typeof Nationality>;
 
 // Step 1 — 계정 생성

@@ -7,7 +7,7 @@
 
 **P1 — 제품 확장 / 실측 전환 준비** (최종 갱신 2026-07-08, 릴리스 `v0.0.48`)
 
-`vitacode.ever-day.com`(및 기존 `chronoshealth.ever-day.com`) 라이브. 릴리스 이력은 관리자 `/admin/devlog` (analysis D1 `releases` 테이블)가 정본.
+도메인/사이트(v0.5.0, 2026-09-21 라이브): **`vitacodeapp.com` = VITAcode 앱(웹) 전용**(루트=앱). **`vitalabsinc.com` = 회사 홍보 사이트**(별도 정적 사이트 `apps/vitalabs`, CF Pages 프로젝트 `vitalabs`, 이메일=CF Email Routing). 구 `*.ever-day.com` 폐지. 관리자 CMS로 배너(placement)·회사 콘텐츠(site_content) 편집. ADR 0006 Amendment 참조. 릴리스 이력은 관리자 `/admin/devlog` (analysis D1 `releases` 테이블)가 정본.
 
 ### 라이브 (구현·배포 완료)
 
@@ -49,8 +49,8 @@
 
 ## 임시 도메인 (ADR 0006)
 
-- **URL**: `vitacode.ever-day.com` (신규 주 도메인) · `chronoshealth.ever-day.com` (기존, 유지) — 둘 다 FormCoach `ever-day.com` 하위
-- **DNS**: Gabia (`ns1.gabia.co.kr`) — CNAME 추가 필요
+- **URL(v0.5.0, 2026-09-21 라이브)**: `vitacodeapp.com`=앱(웹) 전용 · `vitalabsinc.com`=회사 홍보 사이트(별도 `apps/vitalabs`). 구 `vitacode/chronoshealth.ever-day.com` 폐지(CF 커스텀도메인 제거 완료, Gabia CNAME 삭제만 죠니 잔여). ADR 0006 Amendment
+- **DNS**: 두 신규 도메인 CF `l2pamerica` 존(가비아 NS 이관 완료). DNS 편집 토큰=`~/.chronos-secrets/cf-dns-token.txt`(genie-dns). 배포토큰은 DNS 권한 없음
 - **배포**: Cloudflare Pages 프로젝트 `chronoshealth`
 - **CF 계정**: `l2pamerica@gmail.com` (Account ID `70461e52de37c19b674705151b865aca`, 투윈즈와 공유)
 - **GitHub**: `johnnie010320-cmd/chronoshealth`

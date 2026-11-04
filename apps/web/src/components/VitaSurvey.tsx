@@ -1,12 +1,13 @@
 'use client';
 
-// VITA 자가진단 200문항 설문(10영역 × 20문항, 문항당 0~3점).
+// VITA 자가진단 200문항 설문(10영역 × 20문항, 문항당 0~5점).
 // 영역 단위 스텝퍼로 진행 → 제출 시 영역별 점수 산출 후 DB 저장(submitVita).
 // 결과(요약/상세)는 라이프·AI진단 탭에서 조회한다(입력과 결과 분리).
 // VITA 콘텐츠는 원문(한국어) 기준 — 현지화는 후속 과제.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChevronRightIcon } from '@/components/HealthIcons';
+import { VitaResultSummary } from '@/components/vita/VitaResultSummary';
 import { submitVita, type VitaSectionScores, type VitaSavedResult } from '@/lib/api-client';
 import { VITA_SECTIONS, type VitaSectionId } from '@/lib/vita/engine';
 import { VITA_ANSWER_OPTIONS, VITA_QUESTIONS, type VitaAnswerLevel } from '@/lib/vita/questions';
@@ -23,6 +24,20 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
   const [busy, setBusy] = useState(false);
   const [errCode, setErrCode] = useState<string | null>(null);
   const [done, setDone] = useState<VitaSavedResult | null>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // 영역 이동 시 다음 영역 최상단으로 화면 스크롤(2026-10-09 죠니).
+  function goToStep(next: number) {
+    setStep((s) => {
+      const clamped = Math.max(0, Math.min(VITA_SECTIONS.length - 1, next));
+      if (clamped !== s) {
+        requestAnimationFrame(() =>
+          topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+        );
+      }
+      return clamped;
+    });
+  }
 
   const section = VITA_SECTIONS[step];
   const questions = useMemo(
@@ -66,32 +81,19 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
   }
 
   if (done) {
-    return (
-      <div className="card-shadow rounded-2xl bg-white px-5 py-6 text-center dark:bg-stone-900">
-        <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        </div>
-        <p className="text-[15px] font-bold text-stone-900 dark:text-stone-100">진단이 제출되었습니다</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-stone-500 dark:text-stone-400">
-          유형 <b className="text-brand-700 dark:text-brand-300">{done.code}</b> · 총점 {done.totalScore}/600
-          <br />
-          러프한 요약은 <b>라이프</b> 탭, 상세 리포트는 <b>AI 진단</b> 탭에서 확인하세요.
-        </p>
-      </div>
-    );
+    return <VitaResultSummary saved={done} />;
   }
 
   if (!section) return null;
 
   return (
     <div className="space-y-3">
+      <div ref={topRef} className="scroll-mt-4" />
       {/* 진행 헤더 */}
       <div className="card-shadow rounded-2xl bg-gradient-to-br from-brand-700 via-teal-600 to-emerald-500 px-5 py-4 text-white">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
-            VITA 자가진단 {step + 1}/{VITA_SECTIONS.length}
+            VITA 자가검사 {step + 1}/{VITA_SECTIONS.length}
           </p>
           <span className="text-[11px] font-semibold opacity-90 tabular-nums">
             총 {totalAnswered}/200
@@ -123,7 +125,7 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
                 <span className="mr-1 font-semibold text-stone-400">{q.no}.</span>
                 {q.ko}
               </p>
-              <div className="mt-2 grid grid-cols-4 gap-1.5">
+              <div className="mt-2 grid grid-cols-6 gap-1">
                 {VITA_ANSWER_OPTIONS.map((opt) => {
                   const active = val === opt.value;
                   return (
@@ -131,14 +133,14 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
                       key={opt.value}
                       type="button"
                       onClick={() => setAnswer(q.section, q.no, opt.value)}
-                      className={`rounded-xl border px-1 py-1.5 text-[11px] font-semibold leading-tight transition active:scale-[0.97] ${
+                      className={`rounded-lg border px-0.5 py-1.5 text-center font-semibold leading-tight transition active:scale-[0.97] ${
                         active
                           ? 'border-brand-500 bg-brand-600 text-white'
                           : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400 dark:hover:bg-stone-800'
                       }`}
                     >
                       <span className="block text-[13px] tabular-nums">{opt.value}</span>
-                      <span className="block text-[9px] opacity-90">{opt.ko}</span>
+                      <span className="block text-[8px] opacity-90">{opt.ko}</span>
                     </button>
                   );
                 })}
@@ -159,7 +161,7 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
         {step > 0 && (
           <button
             type="button"
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            onClick={() => goToStep(step - 1)}
             className="rounded-2xl border border-stone-300 px-4 py-3 text-[13px] font-semibold text-stone-700 transition active:scale-[0.98] dark:border-stone-700 dark:text-stone-200"
           >
             이전
@@ -169,7 +171,7 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
           <button
             type="button"
             disabled={!sectionComplete}
-            onClick={() => setStep((s) => Math.min(VITA_SECTIONS.length - 1, s + 1))}
+            onClick={() => goToStep(step + 1)}
             className="inline-flex flex-1 items-center justify-between rounded-2xl bg-stone-900 px-5 py-3 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-50 dark:bg-white dark:text-stone-900"
           >
             <span>{sectionComplete ? '다음 영역' : `이 영역 응답 (${answeredInSection}/${questions.length})`}</span>
@@ -182,7 +184,7 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
             onClick={() => void handleSubmit()}
             className="inline-flex flex-1 items-center justify-between rounded-2xl bg-brand-700 px-5 py-3 text-[14px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
           >
-            <span>{busy ? '제출 중…' : totalAnswered < 200 ? `전체 응답 필요 (${totalAnswered}/200)` : '진단 제출'}</span>
+            <span>{busy ? '확인 중…' : totalAnswered < 200 ? `전체 응답 필요 (${totalAnswered}/200)` : '나의 VITAcode 확인'}</span>
             <ChevronRightIcon className="h-5 w-5" />
           </button>
         )}

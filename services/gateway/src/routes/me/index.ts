@@ -9,6 +9,8 @@ import {
   maskPhone,
   readMeProfile,
   updateMeProfile,
+  recordOnboardingConsent,
+  hasOAuthLink,
   ProfileUpdateError,
 } from '../../me/storage.js';
 import {
@@ -94,8 +96,34 @@ meRoute.put('/profile', authMiddleware, rateLimit(30), async (c) => {
   const before = await readMeProfile(c.env.IDENTITY_DB, pseudonymId);
   const wasComplete = before?.isProfileComplete ?? false;
 
+  // 동의 처리.
+  //   - 소셜(OAuth 연결) 계정이면서 미동의: 3종 동의 필수(가입 폼을 거치지 않으므로 여기서 강제).
+  //   - 그 외(비밀번호 가입자·레거시): 기존 계약 유지(동의 필드 없어도 200). 동의를 보내면 기록.
+  const d = parsed.data;
+  const alreadyConsented = !!before?.consentRecordedAt;
+  const consentPresent =
+    !!d.consentMedical &&
+    !!d.consentTerms &&
+    !!d.consentPrivacy &&
+    !!d.consentTermsVersion &&
+    !!d.consentPrivacyVersion;
+
+  if (!alreadyConsented) {
+    const isSocial = await hasOAuthLink(c.env.IDENTITY_DB, pseudonymId);
+    if (isSocial && !consentPresent) {
+      return c.json({ error: { code: 'CONSENT_REQUIRED' } }, 400);
+    }
+  }
+
   try {
     await updateMeProfile(c.env.IDENTITY_DB, pseudonymId, parsed.data);
+    if (!alreadyConsented && consentPresent) {
+      await recordOnboardingConsent(c.env.IDENTITY_DB, pseudonymId, {
+        termsVersion: d.consentTermsVersion as string,
+        privacyVersion: d.consentPrivacyVersion as string,
+        marketingOptIn: d.marketingOptIn ?? false,
+      });
+    }
   } catch (err) {
     if (err instanceof ProfileUpdateError) {
       switch (err.code) {

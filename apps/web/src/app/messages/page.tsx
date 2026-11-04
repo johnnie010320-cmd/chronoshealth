@@ -70,18 +70,40 @@ export default function MessagesPage() {
 
   return (
     <AppShell title={M.pageTitle} decoration="dots">
+      <section className="grad-cyan card-shadow relative mt-3 overflow-hidden rounded-3xl px-5 py-5">
+        <span
+          className="blob"
+          style={{
+            width: 130,
+            height: 130,
+            right: -22,
+            top: -30,
+            background: 'radial-gradient(circle, #a5f3fc, transparent 70%)',
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+            <ChatBubbleIcon className="h-6 w-6 text-white" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold tracking-tight text-white">{M.pageTitle}</h1>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-white/85">{M.emptyBody}</p>
+          </div>
+        </div>
+      </section>
+
       <section className="mt-3 flex items-center gap-2">
         <button
           type="button"
           onClick={() => setDmOpen((v) => !v)}
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-stone-900 px-3 py-2.5 text-[12px] font-semibold text-white dark:bg-white dark:text-stone-900"
+          className="tile-sky card-shadow inline-flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2.5 text-[12px] font-semibold"
         >
           <ChatBubbleIcon className="h-4 w-4" />
           <span>{M.newDm}</span>
         </button>
         <Link
           href="/messages/room/new"
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-stone-300 px-3 py-2.5 text-[12px] font-semibold text-stone-800 dark:border-stone-700 dark:text-stone-100"
+          className="card-sky card-shadow inline-flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-sky-700 dark:text-sky-200"
         >
           <UsersIcon className="h-4 w-4" />
           <span>{M.newRoom}</span>
@@ -91,7 +113,7 @@ export default function MessagesPage() {
       {dmOpen && (
         <form
           onSubmit={handleOpenDm}
-          className="card-shadow mt-3 rounded-2xl bg-white px-4 py-3 dark:bg-stone-900"
+          className="card-shadow card-sky mt-3 rounded-2xl px-4 py-3"
         >
           <label className="block text-[12px] font-semibold text-stone-700 dark:text-stone-300">
             {M.dmNicknameLabel}
@@ -125,21 +147,34 @@ export default function MessagesPage() {
       )}
 
       {!loading && items.length === 0 && (
-        <div className="card-shadow mt-5 rounded-2xl bg-white px-4 py-8 text-center dark:bg-stone-900">
-          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{M.emptyTitle}</p>
-          <p className="mt-1 text-[12px] text-stone-500 dark:text-stone-400">{M.emptyBody}</p>
+        <div className="card-shadow card-sky relative mt-5 overflow-hidden rounded-2xl px-4 py-8 text-center">
+          <span
+            className="blob"
+            style={{
+              width: 120,
+              height: 120,
+              right: -24,
+              top: -30,
+              background: 'radial-gradient(circle, #7dd3fc, transparent 70%)',
+            }}
+          />
+          <span className="tile-sky relative mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl">
+            <ChatBubbleIcon className="h-6 w-6 text-white" />
+          </span>
+          <p className="relative mt-3 text-sm font-semibold text-stone-900 dark:text-stone-100">{M.emptyTitle}</p>
+          <p className="relative mt-1 text-[12px] text-stone-500 dark:text-stone-400">{M.emptyBody}</p>
         </div>
       )}
 
       {!loading && items.length > 0 && (
-        <ul className="card-shadow mt-4 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+        <ul className="card-shadow card-sky mt-4 divide-y divide-sky-100 overflow-hidden rounded-2xl dark:divide-sky-900/30">
           {items.map((c) => (
             <li key={c.id}>
               <Link
                 href={`/messages/view?id=${c.id}`}
-                className="flex items-start gap-3 px-4 py-3 transition active:bg-stone-50 dark:active:bg-stone-800/50"
+                className="flex items-start gap-3 px-4 py-3 transition active:bg-sky-100/50 dark:active:bg-sky-900/20"
               >
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+                <span className="tile-sky mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white">
                   {c.kind === 'room' ? (
                     <UsersIcon className="h-5 w-5" />
                   ) : (
@@ -175,7 +210,7 @@ export default function MessagesPage() {
         </ul>
       )}
 
-      <div className="mt-4 rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
+      <div className="card-sky card-shadow mt-4 rounded-2xl px-4 py-3 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
         {M.notice}
       </div>
     </AppShell>

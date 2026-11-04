@@ -6,12 +6,14 @@
 
 import { AppShell } from '@/components/AppShell';
 import { TodaySelfCheck } from '@/components/TodaySelfCheck';
+import { MyHealthConditions } from '@/components/MyHealthConditions';
 import { useI18n } from '@/lib/i18n';
 
 export default function MyRoutinePage() {
   const { t } = useI18n();
   return (
     <AppShell title={t.nav.myRoutine} decoration="dots">
+      <MyHealthConditions />
       <TodaySelfCheck />
     </AppShell>
   );

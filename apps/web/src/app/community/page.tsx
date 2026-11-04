@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { LoginRequired } from '@/components/LoginRequired';
-import { ChevronRightIcon, UsersIcon, VideoIcon, FlameIcon, UtensilsIcon } from '@/components/HealthIcons';
+import {
+  ChevronRightIcon,
+  UsersIcon,
+  UsersFilledIcon,
+  VideoIcon,
+  FlameIcon,
+  UtensilsIcon,
+} from '@/components/HealthIcons';
 import { IconBadge } from '@/components/IconBadge';
 import { RecipeScoreBadge, RecipeScorePending } from '@/components/RecipeScore';
 import { useI18n } from '@/lib/i18n';
@@ -164,15 +171,26 @@ export default function CommunityPage() {
 
   return (
     <AppShell title={Co.pageTitle} decoration="dots">
-      <section className="mt-3 flex items-center justify-between gap-2">
-        <h1 className="text-base font-bold text-stone-900 dark:text-stone-100">{Co.title}</h1>
-        <Link
-          href="/community/create"
-          className="inline-flex items-center gap-1 rounded-xl bg-stone-900 px-3 py-2 text-[12px] font-semibold text-white dark:bg-white dark:text-stone-900"
-        >
-          <span>{G.createCta}</span>
-          <ChevronRightIcon className="h-3 w-3" />
-        </Link>
+      {/* 커뮤니티 대표 배너 — grad-sunset 히어로(앰버 도메인) */}
+      <section className="grad-sunset card-shadow relative mt-3 overflow-hidden rounded-3xl px-5 py-6">
+        <span
+          className="blob"
+          style={{ width: 150, height: 150, right: -18, top: -26, background: 'radial-gradient(circle, #fde68a, transparent 70%)' }}
+        />
+        <UsersFilledIcon className="absolute -right-2 top-5 h-28 w-28 text-white/20" />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-extrabold tracking-tight text-white">{Co.title}</h1>
+          <p className="mt-1.5 max-w-[78%] text-[12.5px] font-medium leading-relaxed text-white/85">
+            {Co.homeBoxBody}
+          </p>
+          <Link
+            href="/community/create"
+            className="mt-4 inline-flex items-center gap-1 rounded-xl bg-white px-4 py-2 text-[12px] font-bold text-amber-700 shadow-sm transition active:scale-[0.98]"
+          >
+            <span>{G.createCta}</span>
+            <ChevronRightIcon className="h-3 w-3" />
+          </Link>
+        </div>
       </section>
 
       {/* 검색 */}
@@ -181,7 +199,7 @@ export default function CommunityPage() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={Co.searchPh}
-        className="mt-3 block w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+        className="mt-3 block w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
       />
 
       {searching && <SearchResults result={searchResult} query={query.trim()} Co={Co} />}
@@ -202,7 +220,7 @@ export default function CommunityPage() {
             }}
             className={`flex-1 whitespace-nowrap rounded-xl px-1 py-2 text-[11px] font-bold transition active:scale-[0.98] ${
               view === 'board' && group === g
-                ? 'bg-stone-900 text-white shadow-sm dark:bg-white dark:text-stone-900'
+                ? 'tile-amber shadow-sm'
                 : 'bg-white text-stone-600 dark:bg-stone-900 dark:text-stone-300'
             }`}
           >
@@ -263,6 +281,7 @@ export default function CommunityPage() {
           <div className="mb-2 flex items-center gap-2 px-1">
             <IconBadge Icon={VideoIcon} tone="rose" size="sm" />
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              <span className="accent-bar bg-amber-500" />
               {Co.videoTitle}
             </h2>
           </div>
@@ -329,6 +348,7 @@ export default function CommunityPage() {
           <div className="mb-2 flex items-center gap-2 px-1">
             <IconBadge Icon={UsersIcon} tone="violet" size="sm" />
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              <span className="accent-bar bg-amber-500" />
               {G.sectionDiscoverTitle}
             </h2>
           </div>
@@ -336,8 +356,8 @@ export default function CommunityPage() {
             <EmptyCard text={Co.emptyInGroup} />
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {shownCommunities.map((c) => (
-                <CommunityCard key={c.id} community={c} G={G} />
+              {shownCommunities.map((c, i) => (
+                <CommunityCard key={c.id} community={c} G={G} idx={i} />
               ))}
             </div>
           )}
@@ -350,10 +370,11 @@ export default function CommunityPage() {
           <div className="mb-2 flex items-center gap-2 px-1">
             <IconBadge Icon={UsersIcon} tone="emerald" size="sm" />
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+              <span className="accent-bar bg-amber-500" />
               {G.sectionMyTitle}
             </h2>
           </div>
-          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-sky dark:divide-stone-800">
+          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-3xl card-sky dark:divide-stone-800">
             {mine.map((c) => (
               <CommunityListItem key={c.id} community={c} />
             ))}
@@ -364,10 +385,10 @@ export default function CommunityPage() {
       {/* 라운지 */}
       <Link
         href="/community/view?id=_lounge"
-        className="card-shadow mt-5 flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-brand-50 to-amber-50 px-4 py-3 transition active:scale-[0.99] dark:from-brand-900/30 dark:to-amber-900/20"
+        className="card-shadow mt-5 flex items-center justify-between gap-3 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-100 px-5 py-4 transition active:scale-[0.99] dark:from-amber-900/25 dark:to-orange-900/15"
       >
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-200">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-300">
             {G.sectionLoungeTitle}
           </p>
           <p className="mt-0.5 text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -409,6 +430,7 @@ function RecipeFeed({
         <div className="flex min-w-0 items-center gap-2">
           <IconBadge Icon={UtensilsIcon} tone="emerald" size="sm" />
           <h2 className="truncate text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+            <span className="accent-bar bg-amber-500" />
             {R.title}
           </h2>
         </div>
@@ -431,7 +453,7 @@ function RecipeFeed({
       ) : posts.length === 0 ? (
         <EmptyCard text={R.empty} />
       ) : (
-        <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white dark:divide-stone-800 dark:bg-stone-900">
+        <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-3xl bg-white dark:divide-stone-800 dark:bg-stone-900">
           {posts.map((p) => (
             <li key={p.id}>
               <Link
@@ -499,9 +521,9 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-medium transition active:scale-[0.97] ${
+      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-semibold transition active:scale-[0.97] ${
         active
-          ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-900/40 dark:text-brand-200'
+          ? 'border-transparent bg-amber-500 text-white shadow-sm dark:bg-amber-500'
           : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
       }`}
     >
@@ -510,19 +532,30 @@ function Chip({
   );
 }
 
+// 발견 그리드 — 인접 카드끼리 다른 라이트 틴트로 생동감(가독성 위해 라이트 유지).
+const DISCOVER_TINTS: { card: string; badge: string }[] = [
+  { card: 'card-amber', badge: 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300' },
+  { card: 'card-rose', badge: 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300' },
+  { card: 'card-sky', badge: 'bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300' },
+  { card: 'card-emerald', badge: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300' },
+];
+
 function CommunityCard({
   community,
   G,
+  idx = 0,
 }: {
   community: CommunitySummary;
   G: { memberCountLabel: string; postCountLabel: string };
+  idx?: number;
 }) {
+  const tint = DISCOVER_TINTS[idx % DISCOVER_TINTS.length]!;
   return (
     <Link
       href={`/community/view?id=${community.id}`}
-      className="card-shadow flex flex-col rounded-2xl card-amber p-3 transition active:scale-[0.98]"
+      className={`card-shadow flex flex-col rounded-3xl ${tint.card} p-4 transition active:scale-[0.98]`}
     >
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+      <span className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${tint.badge}`}>
         <UsersIcon className="h-5 w-5" />
       </span>
       <p className="mt-2 line-clamp-1 text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -587,7 +620,7 @@ function CommunityListItem({ community }: { community: CommunitySummary }) {
 
 function EmptyCard({ text }: { text: string }) {
   return (
-    <div className="card-shadow rounded-2xl card-rose px-4 py-6 text-center text-[12px] text-stone-500 dark:text-stone-400">
+    <div className="card-shadow rounded-3xl card-amber px-4 py-6 text-center text-[12px] text-stone-500 dark:text-stone-400">
       {text}
     </div>
   );
@@ -618,12 +651,16 @@ function Highlight({ text, term }: { text: string; term: string }) {
   return <>{out}</>;
 }
 
+// 핫피플 아바타 — vivid 그라데이션 타일 순환(흰 글자). #1은 앰버 + 링 강조.
+const HOT_TILES = ['tile-amber', 'tile-rose', 'tile-violet', 'tile-sky', 'tile-emerald', 'tile-teal'];
+
 function HotPeople({ people, title }: { people: HotPerson[]; title: string }) {
   return (
     <section className="mt-4">
       <div className="mb-2 flex items-center gap-2 px-1">
         <IconBadge Icon={FlameIcon} tone="amber" size="sm" />
         <h2 className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          <span className="accent-bar bg-amber-500" />
           {title}
         </h2>
       </div>
@@ -631,10 +668,8 @@ function HotPeople({ people, title }: { people: HotPerson[]; title: string }) {
         {people.map((p, i) => (
           <div key={i} className="w-16 shrink-0 text-center">
             <span
-              className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white ${
-                i === 0
-                  ? 'bg-gradient-to-br from-amber-400 to-rose-500'
-                  : 'bg-gradient-to-br from-brand-400 to-brand-600'
+              className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${HOT_TILES[i % HOT_TILES.length]} ${
+                i === 0 ? 'ring-2 ring-amber-400/70 ring-offset-2 ring-offset-transparent' : ''
               }`}
             >
               {(p.nickname ?? '?').slice(0, 1)}
@@ -663,13 +698,14 @@ function SearchResults({
   return (
     <section className="mt-4 space-y-4">
       <h2 className="px-1 text-[11px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+        <span className="accent-bar bg-amber-500" />
         {Co.searchResultTitle}
       </h2>
       {empty && <EmptyCard text={Co.searchEmpty} />}
       {result && result.communities.length > 0 && (
         <div>
           <p className="mb-1 px-1 text-[10px] font-semibold text-stone-400">{Co.searchCommsLabel}</p>
-          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-2xl card-emerald dark:divide-stone-800">
+          <ul className="card-shadow divide-y divide-stone-100 overflow-hidden rounded-3xl card-emerald dark:divide-stone-800">
             {result.communities.map((c) => (
               <li key={c.id}>
                 <Link

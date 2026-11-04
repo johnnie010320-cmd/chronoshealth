@@ -15,10 +15,16 @@ import {
   AlertIcon,
 } from '@/components/HealthIcons';
 import { PasswordField } from '@/components/PasswordField';
-import { KakaoLogo, GoogleLogo, AppleLogo } from '@/components/SocialIcons';
+import { KakaoLogo, GoogleLogo, NaverLogo, AppleLogo } from '@/components/SocialIcons';
 
 const TERMS_VERSION = 'v1.0';
 const PRIVACY_VERSION = 'v1.0';
+
+type SocialProvider = 'kakao' | 'google' | 'naver' | 'apple';
+const SOCIAL_PROVIDERS: readonly SocialProvider[] = ['kakao', 'google', 'naver', 'apple'];
+function isSocialProvider(v: string): v is SocialProvider {
+  return (SOCIAL_PROVIDERS as readonly string[]).includes(v);
+}
 
 // ADR 0013 — Step 1 회원가입. 이메일+비밀번호+동의 3종.
 // 가입 완료 후 자동으로 /onboarding 으로 이동하여 Step 2 진행.
@@ -39,12 +45,32 @@ export function SignupForm() {
   const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  // 콜백이 "이미 가입된 계정"으로 되돌릴 때(/signup?exists=kakao) 선택 모달에 쓸 provider.
+  const [existsProvider, setExistsProvider] = useState<SocialProvider | null>(null);
 
-  const notifySocialUnavailable = () => {
-    if (typeof window !== 'undefined') {
-      window.alert(S.social.unavailable);
-    }
+  // SNS 가입 — 게이트웨이 서버 플로우. intent=signup 이면 이미 가입된 계정일 때
+  // 바로 로그인시키지 않고 선택 화면으로 되돌아온다. switch=1 은 다른 계정 재선택 강제.
+  const startOAuth = (
+    provider: SocialProvider,
+    opts?: { intent?: 'signup' | 'login'; switchAccount?: boolean },
+  ) => {
+    if (typeof window === 'undefined') return;
+    const qs = new URLSearchParams();
+    if (opts?.intent === 'signup') qs.set('intent', 'signup');
+    if (opts?.switchAccount) qs.set('switch', '1');
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    window.location.assign(`/api/v1/auth/oauth/${provider}/start${suffix}`);
   };
+
+  // /signup?exists=<provider> 로 되돌아오면 선택 모달 표시 + 쿼리 제거.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = new URLSearchParams(window.location.search).get('exists');
+    if (raw && isSocialProvider(raw)) {
+      setExistsProvider(raw);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
@@ -153,7 +179,7 @@ export function SignupForm() {
       <div className="space-y-3">
         <button
           type="button"
-          onClick={notifySocialUnavailable}
+          onClick={() => startOAuth('kakao', { intent: 'signup' })}
           className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl bg-[#FEE500] px-6 py-3.5 text-[13px] font-semibold text-[#191919] transition active:scale-[0.98] hover:brightness-95"
         >
           <KakaoLogo className="h-5 w-5" />
@@ -161,7 +187,7 @@ export function SignupForm() {
         </button>
         <button
           type="button"
-          onClick={notifySocialUnavailable}
+          onClick={() => startOAuth('google', { intent: 'signup' })}
           className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl border border-stone-300 bg-white px-6 py-3.5 text-[13px] font-semibold text-stone-800 transition active:scale-[0.98] hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
         >
           <GoogleLogo className="h-5 w-5" />
@@ -169,7 +195,15 @@ export function SignupForm() {
         </button>
         <button
           type="button"
-          onClick={notifySocialUnavailable}
+          onClick={() => startOAuth('naver', { intent: 'signup' })}
+          className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl bg-[#03C75A] px-6 py-3.5 text-[13px] font-semibold text-white transition active:scale-[0.98] hover:brightness-95"
+        >
+          <NaverLogo className="h-5 w-5" />
+          {S.social.naver}
+        </button>
+        <button
+          type="button"
+          onClick={() => startOAuth('apple', { intent: 'signup' })}
           className="inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl bg-black px-6 py-3.5 text-[13px] font-semibold text-white transition active:scale-[0.98] hover:bg-stone-800"
         >
           <AppleLogo className="h-5 w-5" />
@@ -309,6 +343,58 @@ export function SignupForm() {
           {S.loginCta}
         </Link>
       </p>
+
+      {existsProvider &&
+        (() => {
+          const A = S.accountExists;
+          const label = A.providers[existsProvider];
+          const fill = (s: string) => s.replace(/\{provider\}/g, label);
+          return (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="signup-exists-title"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+            >
+              <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl dark:bg-stone-900">
+                <h2
+                  id="signup-exists-title"
+                  className="text-lg font-bold text-stone-900 dark:text-stone-100"
+                >
+                  {A.title}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
+                  {fill(A.body)}
+                </p>
+                <div className="mt-6 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => startOAuth(existsProvider, { intent: 'login' })}
+                    className="w-full rounded-2xl bg-stone-900 px-5 py-3.5 text-sm font-semibold text-white transition active:scale-[0.98] dark:bg-white dark:text-stone-900"
+                  >
+                    {fill(A.loginCta)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      startOAuth(existsProvider, { intent: 'signup', switchAccount: true })
+                    }
+                    className="w-full rounded-2xl border border-stone-300 px-5 py-3.5 text-sm font-semibold text-stone-800 transition active:scale-[0.98] dark:border-stone-700 dark:text-stone-100"
+                  >
+                    {fill(A.switchCta)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExistsProvider(null)}
+                    className="w-full px-5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                  >
+                    {A.close}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </form>
   );
 }

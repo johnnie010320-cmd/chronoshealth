@@ -9,6 +9,7 @@ import {
   listAllBanners,
   moveBanner,
   nextSortOrder,
+  parsePlacement,
   readBannerMedia,
   setBannerActive,
 } from '../../banners/storage.js';
@@ -23,7 +24,9 @@ const MODEL_VERSION = 'banners-v0.1.0';
 export const bannersPublicRoute = new Hono<{ Bindings: Bindings }>();
 
 bannersPublicRoute.get('/', rateLimit(600), async (c) => {
-  const banners = await listActiveBanners(c.env.DB);
+  // ?placement=app(기본)|vitalabs — 앱 홈 vs 회사 홍보 사이트 배너 분리.
+  const placement = parsePlacement(c.req.query('placement'));
+  const banners = await listActiveBanners(c.env.DB, placement);
   // 클라이언트는 파일을 /api/v1/banners/:id/file 로 로드.
   return c.json({
     banners: banners.map((b) => ({ id: b.id, kind: b.kind, contentType: b.contentType, name: b.name })),
@@ -84,7 +87,8 @@ export const bannersAdminRoute = new Hono<{
 }>();
 
 bannersAdminRoute.get('/', authMiddleware, adminMiddleware, rateLimit(120), async (c) => {
-  const banners = await listAllBanners(c.env.DB);
+  const placement = parsePlacement(c.req.query('placement'));
+  const banners = await listAllBanners(c.env.DB, placement);
   return c.json({ banners, modelVersion: MODEL_VERSION });
 });
 
@@ -93,6 +97,7 @@ bannersAdminRoute.post('/', authMiddleware, adminMiddleware, rateLimit(30), asyn
   const me = c.get('userPseudonymId');
   const form = await c.req.formData().catch(() => null);
   const file = form?.get('file');
+  const placement = parsePlacement(form?.get('placement'));
   if (!(file instanceof File)) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   const resolved = resolveBannerType(file.name, file.type);
   if (!resolved) return c.json({ error: { code: 'UNSUPPORTED_FILE_TYPE' } }, 400);
@@ -111,7 +116,7 @@ bannersAdminRoute.post('/', authMiddleware, adminMiddleware, rateLimit(30), asyn
     return c.json({ error: { code: 'UPLOAD_FAILED' } }, 502);
   }
 
-  const sortOrder = await nextSortOrder(c.env.DB);
+  const sortOrder = await nextSortOrder(c.env.DB, placement);
   await insertBanner(c.env.DB, {
     id,
     kind: resolved.kind,
@@ -119,20 +124,22 @@ bannersAdminRoute.post('/', authMiddleware, adminMiddleware, rateLimit(30), asyn
     contentType: resolved.contentType,
     name: safeFileName(file.name),
     sortOrder,
+    placement,
     createdByPseudonymId: me,
   });
   await appendAudit(c.env.DB, {
     actorPseudonymId: me,
     action: 'banner.create',
     target: id,
-    detail: file.name,
+    detail: `${placement}:${file.name}`,
   });
-  const banners = await listAllBanners(c.env.DB);
+  const banners = await listAllBanners(c.env.DB, placement);
   return c.json({ banners, modelVersion: MODEL_VERSION }, 201);
 });
 
 bannersAdminRoute.patch('/:id', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
   const id = c.req.param('id');
+  const placement = parsePlacement(c.req.query('placement'));
   let raw: unknown;
   try {
     raw = await c.req.json();
@@ -149,20 +156,22 @@ bannersAdminRoute.patch('/:id', authMiddleware, adminMiddleware, rateLimit(60), 
       target: id,
     });
   }
-  const banners = await listAllBanners(c.env.DB);
+  const banners = await listAllBanners(c.env.DB, placement);
   return c.json({ banners, modelVersion: MODEL_VERSION });
 });
 
 bannersAdminRoute.post('/:id/move', authMiddleware, adminMiddleware, rateLimit(60), async (c) => {
   const id = c.req.param('id');
+  const placement = parsePlacement(c.req.query('placement'));
   const dir = c.req.query('dir') === 'down' ? 'down' : 'up';
-  await moveBanner(c.env.DB, id, dir);
-  const banners = await listAllBanners(c.env.DB);
+  await moveBanner(c.env.DB, id, dir, placement);
+  const banners = await listAllBanners(c.env.DB, placement);
   return c.json({ banners, modelVersion: MODEL_VERSION });
 });
 
 bannersAdminRoute.delete('/:id', authMiddleware, adminMiddleware, rateLimit(30), async (c) => {
   const id = c.req.param('id');
+  const placement = parsePlacement(c.req.query('placement'));
   const media = await readBannerMedia(c.env.DB, id);
   const ok = await deleteBanner(c.env.DB, id);
   if (!ok) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
@@ -172,6 +181,6 @@ bannersAdminRoute.delete('/:id', authMiddleware, adminMiddleware, rateLimit(30),
     action: 'banner.delete',
     target: id,
   });
-  const banners = await listAllBanners(c.env.DB);
+  const banners = await listAllBanners(c.env.DB, placement);
   return c.json({ banners, deleted: true, modelVersion: MODEL_VERSION });
 });

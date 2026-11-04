@@ -1,5 +1,12 @@
 import type { BannerKind } from './files.js';
 
+// 배너 노출 위치 — 'app'(VITAcode 앱 홈) | 'vitalabs'(회사 홍보 사이트). 0044 migration.
+export type BannerPlacement = 'app' | 'vitalabs';
+
+export function parsePlacement(v: unknown): BannerPlacement {
+  return v === 'vitalabs' ? 'vitalabs' : 'app';
+}
+
 export type BannerRow = {
   id: string;
   kind: BannerKind;
@@ -7,6 +14,7 @@ export type BannerRow = {
   name: string | null;
   sortOrder: number;
   active: boolean;
+  placement: BannerPlacement;
   createdAt: string;
 };
 
@@ -17,6 +25,7 @@ type Raw = {
   name: string | null;
   sort_order: number;
   active: number;
+  placement: string | null;
   created_at: string;
 };
 
@@ -28,6 +37,7 @@ function toRow(r: Raw): BannerRow {
     name: r.name,
     sortOrder: r.sort_order,
     active: r.active === 1,
+    placement: parsePlacement(r.placement),
     createdAt: r.created_at,
   };
 }
@@ -41,41 +51,52 @@ export async function insertBanner(
     contentType: string;
     name: string | null;
     sortOrder: number;
+    placement: BannerPlacement;
     createdByPseudonymId: string;
   },
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO banners (id, kind, r2_key, content_type, name, sort_order, active, created_by_pseudonym_id)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+      `INSERT INTO banners (id, kind, r2_key, content_type, name, sort_order, active, placement, created_by_pseudonym_id)
+       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
     )
-    .bind(b.id, b.kind, b.r2Key, b.contentType, b.name, b.sortOrder, b.createdByPseudonymId)
+    .bind(b.id, b.kind, b.r2Key, b.contentType, b.name, b.sortOrder, b.placement, b.createdByPseudonymId)
     .run();
 }
 
-export async function nextSortOrder(db: D1Database): Promise<number> {
+// 다음 순서값은 placement 별로 독립(각 위치가 0,1,2… 자체 순서).
+export async function nextSortOrder(db: D1Database, placement: BannerPlacement): Promise<number> {
   const r = await db
-    .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM banners')
+    .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM banners WHERE placement = ?')
+    .bind(placement)
     .first<{ m: number }>();
   return (r?.m ?? -1) + 1;
 }
 
-export async function listActiveBanners(db: D1Database): Promise<BannerRow[]> {
+export async function listActiveBanners(
+  db: D1Database,
+  placement: BannerPlacement,
+): Promise<BannerRow[]> {
   const res = await db
     .prepare(
-      `SELECT id, kind, content_type, name, sort_order, active, created_at
-         FROM banners WHERE active = 1 ORDER BY sort_order ASC, created_at ASC`,
+      `SELECT id, kind, content_type, name, sort_order, active, placement, created_at
+         FROM banners WHERE active = 1 AND placement = ? ORDER BY sort_order ASC, created_at ASC`,
     )
+    .bind(placement)
     .all<Raw>();
   return (res.results ?? []).map(toRow);
 }
 
-export async function listAllBanners(db: D1Database): Promise<BannerRow[]> {
+export async function listAllBanners(
+  db: D1Database,
+  placement: BannerPlacement,
+): Promise<BannerRow[]> {
   const res = await db
     .prepare(
-      `SELECT id, kind, content_type, name, sort_order, active, created_at
-         FROM banners ORDER BY sort_order ASC, created_at ASC`,
+      `SELECT id, kind, content_type, name, sort_order, active, placement, created_at
+         FROM banners WHERE placement = ? ORDER BY sort_order ASC, created_at ASC`,
     )
+    .bind(placement)
     .all<Raw>();
   return (res.results ?? []).map(toRow);
 }
@@ -104,9 +125,14 @@ export async function setBannerActive(db: D1Database, id: string, active: boolea
   return (res.meta?.changes ?? 0) > 0;
 }
 
-// 순서 이동 — 인접 배너와 sort_order 교환.
-export async function moveBanner(db: D1Database, id: string, dir: 'up' | 'down'): Promise<boolean> {
-  const all = await listAllBanners(db);
+// 순서 이동 — 같은 placement 내 인접 배너와 sort_order 교환.
+export async function moveBanner(
+  db: D1Database,
+  id: string,
+  dir: 'up' | 'down',
+  placement: BannerPlacement,
+): Promise<boolean> {
+  const all = await listAllBanners(db, placement);
   const idx = all.findIndex((b) => b.id === id);
   if (idx < 0) return false;
   const swapIdx = dir === 'up' ? idx - 1 : idx + 1;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// VITA 영역별 점수(0~60). 10개 영역 전부 필수.
-const score = z.number().int().min(0).max(60);
+// VITA 영역별 점수(0~100, 20문항×5점). 10개 영역 전부 필수.
+const score = z.number().int().min(0).max(100);
 
 export const VitaSubmitRequest = z.object({
   sectionScores: z.object({

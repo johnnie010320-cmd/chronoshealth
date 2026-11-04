@@ -25,6 +25,10 @@ export const CHRONIC_CODES = [
   'asthma',
   'thyroid',
   'insomnia',
+  // 위(胃) 관련 질환 추가(2026-10-07 죠니).
+  'gastritis',
+  'gastric_ulcer',
+  'gerd',
 ] as const;
 
 // 스토리보드 p17 중증질환 4종.
