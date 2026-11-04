@@ -15,8 +15,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 PKG = "com.chronoshealth.app"
 SA = r"C:\Users\User\.veridash-secrets\veridash-play-publisher.json"
 NOTES = {
-    "ko-KR": "VITAcode 첫 내부 테스트 버전입니다.",
-    "en-US": "First internal test build of VITAcode.",
+    "ko-KR": "내 VITAcode 결과를 카카오톡·인스타그램 등으로 공유할 수 있습니다. 결과 그림과 앱 받기 링크가 함께 전달됩니다.",
+    "en-US": "Share your VITAcode result to messengers and social apps, with a result image and an app download link.",
 }
 
 if len(sys.argv) != 3 or sys.argv[2] not in ("internal", "alpha", "beta", "production"):
