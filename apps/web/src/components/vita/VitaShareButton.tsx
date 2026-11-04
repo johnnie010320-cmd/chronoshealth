@@ -79,7 +79,10 @@ export function VitaShareButton({ code, nickname, codeIsLine }: { code: string; 
 
       // 인스타그램·페이스북은 넘긴 글을 채워 주지 않는다 → 글을 미리 복사해 둔다
       const copied = link ? await copyText(caption) : false;
-      const file = png ? new File([png], name, { type: 'image/png' }) : null;
+      // 공유 연결이 없는 옛 앱(안드로이드 WebView, UA '; wv)'): WebView 의 그림 공유는 카톡 등에서 다음 단계로 안 넘어간다
+      // (2026-11-04 죠니 신고) → 그림은 빼고 글·링크만 공유. 앱 0.0.2 부터는 위 VitaShare 경로로 그림까지 간다.
+      const oldApp = /; wv\)/.test(navigator.userAgent);
+      const file = png && !oldApp ? new File([png], name, { type: 'image/png' }) : null;
       if (file && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file], text: caption, title: 'VITAcode' });
