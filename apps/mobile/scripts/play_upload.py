@@ -1,5 +1,6 @@
 """VITAcode Android AAB → Google Play 트랙 업로드 (Vita Labs Co., Ltd. 개발자 계정).
   사용: python scripts/play_upload.py <aab> <track>      # track = internal | alpha | beta | production
+        python scripts/play_upload.py listing            # store/android 의 등록정보·그림만 올림
   - 서비스 계정 play-publisher@veridash-498820 (Vita Labs 계정에 Admin 으로 초대됨, 2026-10-31).
   - 한 번도 출시하지 않은 앱은 API 로 '초안' 릴리스만 만들 수 있다 → 그때는 draft 로 올리고
     Play Console 에서 '출시 시작' 을 한 번 누른다 (소나기 scripts/play_upload.py 와 같은 방식).
@@ -19,6 +20,33 @@ NOTES = {
     "en-US": "Share your VITAcode result to messengers and social apps, with a result image and an app download link.",
 }
 
+STORE = pathlib.Path(__file__).resolve().parents[1] / "store" / "android"
+
+
+def put_listing():
+    """store/android/listing.json + 그림(icon_512·feature_1024x500·phone_*) → 스토어 등록정보 (2026-11-08)."""
+    L = json.loads((STORE / "listing.json").read_text(encoding="utf-8"))
+    cred = service_account.Credentials.from_service_account_file(SA, scopes=["https://www.googleapis.com/auth/androidpublisher"])
+    ed = build("androidpublisher", "v3", credentials=cred, cache_discovery=False).edits()
+    eid = ed.insert(packageName=PKG, body={}).execute()["id"]
+    ed.details().update(packageName=PKG, editId=eid, body={
+        "defaultLanguage": "ko-KR", "contactEmail": L["contact_email"], "contactWebsite": L["website"]}).execute()
+    shots = sorted(p.name for p in STORE.glob("phone_*.png"))
+    for lang, x in L["listings"].items():
+        ed.listings().update(packageName=PKG, editId=eid, language=lang, body={"language": lang, **x}).execute()
+        for kind, files in (("icon", ["icon_512.png"]), ("featureGraphic", ["feature_1024x500.png"]), ("phoneScreenshots", shots)):
+            ed.images().deleteall(packageName=PKG, editId=eid, language=lang, imageType=kind).execute()
+            for f in files:
+                ed.images().upload(packageName=PKG, editId=eid, language=lang, imageType=kind,
+                                   media_body=MediaFileUpload(str(STORE / f), mimetype="image/png")).execute()
+        print(f"등록정보 {lang}: 제목·설명·아이콘·그래픽·스크린샷 {len(shots)}장")
+    ed.commit(packageName=PKG, editId=eid).execute()
+    print("✅ 스토어 등록정보 반영")
+
+
+if sys.argv[1:] == ["listing"]:
+    put_listing()
+    sys.exit(0)
 if len(sys.argv) != 3 or sys.argv[2] not in ("internal", "alpha", "beta", "production"):
     sys.exit("사용: python scripts/play_upload.py <aab> <internal|alpha|beta|production>")
 aab, track = sys.argv[1], sys.argv[2]
