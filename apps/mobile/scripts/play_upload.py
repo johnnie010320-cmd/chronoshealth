@@ -12,7 +12,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 sys.stdout.reconfigure(encoding="utf-8")
-PKG = "com.chronoshealth.app"
+PKG = "com.vitacode.app"
 SA = r"C:\Users\User\.veridash-secrets\veridash-play-publisher.json"
 NOTES = {
     "ko-KR": "내 VITAcode 결과를 카카오톡·인스타그램 등으로 공유할 수 있습니다. 결과 그림과 앱 받기 링크가 함께 전달됩니다.",

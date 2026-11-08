@@ -10,7 +10,7 @@ const MODEL_VERSION = 'app-link-v0.1.0';
 // vitacodeapp.com/get?from=<곳> → Pages Function → 여기.
 // 안드로이드 = Play 스토어, 아이폰·아이패드 = App Store(관리 'app_store_ios_url' 이 비면 웹), 그 밖 = 웹.
 // 미리보기 로봇(카톡·페북 등)은 웹(og)으로 보내고 세지 않는다.
-export const STORE_ANDROID = 'https://play.google.com/store/apps/details?id=com.chronoshealth.app';
+export const STORE_ANDROID = 'https://play.google.com/store/apps/details?id=com.vitacode.app';
 const WEB_ORIGIN = 'https://vitacodeapp.com/';
 const PREVIEW_BOT =
   /bot|crawler|spider|facebookexternalhit|kakaotalk-scrap|WhatsApp\/|preview|Embedly|Slack|Discord/i;

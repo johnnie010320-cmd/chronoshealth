@@ -15,12 +15,12 @@ Android 는 0.0.1+1 이 Play 내부 테스트에 올라가 있다(2026-10-31).
 | 항목 | 값 |
 |---|---|
 | 저장소 | `johnnie010320-cmd/chronoshealth` (master) — 앱은 `apps/mobile/` |
-| 번들 ID | `com.chronoshealth.app` (pbxproj 에 설정됨, Android 와 같음) |
+| 번들 ID | `com.vitacode.app` (pbxproj 에 설정됨, Android 와 같음 — 2026-11-07 죠니 지시로 com.chronoshealth.app 에서 바꿈) |
 | 앱 이름 | `VITAcode` |
 | 버전 | `0.0.1` 빌드 `1` (pubspec `0.0.1+1`, 죠니 지정 번호 — 바꾸지 말 것) |
 | Flutter | **3.38.9** (Android 와 같은 버전. 3.44.4 로 빌드하지 말 것 — 소나기에서 화면 충돌 전례) |
 | 최소 iOS | **14.0** (2026-11-01 맥 지니가 13.0 에서 올림 — `file_picker_darwin` 요구) |
-| App Store Connect 앱 | 이름 VITAcode · 기본 언어 한국어 · 번들 com.chronoshealth.app · SKU `vitacode-ios` |
+| App Store Connect 앱 | 이름 VITAcode · 기본 언어 한국어 · 번들 com.vitacode.app · SKU `vitacode-ios` |
 | 판매자 이름 | **`Vita Labs Co., Ltd.`** (2026-11-01 죠니가 D-U-N-S 조회로 확정. 첫 앱 레코드 생성 시 영구 확정 — 그 화면에서 이 문자열인지 반드시 확인) |
 | 개인정보처리방침 URL | `https://vitacodeapp.com/privacy/` |
 | 이용약관 URL | `https://vitacodeapp.com/terms/` |
@@ -28,7 +28,7 @@ Android 는 0.0.1+1 이 Play 내부 테스트에 올라가 있다(2026-10-31).
 
 ## 순서
 1. `git clone https://github.com/johnnie010320-cmd/chronoshealth.git` (처음 한 번) → `git pull --rebase`
-2. developer.apple.com → Identifiers 에서 `com.chronoshealth.app` 등록. **"not available" 이면 멈추고** 보드에 적는다(대체 후보 `com.vitalabs.vitacode` — 죠니 확인 뒤 바꾼다)
+2. developer.apple.com → Identifiers 에서 `com.vitacode.app` 등록. **"not available" 이면 멈추고** 보드에 적는다(대체 후보 `com.vitalabs.vitacode` — 죠니 확인 뒤 바꾼다)
 3. App Store Connect 에 앱 레코드 생성(위 표)
 4. `cd apps/mobile && flutter pub get && cd ios && pod install`
 5. Xcode 에서 Runner → Signing → Team = Vita Labs Co., Ltd., 자동 서명

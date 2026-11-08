@@ -6,6 +6,13 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
+## 📌 2026-11-07 [Windows → 맥] 번들 ID 가 com.vitacode.app 으로 바뀌었다 (죠니 지시)
+- `ios/Runner.xcodeproj/project.pbxproj` 의 PRODUCT_BUNDLE_IDENTIFIER 6곳을 `com.vitacode.app`(테스트 `com.vitacode.app.RunnerTests`)로 바꿨다. 요청서 `IOS_BUILD_0.0.1_WORK_REQUEST.md` 도 같이 고침
+- Apple Identifiers·App Store Connect 앱은 **`com.vitacode.app` 으로 등록**할 것. 혹시 이미 `com.chronoshealth.app` 으로 등록했으면 멈추고 이 보드에 적을 것
+- Android 도 applicationId·namespace 를 `com.vitacode.app` 으로 바꿨다(Play 에선 새 앱으로 다시 올린다)
+
+---
+
 ## 📌 2026-11-04 [Windows → 맥] 앱에 SNS 공유가 들어갔다 — 다음 iOS 빌드 전에 읽을 것
 - `apps/mobile` 에 **share_plus ^13.3.1** 추가(`lib/share_bridge.dart`, JS 채널 `VitaShare`). iOS 빌드 전 `pod install` 다시 돌릴 것(Podfile.lock 바뀜)
 - 아이패드 공유 창 위치(sharePositionOrigin)는 넣어 두었다. 실기기에서 결과 화면 '내 VITAcode 공유하기' → 공유 창 → 카톡 고른 뒤 '글·링크 보내기' 창이 뜨는지 봐 줄 것(iOS 의 `ShareResult.raw` 가 카톡을 어떻게 알려 주는지 미확인)

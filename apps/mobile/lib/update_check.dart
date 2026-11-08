@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
-const kPackageId = 'com.chronoshealth.app';
+const kPackageId = 'com.vitacode.app';
 const _endpoint = 'https://vitacodeapp.com/api/v1/app/version?platform=android';
 
 class UpdateInfo {

@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.chronoshealth.vitacode"
+    namespace = "com.vitacode.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,8 +30,8 @@ android {
     }
 
     defaultConfig {
-        // Play 등록 패키지 (2026-06-03 점유, 변경 불가)
-        applicationId = "com.chronoshealth.app"
+        // Play 등록 패키지 — 2026-11-07 죠니 지시로 com.chronoshealth.app → com.vitacode.app (Play 에선 새 앱)
+        applicationId = "com.vitacode.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
