@@ -24,6 +24,8 @@ import {
 } from '../../me/avatar.js';
 import { CheckNicknameQuery, ProfileUpdateRequest } from '../../schemas/signup.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
+import { deleteAccount } from '../../me/delete-account.js';
+import { clearSessionCookies } from '../../auth/cookies.js';
 import type { Bindings } from '../../bindings.js';
 
 export const meRoute = new Hono<{
@@ -216,4 +218,17 @@ meRoute.delete('/avatar', authMiddleware, rateLimit(30), async (c) => {
   const pseudonymId = c.get('userPseudonymId');
   const removed = await deleteAvatar(c.env.IDENTITY_DB, pseudonymId);
   return c.json({ deleted: removed });
+});
+
+// 회원 탈퇴 (2026-11-08) — 본인 계정과 기록을 모두 지운다. 실수 방지로 confirm='DELETE' 를 받는다.
+const DeleteAccountRequest = z.object({ confirm: z.literal('DELETE') });
+
+meRoute.post('/delete', authMiddleware, rateLimit(5), async (c) => {
+  const pseudonymId = c.get('userPseudonymId');
+  const parsed = DeleteAccountRequest.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  const r = await deleteAccount(c.env, pseudonymId);
+  if (!r.ok) return c.json({ error: { code: r.code } }, r.code === 'NOT_FOUND' ? 404 : 403);
+  clearSessionCookies(c);
+  return c.json({ ok: true });
 });

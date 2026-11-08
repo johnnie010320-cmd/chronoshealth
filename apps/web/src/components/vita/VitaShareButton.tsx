@@ -52,11 +52,14 @@ export function VitaShareButton({ code, nickname, codeIsLine }: { code: string; 
   const t = useVitaResultT().t.share;
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // 그림+글을 넘긴 뒤 — 메신저(카톡 등)는 글을 버리므로 글·앱 링크만 한 번 더 보낼 수 있게 (소나기와 같은 방식, 2026-11-08 죠니)
+  const [textAgain, setTextAgain] = useState<string | null>(null);
 
   async function onShare() {
     if (busy) return;
     setBusy(true);
     setNotice(null);
+    setTextAgain(null);
     try {
       const link = (await appLinkEnabled()) ? appLinkFor('vita_code') : null;
       const caption = shareCaption(t.caption(code, nickname), link ? t.linkLine(link) : null, t.hashtag);
@@ -87,6 +90,7 @@ export function VitaShareButton({ code, nickname, codeIsLine }: { code: string; 
         try {
           await navigator.share({ files: [file], text: caption, title: 'VITAcode' });
           if (copied) setNotice(t.copied);
+          if (link) setTextAgain(caption);
           return;
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') return;
@@ -115,6 +119,16 @@ export function VitaShareButton({ code, nickname, codeIsLine }: { code: string; 
     }
   }
 
+  async function onSendTextAgain() {
+    if (!textAgain) return;
+    try {
+      await navigator.share({ text: textAgain, title: 'VITAcode' });
+      setTextAgain(null);
+    } catch {
+      /* 닫음 — 단추는 남겨 둔다 */
+    }
+  }
+
   return (
     <div>
       <button
@@ -131,6 +145,18 @@ export function VitaShareButton({ code, nickname, codeIsLine }: { code: string; 
         </svg>
         {busy ? t.preparing : t.button}
       </button>
+      {textAgain && (
+        <div className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-3 dark:border-violet-900 dark:bg-violet-950/40">
+          <button
+            type="button"
+            onClick={() => void onSendTextAgain()}
+            className="w-full rounded-xl bg-white px-3 py-2.5 text-[13px] font-bold text-violet-700 shadow-sm active:scale-[0.99] dark:bg-stone-900 dark:text-violet-300"
+          >
+            {t.sendTextAgain}
+          </button>
+          <p className="mt-1.5 text-[11.5px] leading-snug text-stone-600 dark:text-stone-300">{t.sendTextAgainHelp}</p>
+        </div>
+      )}
       {notice && (
         <p className="mt-1.5 text-center text-[11.5px] font-semibold text-stone-600 dark:text-stone-300">{notice}</p>
       )}

@@ -113,6 +113,8 @@ export const vrEn: VitaResultDict = {
     hashtag: '#VITAcode',
     cardTitle: 'Get the VITAcode app',
     copied: 'Text and app link copied — paste it if the post is empty.',
+    sendTextAgain: 'Sent it on a messenger? Send the text & app link too',
+    sendTextAgainHelp: 'Messengers send only the image and drop the text. Tap and pick the same chat again to send a tappable app link.',
     copiedAndSaved: 'Image saved and text with app link copied — post the image and paste the text.',
     saved: 'Image saved.',
     failed: "Couldn't share. Please try again in a moment.",

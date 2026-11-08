@@ -71,12 +71,14 @@ Future<void> shareFromWeb(BuildContext context, String message, AppStrings s) as
   final file = XFile.fromData(base64Decode(b64), mimeType: 'image/png', name: name);
   final res = await SharePlus.instance.share(ShareParams(files: [file], text: text, subject: 'VITAcode', sharePositionOrigin: origin));
   if (!hasLink || res.status == ShareResultStatus.dismissed) return;
-  if (!dropsTextWithFiles(res.raw) || !context.mounted) return;
+  // 고른 앱을 알려 주지 않는 기기(raw 비어 있음)도 메신저일 수 있다 → 그때도 묻는다 (2026-11-08 죠니 '소나기처럼 링크가 같이')
+  final unknownApp = res.raw.trim().isEmpty;
+  if ((!unknownApp && !dropsTextWithFiles(res.raw)) || !context.mounted) return;
   final go = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       title: Text(s.shareSendTextTitle),
-      content: Text(s.shareSendTextHelp(messengerName(res.raw))),
+      content: Text(s.shareSendTextHelp(unknownApp ? s.shareMessengerGeneric : messengerName(res.raw))),
       actions: [
         TextButton(onPressed: () => Navigator.of(c).pop(false), child: Text(s.close)),
         FilledButton(onPressed: () => Navigator.of(c).pop(true), child: Text(s.shareSendTextGo)),

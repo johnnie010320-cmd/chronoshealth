@@ -113,6 +113,8 @@ export const vrJa: VitaResultDict = {
     hashtag: '#VITAcode',
     cardTitle: 'VITAcodeアプリを入手',
     copied: '文章とアプリのリンクをコピーしました — 投稿が空なら貼り付けてください。',
+    sendTextAgain: 'メッセンジャーで送った場合 — 文章とアプリのリンクも送る',
+    sendTextAgainHelp: 'メッセンジャーは画像だけを送り、文章を捨てます。押して同じトークをもう一度選ぶと、押せるアプリのリンクが届きます。',
     copiedAndSaved: '画像を保存し、文章とアプリのリンクをコピーしました — 画像を投稿して文章を貼り付けてください。',
     saved: '画像を保存しました。',
     failed: 'シェアできませんでした。しばらくしてからもう一度お試しください。',

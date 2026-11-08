@@ -554,6 +554,13 @@ export default function ProfilePage() {
           <LogoutIcon className="h-5 w-5" />
           {P.logout}
         </button>
+        {/* 회원 탈퇴 (2026-11-08) — 공개 페이지 /account-delete 와 같은 화면 */}
+        <Link
+          href="/account-delete/"
+          className="mt-4 block text-center text-[13px] text-stone-500 underline underline-offset-2 dark:text-stone-400"
+        >
+          {P.deleteAccount}
+        </Link>
       </div>
     </AppShell>
   );

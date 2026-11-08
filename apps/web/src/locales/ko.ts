@@ -1540,6 +1540,7 @@ export const ko = {
     consentResearch: '익명 연구 활용 동의 (선택)',
     consentGrantedAt: '동의일',
     logout: '로그아웃',
+    deleteAccount: '회원 탈퇴',
     logoutConfirm: '로그아웃 시 이 디바이스의 세션이 삭제됩니다. 다시 이용하시려면 이메일·비밀번호로 로그인해 주세요.',
     errorGeneric: '내 정보를 불러오지 못했습니다.',
     nicknameLabel: 'Twin 닉네임',

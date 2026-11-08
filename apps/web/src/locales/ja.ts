@@ -1630,6 +1630,7 @@ export const ja: Dictionary = {
     consentGrantedAt: '同意日',
     logout: 'ログアウト',
     errorGeneric: 'プロフィールを読み込めませんでした。',
+    deleteAccount: '退会',
     logoutConfirm:
       'ログアウトするとこの端末のセッションが削除されます。再度ご利用にはメールとパスワードでログインしてください。',
     nicknameLabel: 'Twin ニックネーム',

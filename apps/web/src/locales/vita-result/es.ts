@@ -113,6 +113,8 @@ export const vrEs: VitaResultDict = {
     hashtag: '#VITAcode',
     cardTitle: 'Descarga la app VITAcode',
     copied: 'Texto y enlace de la app copiados — pégalo si la publicación está vacía.',
+    sendTextAgain: '¿Lo enviaste por un mensajero? Envía también el texto y el enlace',
+    sendTextAgainHelp: 'Los mensajeros envían solo la imagen y descartan el texto. Pulsa y elige el mismo chat otra vez para enviar un enlace que se pueda tocar.',
     copiedAndSaved: 'Imagen guardada y texto con el enlace copiado — publica la imagen y pega el texto.',
     saved: 'Imagen guardada.',
     failed: 'No se pudo compartir. Inténtalo de nuevo en un momento.',

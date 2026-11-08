@@ -120,6 +120,19 @@ export async function submitLogout(): Promise<void> {
   }
 }
 
+// 회원 탈퇴 (2026-11-08) — 계정과 기록을 모두 지운다. 실패 시 Error(code: NOT_FOUND|ADMIN_CANNOT_DELETE|...)
+export async function deleteMyAccount(): Promise<void> {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/me/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirm: 'DELETE' }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { code?: string } } | null;
+    throw new Error(body?.error?.code ?? `HTTP_${res.status}`);
+  }
+}
+
 // 콘텐츠 페이지 (약관 / 개인정보 처리방침)
 export type ContentSlug = 'terms' | 'privacy' | 'medical_disclaimer' | 'operator_info';
 

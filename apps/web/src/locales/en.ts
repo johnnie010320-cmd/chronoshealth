@@ -1633,6 +1633,7 @@ export const en: Dictionary = {
     consentResearch: 'Anonymous research use (optional)',
     consentGrantedAt: 'Granted at',
     logout: 'Log out',
+    deleteAccount: 'Delete account',
     logoutConfirm: 'Logging out clears your session on this device. To return, sign in with email and password.',
     errorGeneric: 'Could not load your profile.',
     nicknameLabel: 'Twin nickname',

@@ -114,6 +114,8 @@ export const vrKo = {
     hashtag: '#VITAcode #비타코드',
     cardTitle: 'VITAcode 앱 받기',
     copied: '글과 앱 링크를 복사했어요 — 글이 비어 있으면 붙여넣기 하세요.',
+    sendTextAgain: '카카오톡 등 메신저로 보냈다면 — 글·앱 링크도 보내기',
+    sendTextAgainHelp: '메신저는 그림만 보내고 글을 버립니다. 눌러서 같은 대화방을 한 번 더 고르면 누를 수 있는 앱 링크가 갑니다.',
     copiedAndSaved: '그림을 저장하고 글과 앱 링크를 복사했어요 — SNS에 그림을 올리고 글을 붙여넣기 하세요.',
     saved: '그림을 저장했어요.',
     failed: '공유하지 못했어요. 잠시 뒤 다시 시도해 주세요.',

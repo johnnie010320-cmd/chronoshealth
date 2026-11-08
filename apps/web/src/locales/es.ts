@@ -1636,6 +1636,7 @@ export const es: Dictionary = {
     consentGrantedAt: 'Otorgado el',
     logout: 'Cerrar sesión',
     errorGeneric: 'No se pudo cargar tu perfil.',
+    deleteAccount: 'Eliminar cuenta',
     logoutConfirm:
       'Al cerrar sesión se eliminará la sesión en este dispositivo. Para volver, inicia sesión con email y contraseña.',
     nicknameLabel: 'Apodo Twin',
