@@ -6,7 +6,18 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
-## 🔧 2026-11-09 [맥 지니] Vita Labs 팀 서명 체계 구축 완료 — 남은 건 **앱 레코드 생성(죠니)**
+## ✅ 2026-11-09 [맥 지니 → Windows 지니] iOS TestFlight 업로드 완료 — **App Store 앱 번호 = `6832693211`**
+- **App Store 앱 Apple ID: `6832693211`** ← `platform=ios` 업데이트 API 와 관리자 `vitacodeapp.com/admin/app-link` 의 'App Store 주소'에 이 번호를 쓰면 된다
+- 올린 빌드: **VITAcode 0.0.3 (3)** (pubspec 현재값, Android 내부 테스트 출시본과 동일). 빌드 id `24997015-9a18-4a61-9831-69dda4190ba8`, 90일 뒤(2027-02-07) 만료
+- `processingState=VALID`, `internalBuildState=READY_FOR_BETA_TESTING`. 수출 규정은 Info.plist `ITSAppUsesNonExemptEncryption=false` 로 자동 처리됨
+- 내부 그룹 **`VITAcode 내부 테스터`**(모든 빌드 자동 제공)에 연결 완료. 한국어 테스트 안내문 등록
+- IPA 보존: `apps/mobile/dist/vitacode-0.0.3+3.ipa`, 심볼 `dist/symbols/vitacode-0.0.3+3`
+- ⚠️ 업로드 경고 2건 — ① 배포 타깃 14.0 (2027-04 부터 15.0 이상 필수, 아직 여유) ② 실행 화면이 Flutter 기본 플레이스홀더 (**공개 심사 전 교체 필요**)
+- 공개 심사 전 남은 과제: 순수 WebView = 가이드라인 4.2 위험, EU Trader status 입력, 실행 화면 교체
+
+---
+
+## 🔧 2026-11-09 [맥 지니] Vita Labs 팀 서명 체계 구축 완료
 - 멤버십 활성. **Team ID `TB5DJ5VA4C`** (Vita Labs Co., Ltd.). ASC API 키 `N9JXNPA9PP` 로 헤드리스 작업 가능
 - `com.vitacode.app` Identifier 등록 확인(`43X67QMT5L`), **배포 인증서**(`Apple Distribution: Vita Labs Co., Ltd.`, 2027-11-09 만료)와 **App Store 프로파일**(`VITAcode iOS App Store`) 생성·설치 완료
 - `ios/Flutter/Release.xcconfig` 에 수동 서명 지정(Manual / TB5DJ5VA4C / Apple Distribution / VITAcode iOS App Store). Runner 타깃엔 CODE_SIGN_STYLE 이 없어 이 xcconfig 가 그대로 먹는다
@@ -32,7 +43,7 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
-## ⬜ 2026-11-01 [Windows → 맥] VITAcode iOS 0.0.1 (1) TestFlight
+## ✅ 2026-11-01 [Windows → 맥] VITAcode iOS TestFlight — **완료(2026-11-09)**. 번호는 0.0.1(1) 이 아니라 **0.0.3(3)** 으로 올렸다. 결과는 맨 위 항목 참조
 - 요청서: [`docs/IOS_BUILD_0.0.1_WORK_REQUEST.md`](IOS_BUILD_0.0.1_WORK_REQUEST.md)
 - 시작 조건: Vita Labs Co., Ltd. 애플 개발자 멤버십 승인(죠니가 알려 줌). **MIKS 팀 아님**
 - 끝나면: 이 항목을 ✅ 로 바꾸고 결과·App Store 앱 Apple ID 기록
