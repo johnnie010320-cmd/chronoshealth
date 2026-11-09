@@ -10,6 +10,7 @@ import { readSession } from '@/lib/session';
 import { RichBodyView } from '@/components/RichBodyEditor';
 import { RecipeScoreCard } from '@/components/RecipeScore';
 import { TranslateControl } from '@/components/TranslateControl';
+import { ReportButton } from '@/components/ReportSheet';
 import {
   addCommunityComment,
   deleteCommunityComment,
@@ -56,6 +57,7 @@ function CommunityDetailPage() {
   const [post, setPost] = useState<CommunityPost | null>(null);
   // 작성자 본인 또는 사이트 관리자면 수정/삭제 가능.
   const [canManage, setCanManage] = useState(false);
+  const [isAuthor, setIsAuthor] = useState(false);
   const [recipeScore, setRecipeScore] = useState<RecipeScore | null>(null);
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,7 @@ function CommunityDetailPage() {
       .then((data) => {
         setPost(data.post);
         setCanManage(data.canManage ?? data.isAuthor);
+        setIsAuthor(data.isAuthor);
         setComments(data.comments);
         setRecipeScore(data.recipeScore ?? null);
       })
@@ -218,6 +221,10 @@ function CommunityDetailPage() {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               {Co.detail.authorLabel} · {author}
             </p>
+            {!isAuthor && (
+              // 신고·차단(2026-11-08) — 차단하면 이 글이 안 보이므로 목록으로 돌아간다
+              <ReportButton targetType="post" targetId={post.id} onBlocked={() => router.replace('/community')} />
+            )}
             {canManage && (
               <div className="flex shrink-0 items-center gap-2">
                 <Link
@@ -339,6 +346,18 @@ function CommunityDetailPage() {
                   <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
                     {c.authorNickname ?? `${Co.pseudonymPrefix}·${c.userPseudonymId.slice(0, 6)}`}
                   </p>
+                  {!c.isSelf && (
+                    <ReportButton
+                      targetType="comment"
+                      targetId={c.id}
+                      className="ml-auto shrink-0 text-[10px] font-semibold text-stone-400 dark:text-stone-500"
+                      onBlocked={() =>
+                        void fetchCommunityPost(id)
+                          .then((r) => setComments(r.comments))
+                          .catch(() => undefined)
+                      }
+                    />
+                  )}
                   {canDm && (
                     <button
                       type="button"

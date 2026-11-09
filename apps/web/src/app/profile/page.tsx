@@ -32,6 +32,7 @@ import {
   type IconProps,
 } from '@/components/HealthIcons';
 import { resizeImageToDataUrl } from '@/lib/image';
+import { BlockedUsers } from '@/components/ReportSheet';
 
 type LoadState =
   | { status: 'loading' }
@@ -544,6 +545,11 @@ export default function ProfilePage() {
           ))}
         </ul>
       </section>
+
+      {/* 차단한 사용자 (2026-11-08 신고·차단) */}
+      <div className="mt-6">
+        <BlockedUsers />
+      </div>
 
       <div className="mt-6">
         <button

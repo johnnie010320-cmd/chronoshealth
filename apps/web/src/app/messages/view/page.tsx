@@ -7,6 +7,7 @@ import { ChevronRightIcon, GlobeIcon } from '@/components/HealthIcons';
 import { useI18n } from '@/lib/i18n';
 import { readSession } from '@/lib/session';
 import { previewMode, renderOfficeHtml } from '@/lib/office-preview';
+import { ReportSheet, SAFETY_DICTS } from '@/components/ReportSheet';
 import {
   addMessageReaction,
   deleteConversation,
@@ -61,6 +62,8 @@ function ThreadInner() {
   // 답장 대상 + 컨텍스트 메뉴(우클릭/롱프레스로 연 메시지 id).
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  // 신고·차단(2026-11-08) — 메뉴가 닫혀도 창이 남도록 화면 단위로 둔다
+  const [reportFor, setReportFor] = useState<string | null>(null);
   // 메시지별 번역 결과(휘발 — 화면 상태로만 보관). id → 번역문. 현재 번역 중인 메시지 id 별도 추적.
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [translatingId, setTranslatingId] = useState<string | null>(null);
@@ -497,6 +500,17 @@ function ThreadInner() {
 
   return (
     <AppShell title={title} showBack backHref="/messages" hideBottomNav>
+      {reportFor && (
+        <ReportSheet
+          targetType="message"
+          targetId={reportFor}
+          onClose={() => setReportFor(null)}
+          onBlocked={() => {
+            setReportFor(null);
+            void loadMessages();
+          }}
+        />
+      )}
       {forbidden ? (
         <div className="mt-10 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-6 text-center text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">
           {M.errorNotMember}
@@ -857,6 +871,18 @@ function ThreadInner() {
                           >
                             {M.reply}
                           </button>
+                          {!m.isMine && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuFor(null);
+                                setReportFor(m.id);
+                              }}
+                              className="flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-[12px] font-medium text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                            >
+                              {SAFETY_DICTS[locale].report}
+                            </button>
+                          )}
                           {m.isMine && (
                             <button
                               type="button"

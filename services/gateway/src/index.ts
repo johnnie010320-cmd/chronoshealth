@@ -38,6 +38,7 @@ import { siteContentPublicRoute, siteContentAdminRoute } from './routes/site-con
 import { membersRoute } from './routes/members/index.js';
 import { appVersionRoute } from './routes/app-version/index.js';
 import { appLinkRoute, appLinkAdminRoute } from './routes/app-link/index.js';
+import { safetyRoute, safetyAdminRoute } from './routes/safety/index.js';
 import { formcoachRoute } from './routes/formcoach/index.js';
 import { featureRequestsMeRoute } from './routes/feature-requests/me.js';
 import { featureRequestsAdminRoute } from './routes/feature-requests/admin.js';
@@ -112,6 +113,8 @@ app.route('/api/v1/members', membersRoute);
 app.route('/api/v1/app', appVersionRoute);
 app.route('/api/v1/app', appLinkRoute);
 app.route('/api/v1/admin/app-link', appLinkAdminRoute);
+app.route('/api/v1/safety', safetyRoute);
+app.route('/api/v1/admin/reports', safetyAdminRoute);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND' } }, 404));
 

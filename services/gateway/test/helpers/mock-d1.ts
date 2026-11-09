@@ -875,6 +875,12 @@ export type MockAnalysisState = {
   careAffiliates: CareAffiliateMockRow[];
   medicalConditions: MedicalConditionMockRow[];
   featureRequests: FeatureRequestMockRow[];
+  // migration 0047 — 신고·차단
+  userBlocks: Array<{ blocker: string; blocked: string; created_at: string }>;
+  contentReports: Array<{
+    id: string; reporter: string; target_type: string; target_id: string; owner: string;
+    reason: string; detail: string | null; status: string;
+  }>;
 };
 
 // migration 0037 시드와 동일한 6건. 프로덕션에 마이그레이션이 적용된 상태를 재현한다.
@@ -964,6 +970,8 @@ export function makeMockAnalysisDb(): {
     careAffiliates: seedCareAffiliates(),
     medicalConditions: [],
     featureRequests: [],
+    userBlocks: [],
+    contentReports: [],
   };
   let nextResponseId = 1;
   let nextLedgerId = 1;
@@ -977,6 +985,27 @@ export function makeMockAnalysisDb(): {
     meta: { last_row_id?: number; changes?: number };
   } {
     const trimmed = sql.trim();
+
+    // migration 0047 — 신고·차단
+    if (trimmed.startsWith('INSERT OR IGNORE INTO user_blocks')) {
+      const [blocker, blocked] = args as [string, string];
+      if (state.userBlocks.some((b) => b.blocker === blocker && b.blocked === blocked)) return { success: true, meta: { changes: 0 } };
+      state.userBlocks.push({ blocker, blocked, created_at: new Date().toISOString() });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (trimmed.startsWith('DELETE FROM user_blocks WHERE blocker_pseudonym_id = ? AND blocked_pseudonym_id = ?')) {
+      const [blocker, blocked] = args as [string, string];
+      const before = state.userBlocks.length;
+      state.userBlocks = state.userBlocks.filter((b) => !(b.blocker === blocker && b.blocked === blocked));
+      return { success: true, meta: { changes: before - state.userBlocks.length } };
+    }
+    if (trimmed.startsWith('INSERT INTO content_reports')) {
+      const [id, reporter, target_type, target_id, owner, reason, detail] = args as [string, string, string, string, string, string, string | null];
+      const cur = state.contentReports.find((r) => r.reporter === reporter && r.target_type === target_type && r.target_id === target_id);
+      if (cur) Object.assign(cur, { reason, detail, status: 'open' });
+      else state.contentReports.push({ id, reporter, target_type, target_id, owner, reason, detail, status: 'open' });
+      return { success: true, meta: { changes: 1 } };
+    }
 
     if (trimmed.startsWith('INSERT INTO risk_survey_responses')) {
       const [
@@ -1850,6 +1879,28 @@ export function makeMockAnalysisDb(): {
   function firstStmtAnalysis(sql: string, args: unknown[]): unknown {
     const trimmed = sql.trim();
 
+    // migration 0047 — 신고·차단 대상 작성자 / 차단 여부
+    if (trimmed.startsWith('SELECT user_pseudonym_id AS o, title AS p FROM community_posts')) {
+      const p = state.posts.find((x) => x.id === args[0] && x.deleted_at === null);
+      return p ? { o: p.user_pseudonym_id, p: p.title } : null;
+    }
+    if (trimmed.startsWith('SELECT user_pseudonym_id AS o, body AS p FROM community_comments')) {
+      const cm = state.comments.find((x) => x.id === args[0] && x.deleted_at === null);
+      return cm ? { o: cm.user_pseudonym_id, p: cm.body } : null;
+    }
+    if (trimmed.startsWith('SELECT m.sender_pseudonym_id AS o, m.body AS p FROM messages m')) {
+      const [viewer, id] = args as [string, string];
+      const m = state.messages.find((x) => x.id === id && x.deleted_at === null);
+      if (!m) return null;
+      const member = state.conversationMembers.some((x) => x.conversation_id === m.conversation_id && x.member_pseudonym_id === viewer);
+      return member ? { o: m.sender_pseudonym_id, p: m.body } : null;
+    }
+    if (trimmed.startsWith('SELECT 1 AS x FROM user_blocks')) {
+      const [a, b] = args as [string, string];
+      const hit = state.userBlocks.some((x) => (x.blocker === a && x.blocked === b) || (x.blocker === b && x.blocked === a));
+      return hit ? { x: 1 } : null;
+    }
+
     // 앱 업데이트 안내 — component 별 최신 버전
     if (trimmed.startsWith('SELECT version FROM releases WHERE component = ?')) {
       const [component] = args as [string];
@@ -2311,6 +2362,20 @@ export function makeMockAnalysisDb(): {
 
   function allStmtAnalysis(sql: string, args: unknown[]): { results: unknown[] } {
     const trimmed = sql.trim();
+
+    // migration 0047 — 차단 목록
+    if (trimmed.startsWith('SELECT blocked_pseudonym_id AS p FROM user_blocks WHERE blocker_pseudonym_id = ?')) {
+      const [me] = args as [string];
+      const set = new Set([
+        ...state.userBlocks.filter((b) => b.blocker === me).map((b) => b.blocked),
+        ...state.userBlocks.filter((b) => b.blocked === me).map((b) => b.blocker),
+      ]);
+      return { results: [...set].map((p) => ({ p })) };
+    }
+    if (trimmed.startsWith('SELECT blocked_pseudonym_id AS p, created_at AS c FROM user_blocks')) {
+      const [me] = args as [string];
+      return { results: state.userBlocks.filter((b) => b.blocker === me).map((b) => ({ p: b.blocked, c: b.created_at })) };
+    }
 
     // migration 0037 — care_affiliates 목록 (공개=active만 / 관리자=전체).
     if (trimmed.includes('FROM care_affiliates')) {

@@ -32,6 +32,11 @@ const ANALYSIS_ROWS: ReadonlyArray<readonly [string, string]> = [
   ['messages', 'sender_pseudonym_id'],
   ['conversation_members', 'member_pseudonym_id'],
   ['feature_requests', 'user_pseudonym_id'],
+  // 신고·차단(0047) — 낸 신고·받은 신고·건 차단·받은 차단 모두
+  ['content_reports', 'reporter_pseudonym_id'],
+  ['content_reports', 'target_owner_pseudonym_id'],
+  ['user_blocks', 'blocker_pseudonym_id'],
+  ['user_blocks', 'blocked_pseudonym_id'],
 ];
 
 const IDENTITY_ROWS: ReadonlyArray<readonly [string, string]> = [

@@ -50,6 +50,7 @@ import {
   safeFileName,
 } from '../../messaging/files.js';
 import { moderateText } from '../../community/moderation.js';
+import { hiddenUsersFor, isBlockedBetween } from '../../safety/store.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'messaging-v0.1.0';
@@ -79,6 +80,15 @@ async function parseJson(c: Context): Promise<unknown | null> {
   }
 }
 
+// 1:1 대화방이고 상대와 어느 쪽이든 차단이 있으면 true (0047)
+async function dmBlocked(db: D1Database, conversationId: string, me: string): Promise<boolean> {
+  const conv = await readConversation(db, conversationId);
+  if (!conv || conv.kind !== 'dm') return false;
+  const members = await listMembers(db, conversationId);
+  const other = members.find((m) => m.memberPseudonymId !== me);
+  return other ? isBlockedBetween(db, me, other.memberPseudonymId) : false;
+}
+
 // ── DM 열기 (닉네임으로) ──────────────────────────────────────────────────
 messagingRoute.post('/dm', authMiddleware, rateLimit(50), async (c) => {
   const me = c.get('userPseudonymId');
@@ -90,6 +100,8 @@ messagingRoute.post('/dm', authMiddleware, rateLimit(50), async (c) => {
   const targetId = await findPseudonymByNickname(c.env.IDENTITY_DB, parsed.data.nickname);
   if (!targetId) return c.json({ error: { code: 'USER_NOT_FOUND' } }, 404);
   if (targetId === me) return c.json({ error: { code: 'CANNOT_DM_SELF' } }, 400);
+  // 서로 차단 관계면 1:1 대화를 열 수 없다(0047).
+  if (await isBlockedBetween(c.env.DB, me, targetId)) return c.json({ error: { code: 'BLOCKED' } }, 403);
 
   const id = dmConversationId(me, targetId);
   await insertConversation(c.env.DB, { id, kind: 'dm', title: null, ownerPseudonymId: null });
@@ -240,10 +252,12 @@ messagingRoute.get('/conversations/:id/messages', authMiddleware, rateLimit(120,
   });
   if (!parsed.success) return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
 
-  const rows = await listMessages(c.env.DB, id, {
-    limit: parsed.data.limit,
-    before: parsed.data.before,
-  });
+  const [allRows, hidden] = await Promise.all([
+    listMessages(c.env.DB, id, { limit: parsed.data.limit, before: parsed.data.before }),
+    hiddenUsersFor(c.env.DB, me),
+  ]);
+  // 차단한·차단당한 사람이 보낸 메시지는 빼고 보낸다(0047, 단체방).
+  const rows = allRows.filter((r) => !hidden.has(r.senderPseudonymId));
 
   // 카카오톡식 안읽은 수신자 수 — 멤버별 last_read_at 와 메시지 created_at 비교.
   // 메시지 m 의 미읽음 = (발신자 제외) 멤버 중 last_read_at < m.created_at 인 인원.
@@ -372,6 +386,9 @@ messagingRoute.post('/conversations/:id/messages', authMiddleware, rateLimit(60,
   const check = moderateText(parsed.data.body);
   if (!check.allowed) return c.json({ error: { code: check.reason } }, 400);
 
+  // 1:1 대화 상대와 서로 차단 관계면 보낼 수 없다(0047).
+  if (await dmBlocked(c.env.DB, id, me)) return c.json({ error: { code: 'BLOCKED' } }, 403);
+
   // 답장 대상은 같은 대화에 존재하고 살아있어야 함.
   const replyToMessageId = parsed.data.replyToMessageId;
   if (replyToMessageId) {
@@ -449,6 +466,7 @@ messagingRoute.post('/conversations/:id/files', authMiddleware, rateLimit(30), a
   if (!(await isMember(c.env.DB, id, me))) {
     return c.json({ error: { code: 'NOT_A_MEMBER' } }, 403);
   }
+  if (await dmBlocked(c.env.DB, id, me)) return c.json({ error: { code: 'BLOCKED' } }, 403);
   let form: FormData;
   try {
     form = await c.req.formData();
@@ -569,6 +587,7 @@ messagingRoute.post('/conversations/:id/invite', authMiddleware, rateLimit(50), 
 
   const pid = await findPseudonymByNickname(c.env.IDENTITY_DB, parsed.data.nickname);
   if (!pid) return c.json({ error: { code: 'USER_NOT_FOUND' } }, 404);
+  if (await isBlockedBetween(c.env.DB, me, pid)) return c.json({ error: { code: 'BLOCKED' } }, 403);
   await addMember(c.env.DB, id, pid, 'member');
   return c.json({ ok: true, modelVersion: MODEL_VERSION });
 });

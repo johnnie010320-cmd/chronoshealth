@@ -66,6 +66,7 @@ import {
 import { findPseudonymByNickname, resolveNicknames } from '../../messaging/nickname.js';
 import { isAdmin } from '../../middleware/admin-auth.js';
 import { appendLedger, EARN_AMOUNTS, hasEarnedFor } from '../../rewards/ledger.js';
+import { hiddenUsersFor, isBlockedBetween } from '../../safety/store.js';
 import type { Bindings } from '../../bindings.js';
 
 const MODEL_VERSION = 'community-v0.2.0';
@@ -201,13 +202,18 @@ communityRoute.get('/posts', authMiddleware, rateLimit(200), async (c) => {
   if (!parsed.success) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   }
-  const posts = await listPosts(c.env.DB, {
-    limit: parsed.data.limit,
-    cursor: parsed.data.cursor,
-    communityId: parsed.data.communityId ?? null,
-    tag: parsed.data.tag ?? null,
-    userPseudonymId: parsed.data.mine ? pseudonymId : null,
-  });
+  const [allPosts, hidden] = await Promise.all([
+    listPosts(c.env.DB, {
+      limit: parsed.data.limit,
+      cursor: parsed.data.cursor,
+      communityId: parsed.data.communityId ?? null,
+      tag: parsed.data.tag ?? null,
+      userPseudonymId: parsed.data.mine ? pseudonymId : null,
+    }),
+    hiddenUsersFor(c.env.DB, pseudonymId),
+  ]);
+  // 차단한·차단당한 사람의 글은 빼고 보낸다(0047).
+  const posts = allPosts.filter((p) => !hidden.has(p.userPseudonymId));
   // 레시피 피드면 각 글에 건강 점수 첨부.
   if (parsed.data.communityId === RECIPE_COMMUNITY_ID && posts.length > 0) {
     const scores = await readRecipeScores(c.env.DB, posts.map((p) => p.id));
@@ -224,7 +230,8 @@ communityRoute.get('/my-comments', authMiddleware, rateLimit(120), async (c) => 
 });
 
 communityRoute.get('/trending', authMiddleware, rateLimit(200), async (c) => {
-  const posts = await listTrending(c.env.DB, 10);
+  const [all, hidden] = await Promise.all([listTrending(c.env.DB, 10), hiddenUsersFor(c.env.DB, c.get('userPseudonymId'))]);
+  const posts = all.filter((p) => !hidden.has(p.userPseudonymId));
   return c.json({ posts, modelVersion: MODEL_VERSION });
 });
 
@@ -235,7 +242,11 @@ communityRoute.get('/posts/:id', authMiddleware, rateLimit(200), async (c) => {
   if (!post) {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
   }
-  const comments = await listComments(c.env.DB, id);
+  const hidden = await hiddenUsersFor(c.env.DB, me);
+  if (hidden.has(post.userPseudonymId)) {
+    return c.json({ error: { code: 'BLOCKED' } }, 404);
+  }
+  const comments = (await listComments(c.env.DB, id)).filter((cm) => !hidden.has(cm.userPseudonymId));
   // 1:1 대화 버튼용 — 작성자 닉네임(공개 핸들) + 수용 여부 + 본인 여부.
   const authorIds = [...new Set(comments.map((cm) => cm.userPseudonymId))];
   const nicks = await resolveNicknames(c.env.IDENTITY_DB, authorIds);
@@ -382,6 +393,10 @@ communityRoute.post('/posts/:id/comments', authMiddleware, rateLimit(100), async
   const post = await readPost(c.env.DB, postId);
   if (!post) {
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  }
+  // 글쓴이와 서로 차단 관계면 댓글을 달 수 없다(0047).
+  if (await isBlockedBetween(c.env.DB, pseudonymId, post.userPseudonymId)) {
+    return c.json({ error: { code: 'BLOCKED' } }, 403);
   }
   const check = moderateText(parsed.data.body);
   if (!check.allowed) {
@@ -551,10 +566,12 @@ communityRoute.get('/search', authMiddleware, rateLimit(120), async (c) => {
   if (q.length < 2) {
     return c.json({ communities: [], posts: [], modelVersion: MODEL_VERSION });
   }
-  const [communities, posts] = await Promise.all([
+  const [communities, found, hidden] = await Promise.all([
     searchCommunities(c.env.DB, q, 10),
     searchPosts(c.env.DB, q, 20),
+    hiddenUsersFor(c.env.DB, c.get('userPseudonymId')),
   ]);
+  const posts = found.filter((p) => !hidden.has(p.authorPseudonymId));
   const nicks = await resolveNicknames(
     c.env.IDENTITY_DB,
     posts.map((p) => p.authorPseudonymId),
@@ -574,7 +591,11 @@ communityRoute.get('/search', authMiddleware, rateLimit(120), async (c) => {
 // 오늘의 핫피플 — 최근 7일 게시·좋아요 기준 상위 크리에이터.
 communityRoute.get('/hot-people', authMiddleware, rateLimit(120), async (c) => {
   const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-  const rows = await hotPeople(c.env.DB, since, 12);
+  const [allRows, hidden] = await Promise.all([
+    hotPeople(c.env.DB, since, 12),
+    hiddenUsersFor(c.env.DB, c.get('userPseudonymId')),
+  ]);
+  const rows = allRows.filter((r) => !hidden.has(r.authorPseudonymId));
   const nicks = await resolveNicknames(
     c.env.IDENTITY_DB,
     rows.map((r) => r.authorPseudonymId),

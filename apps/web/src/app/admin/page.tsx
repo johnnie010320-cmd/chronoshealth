@@ -102,10 +102,11 @@ export default function AdminDashboardPage() {
     },
     {
       key: 'moderation',
-      href: null,
-      title: D.actionModeration,
-      desc: D.actionModerationDesc,
-      status: 'soon',
+      // 신고 처리 (2026-11-08 — Google Play 사용자 제작 콘텐츠 정책)
+      href: '/admin/reports',
+      title: '신고 처리',
+      desc: '회원이 신고한 글·댓글·메시지 확인 · 내리기 / 문제없음',
+      status: 'active',
     },
     {
       key: 'riskReports',

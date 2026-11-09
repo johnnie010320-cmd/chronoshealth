@@ -3048,3 +3048,58 @@ export function uploadNoticeFile(id: string, file: File): Promise<Notice> {
 export function deleteNoticeFile(id: string): Promise<Notice> {
   return noticeAttachment(id, 'file', 'DELETE');
 }
+
+// ── 신고·차단 (2026-11-08, Google Play 사용자 제작 콘텐츠 정책) ─────────────────────
+export type ReportTarget = 'post' | 'comment' | 'message';
+export type ReportReason = 'spam' | 'abuse' | 'sexual' | 'violence' | 'self_harm' | 'misinfo' | 'other';
+
+export async function reportContent(input: {
+  targetType: ReportTarget;
+  targetId: string;
+  reason: ReportReason;
+  detail?: string | undefined;
+  alsoBlock?: boolean;
+}): Promise<{ ok: true; blocked: boolean }> {
+  return (await adminJson('/api/v1/safety/reports', 'POST', input)) as { ok: true; blocked: boolean };
+}
+
+/** 글·댓글·메시지의 작성자를 차단 */
+export async function blockAuthor(targetType: ReportTarget, targetId: string): Promise<void> {
+  await adminJson('/api/v1/safety/blocks', 'POST', { targetType, targetId });
+}
+
+export type BlockedUser = { pseudonymId: string; nickname: string | null; createdAt: string };
+
+export async function fetchMyBlocks(): Promise<BlockedUser[]> {
+  return ((await adminJson('/api/v1/safety/blocks', 'GET')) as { blocks: BlockedUser[] }).blocks;
+}
+
+export async function unblockUser(pseudonymId: string): Promise<void> {
+  await adminJson(`/api/v1/safety/blocks/${encodeURIComponent(pseudonymId)}`, 'DELETE');
+}
+
+export type AdminReport = {
+  id: string;
+  targetType: ReportTarget;
+  targetId: string;
+  targetOwnerPseudonymId: string;
+  targetOwnerNickname: string | null;
+  reporterPseudonymId: string;
+  reporterNickname: string | null;
+  reason: ReportReason;
+  detail: string | null;
+  status: 'open' | 'removed' | 'dismissed';
+  createdAt: string;
+  resolvedAt: string | null;
+  preview: string | null;
+};
+
+export async function fetchAdminReports(
+  status: 'open' | 'removed' | 'dismissed' | 'all',
+): Promise<{ openCount: number; reports: AdminReport[] }> {
+  return (await adminJson(`/api/v1/admin/reports?status=${status}`, 'GET')) as { openCount: number; reports: AdminReport[] };
+}
+
+export async function resolveAdminReport(id: string, action: 'remove' | 'dismiss'): Promise<void> {
+  await adminJson(`/api/v1/admin/reports/${encodeURIComponent(id)}`, 'POST', { action });
+}
