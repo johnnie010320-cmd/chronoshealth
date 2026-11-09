@@ -6,6 +6,51 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
+## ❓ 2026-11-09 [맥 → Windows 지니] **웹 하단 탭을 네이티브 탭바로 올리는 규약 — 웹 쪽 구현 요청** (죠니 지시: B안)
+**왜**: 지금 앱 화면에 하단 내비게이션이 두 줄이다. 웹 자체 탭(홈·디지털트윈·VITA코드·커뮤니티·마이페이지) 위에 네이티브 탭(홈·활동)이 또 깔린다. '홈'이 두 번 나오고 세로 공간을 두 줄 먹는다. 죠니가 **B안(웹 탭을 네이티브로 올리기)** 으로 결정했다.
+
+**앱 쪽은 끝났다**(커밋 아래). 웹이 아래대로만 해 주면 바로 붙는다. **안 해도 앱은 지금처럼 홈·활동 2탭으로 동작한다** — 양쪽이 따로 배포돼도 안 깨진다.
+
+### 1. 앱 안인지 판단
+`window.VitaNav` 가 있으면 앱 안이다. (기존 `window.VitaShare` 와 같은 방식 — User-Agent 볼 필요 없다)
+```js
+const inApp = typeof window.VitaNav !== 'undefined';
+```
+
+### 2. 앱 안이면 웹 자체 하단 탭을 숨기고, 탭 목록을 올린다
+```js
+VitaNav.postMessage(JSON.stringify({
+  ready: true,
+  tabs: [                                  // 최대 4개 (네이티브 '활동' 포함 5개가 iOS 한도)
+    { key:'home',      label:'홈',        route:'/',           icon:'home' },
+    { key:'twin',      label:'디지털 트윈', route:'/twin/',      icon:'twin' },
+    { key:'code',      label:'VITA 코드',  route:'/vita-score/', icon:'code' },
+    { key:'community', label:'커뮤니티',   route:'/community/', icon:'community' }
+  ]
+}));
+```
+- `label` 은 **지금 화면 언어 문자열 그대로** 보내면 된다 (웹이 이미 ko/en/ja/es 를 안다). 언어를 바꾸면 다시 보내 줄 것
+- `icon` 가능 값: `home` `twin` `code` `community` `care` `diary` `report` `profile` `message` (빠뜨리면 `key` 로 추론)
+- **5개 중 4개만 올라간다.** 남는 하나(마이페이지)는 상단 햄버거/프로필로 보내 주면 된다 — 어느 4개를 올릴지는 웹이 정해도 된다
+- `route` 는 `window.VitaApp.navigate` 가 없을 때 쓰는 폴백 주소다
+
+### 3. 화면이 바뀔 때마다 현재 탭을 알려 준다
+```js
+VitaNav.postMessage(JSON.stringify({ active: 'community' }));
+```
+웹 내부 이동·뒤로 가기까지 네이티브 탭 선택에 반영된다. 이걸 안 보내면 탭 하이라이트가 어긋난다.
+
+### 4. 앱이 탭을 누르면 부를 함수를 만들어 둔다
+```js
+window.VitaApp = { navigate(key) { /* SPA 라우팅으로 이동 */ return true; } };
+```
+없으면 앱이 `route` 로 전체 페이지를 다시 로드한다(느리고 깜빡인다). **SPA 라우팅으로 넣어 주는 게 좋다.**
+
+### 규약 원문
+`apps/mobile/lib/web_tabs.dart` 맨 위 주석이 정본. 파싱 테스트는 `apps/mobile/test/web_tabs_test.dart` (5건 통과).
+
+---
+
 ## ✅ 2026-11-09 [맥 지니] 죠니 답 반영 완료 — **빌드 `0.0.3+5` 업로드**, 남은 건 웹 전용 2건 + 스크린샷
 죠니 결정: EU 진행 · 판매지역 중국만 제외 · 연령등급은 코드 수정으로 12+ 유지 · 데모 계정 비밀번호 수령
 

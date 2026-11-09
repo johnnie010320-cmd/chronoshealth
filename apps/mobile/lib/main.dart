@@ -1,6 +1,7 @@
 // VITAcode Android 앱 — vitacodeapp.com 을 앱 화면 안(WebView)에서 연다.
 // 앱이 따로 갖는 것: 뒤로 가기, 첨부 파일 고르기, 외부 앱 연결(전화·메일·카카오 등), 연결 끊김 화면, 업데이트 안내,
 // SNS 공유(웹이 넘긴 결과 그림·글을 휴대폰 공유 창으로).
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
@@ -13,6 +14,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'health_panel.dart';
 import 'share_bridge.dart';
+import 'web_tabs.dart';
 import 'strings.dart';
 import 'update_check.dart';
 
@@ -75,6 +77,12 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
   bool _updateDismissed = false;
   int _tab = 0;
 
+  /// 웹이 올려 준 하단 탭. 아직 안 왔으면(구버전 웹) null → 홈·활동 두 탭만 쓴다.
+  List<WebTab>? _webTabs;
+
+  int get _activityIndex => _webTabs?.length ?? 1;
+  bool get _onActivity => _tab == _activityIndex;
+
   @override
   void initState() {
     super.initState();
@@ -94,7 +102,10 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
       // 웹의 'VITAcode 공유하기' → 휴대폰 공유 창 (share_bridge.dart)
       ..addJavaScriptChannel(kShareChannel, onMessageReceived: (m) {
         if (mounted) shareFromWeb(context, m.message, _s);
-      });
+      })
+      // 웹이 자기 하단 탭을 넘겨 주면 네이티브 탭바로 올린다 (web_tabs.dart 규약).
+      // 웹은 window.VitaNav 가 있는지로 앱 안인지 판단한다.
+      ..addJavaScriptChannel(kNavChannel, onMessageReceived: (m) => _onNavMessage(m.message));
     final platform = _web.platform;
     if (platform is AndroidWebViewController) {
       platform.setOnShowFileSelector(_pickFiles);
@@ -213,9 +224,43 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
     );
   }
 
+  void _onNavMessage(String raw) {
+    final msg = NavMessage.parse(raw);
+    if (msg == null || !mounted) return;
+    setState(() {
+      final tabs = msg.tabs;
+      if (tabs != null) {
+        _webTabs = tabs;
+        if (_tab > tabs.length) _tab = 0;
+      }
+      // 활동 탭을 보고 있을 때 웹 화면이 바뀌어도 사용자를 끌어오지 않는다.
+      final active = msg.active;
+      final current = _webTabs;
+      if (active != null && current != null && !_onActivity) {
+        final i = current.indexWhere((t) => t.key == active);
+        if (i >= 0) _tab = i;
+      }
+    });
+  }
+
+  /// 웹의 window.VitaApp.navigate(key) 를 부른다. 그 함수가 없으면 주소로 이동한다.
+  Future<void> _goWebTab(WebTab tab) async {
+    Object? handled;
+    try {
+      handled = await _web.runJavaScriptReturningResult(
+        "(function(){try{if(window.VitaApp&&typeof window.VitaApp.navigate==='function'){"
+        "window.VitaApp.navigate(${jsonEncode(tab.key)});return true;}}catch(e){}return false;})()",
+      );
+    } catch (_) {
+      handled = false;
+    }
+    if (handled == true || handled == 1 || handled == '1' || handled == 'true') return;
+    await _web.loadRequest(Uri.parse(kHome).resolve(tab.route));
+  }
+
   // iOS 하단 탭에서 웹 화면이 아닌 곳에 있으면 먼저 웹 화면으로 돌아온다.
   void _handleBack() {
-    if (_tab != 0) {
+    if (_onActivity) {
       setState(() => _tab = 0);
     } else {
       _onBack();
@@ -276,18 +321,20 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: IndexedStack(
-          index: _tab,
+          index: _onActivity ? 1 : 0,
           children: [web, SafeArea(child: HealthPanel(brand: kBrand))],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
+          onDestinationSelected: (i) {
+            final tabs = _webTabs;
+            setState(() => _tab = i);
+            if (tabs != null && i < tabs.length) _goWebTab(tabs[i]);
+          },
           destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.home_outlined),
-              selectedIcon: const Icon(Icons.home),
-              label: _homeTabLabel(locale),
-            ),
+            for (final t in _webTabs ??
+                [WebTab(key: 'home', label: _homeTabLabel(locale), route: '/', icon: Icons.home_outlined)])
+              NavigationDestination(icon: Icon(t.icon), label: t.label),
             NavigationDestination(
               icon: const Icon(Icons.favorite_outline),
               selectedIcon: const Icon(Icons.favorite),
