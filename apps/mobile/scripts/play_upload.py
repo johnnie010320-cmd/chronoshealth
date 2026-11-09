@@ -1,6 +1,7 @@
 """VITAcode Android AAB → Google Play 트랙 업로드 (Vita Labs Co., Ltd. 개발자 계정).
   사용: python scripts/play_upload.py <aab> <track>      # track = internal | alpha | beta | production
         python scripts/play_upload.py listing            # store/android 의 등록정보·그림만 올림
+        python scripts/play_upload.py datasafety         # store/android/data_safety.csv → 데이터 보안 양식
   - 서비스 계정 play-publisher@veridash-498820 (Vita Labs 계정에 Admin 으로 초대됨, 2026-10-31).
   - 한 번도 출시하지 않은 앱은 API 로 '초안' 릴리스만 만들 수 있다 → 그때는 draft 로 올리고
     Play Console 에서 '출시 시작' 을 한 번 누른다 (소나기 scripts/play_upload.py 와 같은 방식).
@@ -44,8 +45,25 @@ def put_listing():
     print("✅ 스토어 등록정보 반영")
 
 
+def put_data_safety():
+    """store/android/data_safety.csv → Play '데이터 보안' 양식 전체 덮어쓰기 (2026-11-08).
+    CSV 틀은 Play 고객센터 견본 — 값 칸만 우리 답으로 채움."""
+    cred = service_account.Credentials.from_service_account_file(SA, scopes=["https://www.googleapis.com/auth/androidpublisher"])
+    apps = build("androidpublisher", "v3", credentials=cred, cache_discovery=False).applications()
+    csv_text = (STORE / "data_safety.csv").read_text(encoding="utf-8")
+    try:
+        apps.dataSafety(packageName=PKG, body={"safetyLabels": csv_text}).execute()
+    except HttpError as e:
+        print("[ERROR]", e.resp.status, json.loads(e.content.decode()).get("error", {}).get("message", "")[:2000])
+        sys.exit(2)
+    print("✅ 데이터 보안 양식 반영")
+
+
 if sys.argv[1:] == ["listing"]:
     put_listing()
+    sys.exit(0)
+if sys.argv[1:] == ["datasafety"]:
+    put_data_safety()
     sys.exit(0)
 if len(sys.argv) != 3 or sys.argv[2] not in ("internal", "alpha", "beta", "production"):
     sys.exit("사용: python scripts/play_upload.py <aab> <internal|alpha|beta|production>")
