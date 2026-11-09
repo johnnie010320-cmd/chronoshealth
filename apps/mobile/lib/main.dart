@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
+import 'health_panel.dart';
 import 'share_bridge.dart';
 import 'strings.dart';
 import 'update_check.dart';
@@ -50,6 +51,7 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
   bool _failed = false;
   UpdateInfo? _update;
   bool _updateDismissed = false;
+  int _tab = 0;
 
   @override
   void initState() {
@@ -181,17 +183,19 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
     );
   }
 
+  // iOS 하단 탭에서 웹 화면이 아닌 곳에 있으면 먼저 웹 화면으로 돌아온다.
+  void _handleBack() {
+    if (_tab != 0) {
+      setState(() => _tab = 0);
+    } else {
+      _onBack();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final showBanner = _update != null && !_update!.forced && !_updateDismissed;
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _onBack();
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
+    final web = SafeArea(
           child: Column(
             children: [
               if (showBanner)
@@ -221,11 +225,57 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
               ),
             ],
           ),
+        );
+
+    if (!healthSupported) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _onBack();
+        },
+        child: Scaffold(backgroundColor: Colors.white, body: web),
+      );
+    }
+
+    final locale = ui.PlatformDispatcher.instance.locale;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: IndexedStack(
+          index: _tab,
+          children: [web, SafeArea(child: HealthPanel(brand: kBrand))],
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => setState(() => _tab = i),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home),
+              label: _homeTabLabel(locale),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.favorite_outline),
+              selectedIcon: const Icon(Icons.favorite),
+              label: healthTabLabel(locale),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+String _homeTabLabel(ui.Locale l) => switch (l.languageCode) {
+      'ko' => '홈',
+      'ja' => 'ホーム',
+      'es' => 'Inicio',
+      _ => 'Home',
+    };
 
 class _OfflineView extends StatelessWidget {
   const _OfflineView({required this.s, required this.onRetry});

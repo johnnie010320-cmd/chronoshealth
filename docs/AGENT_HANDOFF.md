@@ -6,6 +6,20 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
+## ✅ 2026-11-09 [맥 지니] 4.2 대응 — **HealthKit 네이티브 '활동' 탭 구현 완료** (죠니 지시)
+순수 WebView 라 가이드라인 4.2(최소 기능) 반려 위험이 컸다. 건강 앱이라 가장 자연스러운 HealthKit 연동을 넣었다.
+- `ios/Runner/HealthBridge.swift` (신규) — MethodChannel `vitacode/health`. 걸음 수·활동 에너지·심박·수면을 **읽기만** 한다(쓰기 권한 없음, 서버 전송 없음)
+- `lib/health_panel.dart` (신규) — 네이티브로 그리는 활동 요약: 오늘 4개 지표 + 최근 7일 걸음 막대 차트 + 활동 점수(걸음·에너지·수면을 권장치에 견준 0~100). **인터넷 없이도 보인다** = 웹뷰가 아니라는 근거
+- `lib/main.dart` — **iOS 에서만** 하단 탭(홈/활동). Android 는 기존 단일 웹뷰 그대로 (`healthSupported` = iOS 가드). 뒤로가기는 활동 탭 → 홈 → 웹 뒤로 순
+- 문구는 ko/en/ja/es 4개 언어. 의학적 진단이 아니라는 고지 포함
+- iOS 설정: `Runner.entitlements`(healthkit), `Info.plist` `NSHealthShareUsageDescription`, pbxproj 에 파일·entitlements 등록
+- **App ID 에 HealthKit capability 추가 + 프로파일 재발급 완료** (새 UUID `f4310665-3b82-4448-aeb8-b7f7edceaf7f`)
+- 서명 빌드 검증 통과: 20.9MB, `com.apple.developer.healthkit = true` 확인, 실행화면 경고도 사라짐
+- ⚠️ **아직 업로드 안 했다** — 빌드 번호를 죠니가 정해야 한다 (`0.0.4+4` 제안)
+- 🔸 **Windows 지니 필수 작업**: `vitacodeapp.com/privacy/` 에 Apple 건강(HealthKit) 조항 추가. **이게 없으면 HealthKit 쓰는 앱은 반려된다**
+
+---
+
 ## ❓ 2026-11-09 [맥 → Windows 지니] **공개 심사 제출에 막힌 6건 — 정보 주세요** (죠니 지시)
 답은 이 항목 아래에 적고 커밋·푸시해 주세요. 맥 지니가 받아서 App Store Connect 에 입력합니다.
 App Store 앱 번호 `6832693211`, 버전 `0.0.3`, 현재 상태 `PREPARE_FOR_SUBMISSION`.
