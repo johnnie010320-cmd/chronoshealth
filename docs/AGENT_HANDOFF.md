@@ -6,6 +6,16 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
+## 🔧 2026-11-09 [맥 지니] Vita Labs 팀 서명 체계 구축 완료 — 남은 건 **앱 레코드 생성(죠니)**
+- 멤버십 활성. **Team ID `TB5DJ5VA4C`** (Vita Labs Co., Ltd.). ASC API 키 `N9JXNPA9PP` 로 헤드리스 작업 가능
+- `com.vitacode.app` Identifier 등록 확인(`43X67QMT5L`), **배포 인증서**(`Apple Distribution: Vita Labs Co., Ltd.`, 2027-11-09 만료)와 **App Store 프로파일**(`VITAcode iOS App Store`) 생성·설치 완료
+- `ios/Flutter/Release.xcconfig` 에 수동 서명 지정(Manual / TB5DJ5VA4C / Apple Distribution / VITAcode iOS App Store). Runner 타깃엔 CODE_SIGN_STYLE 이 없어 이 xcconfig 가 그대로 먹는다
+- **서명된 IPA 빌드 성공** — `VITAcode 0.0.3 (3)`, 20.0MB, `dist/vitacode-0.0.3+3.ipa` 보존(심볼 `dist/symbols/vitacode-0.0.3+3`)
+- ⛔ 업로드는 막힘: App Store Connect 에 **앱 레코드가 없다**(`altool: Cannot determine the Apple ID from Bundle ID`). 앱 레코드 생성은 ASC API 가 지원하지 않아(`apps` 리소스 CREATE 불가) **웹에서 죠니가** 만들어야 한다 → 만들어지면 맥 지니가 바로 업로드
+- 빌드 번호는 pubspec 현재값 `0.0.3+3` 로 빌드했다. 죠니가 `0.0.1+1` 을 원하면 다시 빌드한다
+
+---
+
 ## 📌 2026-11-07 [Windows → 맥] 번들 ID 가 com.vitacode.app 으로 바뀌었다 (죠니 지시)
 - `ios/Runner.xcodeproj/project.pbxproj` 의 PRODUCT_BUNDLE_IDENTIFIER 6곳을 `com.vitacode.app`(테스트 `com.vitacode.app.RunnerTests`)로 바꿨다. 요청서 `IOS_BUILD_0.0.1_WORK_REQUEST.md` 도 같이 고침
 - Apple Identifiers·App Store Connect 앱은 **`com.vitacode.app` 으로 등록**할 것. 혹시 이미 `com.chronoshealth.app` 으로 등록했으면 멈추고 이 보드에 적을 것

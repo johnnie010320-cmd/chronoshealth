@@ -1,2 +1,9 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
+
+// 배포 서명 — Vita Labs Co., Ltd. (2026-11-09)
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM = TB5DJ5VA4C
+CODE_SIGN_IDENTITY = Apple Distribution
+CODE_SIGN_IDENTITY[sdk=iphoneos*] = Apple Distribution
+PROVISIONING_PROFILE_SPECIFIER = VITAcode iOS App Store
