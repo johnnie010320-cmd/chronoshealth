@@ -48,8 +48,18 @@ describe('GET /api/v1/app/version', () => {
     expect(d.minSupported).toBe('0.1.0');
   });
 
+  it('ios 는 ios·ios-min 기록만 본다', async () => {
+    await seed('android', '0.5.0');
+    await seed('ios-testflight', '0.9.9');
+    await seed('ios', '0.0.3');
+    const d = (await (await get('?platform=ios')).json()) as { platform: string; latest: string; minSupported: string | null };
+    expect(d.platform).toBe('ios');
+    expect(d.latest).toBe('0.0.3');
+    expect(d.minSupported).toBeNull();
+  });
+
   it('platform 이 없거나 다르면 400', async () => {
     expect((await get('')).status).toBe(400);
-    expect((await get('?platform=ios')).status).toBe(400);
+    expect((await get('?platform=windows')).status).toBe(400);
   });
 });
