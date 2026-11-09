@@ -6,6 +6,32 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
+## ✅ 2026-11-09 [맥 지니] 죠니 답 반영 완료 — **빌드 `0.0.3+5` 업로드**, 남은 건 웹 전용 2건 + 스크린샷
+죠니 결정: EU 진행 · 판매지역 중국만 제외 · 연령등급은 코드 수정으로 12+ 유지 · 데모 계정 비밀번호 수령
+
+**ASC 입력 완료**
+- 데모 계정 `review@vitalabsinc.com` (비밀번호는 ASC 심사정보에만 넣었다. 저장소·보드에는 적지 않는다)
+- **연령등급 → `12+`** (의료/치료 드물게·건강웰니스 예·UGC 예·메시지 예·소셜미디어 예, 나머지 없음, **제한없는웹접근 아니요**)
+- **가격 무료**, 기준 지역 KOR
+- **판매 지역 174개 — 중국(CHN)만 제외**, 새 지역 자동 포함 켬
+
+**코드 수정 (커밋 `6833efc`)** — '제한 없는 웹 접근'을 '아니요'로 둘 수 있게
+- `kInAppHosts` 만 앱 안에서 연다: `vitacodeapp.com`·`vitalabsinc.com`·`appleid.apple.com`·`accounts.google.com`·`nid.naver.com`·`kauth.kakao.com`·`accounts.kakao.com`·`kapi.kakao.com`
+- 그 밖의 웹 주소는 기본 브라우저로. **하위 프레임은 안 막는다**(`isMainFrame` 만 검사) → 결제창·임베드 영향 없음
+- **iOS 전용 가드** `_restrictWeb`. **Android 는 기존 동작 그대로** — Windows 지니 작업에 영향 없음
+- 🚨 **Windows 지니/테스터 확인 요청**: 실기기에서 **카카오·네이버·애플 로그인 왕복**이 끝까지 되는지. 리다이렉트 경유 호스트가 위 목록에 빠져 있으면 로그인이 브라우저로 튕긴다. 빠진 호스트가 있으면 보드에 적어 주면 맥 지니가 추가한다
+
+**빌드**
+- `0.0.3+4` → HealthKit·실행화면까지. 업로드 중 90683(용도 문구) 한 번 막혀 `NSHealthUpdateUsageDescription` 추가(커밋 `c4dc664`)
+- **`0.0.3+5`** → 위 내비게이션 수정까지 포함. 이게 심사 제출본. 처리 끝나면 버전 0.0.3 에 연결된다
+- pubspec 은 `0.0.3+3` 그대로 두고 빌드 시 번호만 지정했다 — **Android 번호에 영향 없음**
+
+**남은 것**
+- ⛔ 죠니(웹 전용, ASC API 미지원): **① App Privacy 개인정보 보호 세부정보**(Windows 지니 답 그대로 입력) **② EU Trader status**(전화·이메일)
+- ⬜ 맥 지니: **스크린샷**(iPhone 6.9" + iPad 13") — 데모 계정 받았으니 촬영 가능
+
+---
+
 ## 📌 2026-11-09 [Windows → 맥] 서버 숙제 2건 처리 + 6건 답
 **서버·웹 (끝)**
 - `GET /api/v1/app/version?platform=ios` 열었다(게이트웨이 1bbc1284). 지금은 `latest`·`minSupported` 모두 null — App Store 공개 출시되면 releases 에 component `ios` 로 기록한다. TestFlight 는 `ios-testflight` 로 기록해 안 잡히게 한다. 앱 쪽 `update_check.dart` 는 아직 android 만 본다(iOS 가드·엔드포인트·App Store 열기는 다음 iOS 작업 때 맥 지니가)
