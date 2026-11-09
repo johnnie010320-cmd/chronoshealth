@@ -4,6 +4,7 @@
 import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +17,27 @@ import 'strings.dart';
 import 'update_check.dart';
 
 const kHome = 'https://vitacodeapp.com/';
+
+/// 앱 화면 안에서 열어야 하는 호스트 — 우리 서비스와 소셜 로그인 리다이렉트 경유지.
+/// 여기 없는 웹 주소는 iOS 에서 기본 브라우저로 나간다.
+const kInAppHosts = <String>{
+  'vitacodeapp.com',
+  'vitalabsinc.com',
+  'appleid.apple.com',
+  'accounts.google.com',
+  'nid.naver.com',
+  'kauth.kakao.com',
+  'accounts.kakao.com',
+  'kapi.kakao.com',
+};
+
+/// iOS 에서만 바깥 웹 주소를 브라우저로 보낸다.
+bool get _restrictWeb => defaultTargetPlatform == TargetPlatform.iOS;
+
+bool _isInAppHost(Uri u) {
+  final h = u.host.toLowerCase();
+  return kInAppHosts.any((d) => h == d || h.endsWith('.$d'));
+}
 const kBrand = Color(0xFF0F766E);
 
 void main() {
@@ -100,13 +122,21 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
     if (info.forced) _showForcedDialog();
   }
 
-  // http(s) 는 앱 안에서 (로그인 복귀가 같은 화면으로 돌아와야 하므로).
-  // 그 밖의 주소(tel:, mailto:, intent:, kakaotalk: 등)는 기기의 다른 앱으로 넘긴다.
+  // 우리 서비스 주소와 로그인 제공자 주소는 앱 안에서 (로그인 복귀가 같은 화면으로 돌아와야 하므로).
+  // 그 밖의 웹 주소는 iOS 에서 기본 브라우저로 넘긴다 — App Store 연령등급의 '제한 없는 웹 접근'을
+  // '아니요'로 둘 수 있어야 12+ 가 유지된다. Android 는 Play 기준이 달라 기존 동작 그대로 둔다.
+  // 웹이 아닌 주소(tel:, mailto:, intent:, kakaotalk: 등)는 기기의 다른 앱으로 넘긴다.
   Future<NavigationDecision> _onNavigate(NavigationRequest req) async {
     final uri = Uri.tryParse(req.url);
     if (uri == null) return NavigationDecision.prevent;
-    if (uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme == 'about' || uri.scheme == 'data') {
-      return NavigationDecision.navigate;
+    if (uri.scheme == 'about' || uri.scheme == 'data') return NavigationDecision.navigate;
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      // 하위 프레임(결제창·임베드 등)은 막지 않는다. 주소창을 통째로 옮기는 이동만 본다.
+      if (!_restrictWeb || !req.isMainFrame || _isInAppHost(uri)) {
+        return NavigationDecision.navigate;
+      }
+      await _openExternal(uri);
+      return NavigationDecision.prevent;
     }
     await _openExternal(uri);
     return NavigationDecision.prevent;
