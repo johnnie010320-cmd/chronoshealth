@@ -33,8 +33,10 @@ const kInAppHosts = <String>{
   'kapi.kakao.com',
 };
 
+bool get _isIOS => defaultTargetPlatform == TargetPlatform.iOS;
+
 /// iOS 에서만 바깥 웹 주소를 브라우저로 보낸다.
-bool get _restrictWeb => defaultTargetPlatform == TargetPlatform.iOS;
+bool get _restrictWeb => _isIOS;
 
 bool _isInAppHost(Uri u) {
   final h = u.host.toLowerCase();
@@ -102,10 +104,13 @@ class _WebShellState extends State<WebShell> with WidgetsBindingObserver {
       // 웹의 'VITAcode 공유하기' → 휴대폰 공유 창 (share_bridge.dart)
       ..addJavaScriptChannel(kShareChannel, onMessageReceived: (m) {
         if (mounted) shareFromWeb(context, m.message, _s);
-      })
-      // 웹이 자기 하단 탭을 넘겨 주면 네이티브 탭바로 올린다 (web_tabs.dart 규약).
-      // 웹은 window.VitaNav 가 있는지로 앱 안인지 판단한다.
-      ..addJavaScriptChannel(kNavChannel, onMessageReceived: (m) => _onNavMessage(m.message));
+      });
+    // 웹이 자기 하단 탭을 넘겨 주면 네이티브 탭바로 올린다 (web_tabs.dart 규약).
+    // 웹은 window.VitaNav 가 있는지로 앱 안인지 판단하므로, 네이티브 탭바가 없는
+    // Android 에서는 채널 자체를 열지 않는다 (웹도 iOS 만 보지만 이중으로 막는다).
+    if (_isIOS) {
+      _web.addJavaScriptChannel(kNavChannel, onMessageReceived: (m) => _onNavMessage(m.message));
+    }
     final platform = _web.platform;
     if (platform is AndroidWebViewController) {
       platform.setOnShowFileSelector(_pickFiles);
