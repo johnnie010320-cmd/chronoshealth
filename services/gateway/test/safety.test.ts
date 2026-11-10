@@ -53,7 +53,7 @@ describe('신고·차단', () => {
       {
         method,
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       },
       env(),
     );

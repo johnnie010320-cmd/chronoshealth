@@ -34,6 +34,9 @@ export type Bindings = {
   //   $ wrangler secret put MAIL_FROM   # 예: VITAcode <no-reply@vitacodeapp.com> (Resend 검증 도메인)
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  // 스토어 심사용 데모 계정 비밀번호 — cron 이 계정·비밀번호를 이 값으로 지킨다(review-account/ensure.ts).
+  //   $ wrangler secret put REVIEW_ACCOUNT_PASSWORD
+  REVIEW_ACCOUNT_PASSWORD?: string;
 
   // ── SNS 로그인(OAuth) ─────────────────────────────────────────────
   // 브라우저 실제 접속 오리진. 정상 경로는 프록시가 X-Forwarded-Host 로 넘기므로 선택.

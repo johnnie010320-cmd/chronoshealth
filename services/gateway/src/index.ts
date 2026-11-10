@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { cleanupExpiredAttachments } from './messaging/cleanup.js';
+import { ensureReviewAccount } from './review-account/ensure.js';
 import type { Bindings } from './bindings.js';
 import { riskEstimateRoute } from './routes/risk-estimate.js';
 import { signupRoute } from './routes/auth/signup.js';
@@ -123,13 +124,20 @@ app.onError((err, c) => {
   return c.json({ error: { code: 'INTERNAL_ERROR' } }, 500);
 });
 
-// fetch + scheduled(cron) 핸들러. cron 은 wrangler.toml [triggers] 에 정의(매일 03:00 UTC).
+// fetch + scheduled(cron) 핸들러. cron 은 wrangler.toml [triggers] 에 정의.
+//   매일 03:00 UTC = 만료 첨부 정리 · 10분마다 = 심사용 데모 계정 지키기(review-account/ensure.ts).
 // request 는 테스트(app.request) 호환용 위임.
 const worker = {
   fetch: (req: Request, env: Bindings, ctx: ExecutionContext) => app.fetch(req, env, ctx),
   request: (...args: Parameters<typeof app.request>) => app.request(...args),
-  async scheduled(_event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(cleanupExpiredAttachments(env));
+  async scheduled(event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    if (event.cron === '0 3 * * *') ctx.waitUntil(cleanupExpiredAttachments(env));
+    ctx.waitUntil(
+      ensureReviewAccount(env).catch((err: unknown) => {
+        console.error('ensure review account failed', err);
+        return 'skipped' as const;
+      }),
+    );
   },
 };
 
