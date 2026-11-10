@@ -19,7 +19,10 @@ import type { Bindings } from '../../bindings.js';
 //  - @cf/meta/llama-3.1-8b-instruct: 2026-05-30 폐기(AiError 5028).
 //  - @cf/meta/llama-3.3-70b-instruct-fp8-fast: 한국어 출력이 깨진 유니코드(서러게이트)+
 //    퇴화 반복으로 사용 불가 → Qwen3(다국어 강함)로 교체. 2026-06-25.
-const MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+//  - @cf/meta/llama-3.1-8b-instruct-fp8: 2026-11-20 폐기(Cloudflare 공지) → 교체.
+//    위 이력대로 llama-3.3-70b 는 한국어 깨짐으로 제외 → Gemma 4(한국어 충실·비thinking·
+//    JSON 안정, Sonagi 비교시험 채택)로 전환. 2026-11-10.
+const MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const MODEL_VERSION = `ai-prescription-v0.3.0:${MODEL}`;
 
 // FormCoach(www.ever-day.com) 연동 가능한 건강 운동 종목 슬러그.

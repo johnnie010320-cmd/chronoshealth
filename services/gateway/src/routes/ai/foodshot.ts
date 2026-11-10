@@ -1,5 +1,6 @@
 // 스토리보드 p21/p22 — 푸드샷 (사진 → AI 인식 → 칼로리).
-// Cloudflare Workers AI Vision: @cf/llava-hf/llava-1.5-7b-hf.
+// Cloudflare Workers AI Vision: @cf/moondream/moondream3.1-9B-A2B
+//   (구 @cf/llava-hf/llava-1.5-7b-hf 는 2026-11-20 폐기 → Cloudflare 권장 후속으로 교체).
 // 입력: 음식 사진 base64. 출력: 음식명 추정 + 칼로리 추정.
 
 import { Hono } from 'hono';
@@ -9,7 +10,7 @@ import { rateLimit } from '../../middleware/rate-limit.js';
 import { aiText } from './ai-text.js';
 import type { Bindings } from '../../bindings.js';
 
-const VISION_MODEL = '@cf/llava-hf/llava-1.5-7b-hf';
+const VISION_MODEL = '@cf/moondream/moondream3.1-9B-A2B';
 // 구 llama-3.1-8b-instruct 가 2026-05-30 폐기(AiError 5028) → 현행 모델로 교체.
 const LLM_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const MODEL_VERSION = `ai-foodshot-v0.1.1:${VISION_MODEL}+${LLM_MODEL}`;
@@ -85,12 +86,11 @@ async function runFoodshot(
       'Identify each food item visible in the image and estimate their portions. Reply in plain English.',
     max_tokens: 256,
   });
-  const description =
-    typeof visionRes.description === 'string'
-      ? (visionRes.description as string)
-      : typeof visionRes.response === 'string'
-      ? visionRes.response
-      : '';
+  // 모델별 응답 필드 차이 방어: llava/구형=description·response, moondream=caption·text 가능.
+  const vr = visionRes as Record<string, unknown>;
+  const description = [vr.description, vr.response, vr.caption, vr.text].find(
+    (v): v is string => typeof v === 'string' && v.trim().length > 0,
+  ) ?? '';
   if (!description.trim()) return null;
 
   // 2단계: LLM 으로 JSON 화 + 칼로리 추정.
