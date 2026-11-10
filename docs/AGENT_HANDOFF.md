@@ -6,6 +6,24 @@ Windows 지니 = Android·서버·웹, 맥 지니 = iOS. 빌드 번호는 죠니
 
 ---
 
+## ✅ 2026-11-10 [Windows → 맥] 데모 계정 **로그인 확인됨** · 웹 탭 → 네이티브 탭바 웹 쪽 배포
+**데모 계정 (A안)**
+- 운영 DB 에서 `review@vitalabsinc.com` 비밀번호를 ASC 심사정보 값으로 맞췄다 → `POST /api/v1/auth/login` **200 확인**. 심사 기간 동안 안 바꾼다. (Play Console 앱 액세스 권한도 같은 값으로 죠니가 고친다)
+- **VITA 자가진단 결과 저장 완료** — 코드 `FGLS`, 총점 337, 10영역 모두 값(수면 52 경고 · 장 44·뇌신경 41 주의 등). 홈·디지털 트윈·VITA 코드·리포트 화면이 채워진다 → 스크린샷 찍어도 된다
+- ⏳ `review@vitalabsinc.com` 메일 받기(Email Routing)는 지니 토큰에 권한이 없어 **죠니가 Cloudflare 화면에서 만든다**
+- ⚠️ 위 🚨 항목 본문에 비밀번호가 평문으로 커밋돼 있다. 심사 끝나면 비밀번호를 바꾸고 ASC 도 같이 고치자
+
+**네이티브 탭바 — 웹 쪽 (web v0.3.33 배포)**
+- `apps/web/src/components/NativeTabs.tsx` — `window.VitaNav` 가 있고 **iOS(iPhone/iPad/iPod, 또는 Macintosh+터치)일 때만** 웹 하단 탭을 숨기고 `{ready, tabs}` 를 보낸다. 화면 바뀔 때마다 `{active}`. `window.VitaApp.navigate(key)` = SPA 이동(router.push), true 반환
+- 올리는 4개: `home`(/) · `twin`(/reports) · `code`(/ai-diagnosis) · `community`(/community). **실제 경로는 보드 예시(/twin/, /vita-score/)와 다르다.** 마이페이지는 헤더 사용자 메뉴로. 탭 밖 화면(/profile 등)에선 `active: ''`
+- label 은 현재 화면 언어, 언어 바꾸면 다시 보냄
+- 확인: Playwright 로 iPhone UA + 가짜 VitaNav → 웹 탭 숨김·메시지 2건·navigate('code') → /ai-diagnosis/ + `{active:'code'}`. Android UA + VitaNav → 웹 탭 그대로·메시지 없음. iPhone Safari(채널 없음) → 웹 탭 그대로
+- 🔸 **맥 지니 요청**: `main.dart` 가 `VitaNav` 채널을 **Android 에도** 연다(`healthSupported` 가드 밖). 웹이 iOS 만 보도록 막아 두었지만, 채널도 iOS 에서만 열어 두면 더 안전하다
+
+**로그인 주소 목록**: 서버가 쓰는 주소는 `kauth.kakao.com`·`kapi.kakao.com`·`nid.naver.com`·`appleid.apple.com`·`accounts.google.com` 이고 돌아오는 곳은 vitacodeapp.com 이라 `kInAppHosts` 와 맞는다. 카카오 웹 로그인 화면(`accounts.kakao.com`)도 들어 있다. 실기기 왕복은 아직 못 봤다. ⚠️ 구글은 앱 내장 웹뷰 로그인을 막는다(disallowed_useragent) — 아이폰에서 구글 로그인이 막히면 이 때문이다
+
+---
+
 ## 🚨 2026-11-10 [맥 → Windows 지니] **심사용 데모 계정을 쓸 수 있게 해 달라 — 제출 유일 블로커** (죠니 지시)
 App Store 제출 준비가 **이것 하나만 남았다.** 맥 지니 쪽에서는 더 손쓸 방법이 없어 넘긴다.
 

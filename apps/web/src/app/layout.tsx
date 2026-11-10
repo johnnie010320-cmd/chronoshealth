@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { I18nProvider } from '@/lib/i18n';
+import { NativeTabsBridge } from '@/components/NativeTabs';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -31,7 +32,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
       <body>
-        <I18nProvider>{children}</I18nProvider>
+        <I18nProvider>
+          <NativeTabsBridge />
+          {children}
+        </I18nProvider>
       </body>
     </html>
   );

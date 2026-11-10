@@ -7,6 +7,7 @@ import { ArrowLeftIcon, HomeIcon } from './HealthIcons';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu } from './UserMenu';
 import { BottomNav } from './BottomNav';
+import { useNativeTabs } from './NativeTabs';
 import { useI18n } from '@/lib/i18n';
 import { useTwinNickname } from '@/lib/profile-state';
 import { useUnreadMessages } from '@/lib/messages-state';
@@ -46,6 +47,8 @@ export function AppShell({
   const unread = useUnreadMessages();
   const pathname = usePathname();
   const isAdmin = useIsAdmin();
+  // iOS 앱 안이면 하단 탭은 네이티브 탭바가 그린다(NativeTabs.tsx).
+  const nativeTabs = useNativeTabs();
 
   // 앱 내부 이동 1회로 집계(페이지 이동마다 AppShell이 새로 마운트됨).
   useEffect(() => {
@@ -177,11 +180,11 @@ export function AppShell({
         )}
       </header>
 
-      <div className={`flex-1 px-5 ${hideBottomNav ? 'pb-8' : 'pb-24'}`}>
+      <div className={`flex-1 px-5 ${hideBottomNav || nativeTabs ? 'pb-8' : 'pb-24'}`}>
         {children}
       </div>
 
-      {!hideBottomNav && <BottomNav />}
+      {!hideBottomNav && !nativeTabs && <BottomNav />}
       <div className="safe-bottom" />
     </div>
   );
