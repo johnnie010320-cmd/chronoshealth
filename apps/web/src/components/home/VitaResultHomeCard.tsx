@@ -58,7 +58,7 @@ export function VitaResultHomeCard({ legalText }: { legalText: string }) {
               </p>
               {/* 핵심 요약(해시)을 크고 진하게 */}
               <p className="text-[15px] font-extrabold leading-tight text-violet-700 dark:text-violet-300">
-                {buildVitaReport(saved.sectionScores, locale).text?.nickname ?? ''}
+                {buildVitaReport(saved, locale).text?.nickname ?? ''}
               </p>
             </div>
             {/* 상세보기 — 우측 여유 공간, 생동감 그라데이션 버튼 */}

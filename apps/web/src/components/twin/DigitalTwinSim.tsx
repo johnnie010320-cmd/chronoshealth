@@ -107,7 +107,7 @@ export function DigitalTwinSim() {
       .catch(() => {});
   }, []);
 
-  const report = vita ? buildVitaReport(vita.sectionScores, locale) : null;
+  const report = vita ? buildVitaReport(vita, locale) : null;
   const typeName = report?.text?.nickname ?? '';
   const animalImg = vita ? vitaAnimalImage(vita.code) : '';
   const animalName = vita ? vitaAnimal(vita.code)?.name[locale] ?? vita.code : '';

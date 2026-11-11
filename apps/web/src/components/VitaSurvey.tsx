@@ -8,7 +8,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { ChevronRightIcon } from '@/components/HealthIcons';
 import { VitaResultSummary } from '@/components/vita/VitaResultSummary';
-import { submitVita, type VitaSectionScores, type VitaSavedResult } from '@/lib/api-client';
+import { submitVita, type VitaAnswers, type VitaSectionScores, type VitaSavedResult } from '@/lib/api-client';
 import { VITA_SECTIONS, type VitaSectionId } from '@/lib/vita/engine';
 import { VITA_ANSWER_OPTIONS, VITA_QUESTIONS, type VitaAnswerLevel } from '@/lib/vita/questions';
 
@@ -66,11 +66,22 @@ export function VitaSurvey({ onComplete }: { onComplete?: (r: VitaSavedResult) =
     return out;
   }
 
+  // 200문항 답 원본(영역별 1~20번 순서). 서버가 강도 가중·또래 기준선으로 유형을 정한다(v8.1).
+  function collectAnswers(): VitaAnswers {
+    const out = {} as VitaAnswers;
+    for (const s of VITA_SECTIONS) {
+      const row: number[] = [];
+      for (let no = 1; no <= 20; no += 1) row.push(answers[qKey(s.id, no)] ?? 0);
+      out[s.id] = row;
+    }
+    return out;
+  }
+
   async function handleSubmit() {
     setBusy(true);
     setErrCode(null);
     try {
-      const saved = await submitVita(computeSectionScores());
+      const saved = await submitVita(computeSectionScores(), collectAnswers());
       setDone(saved);
       onComplete?.(saved);
     } catch (err) {

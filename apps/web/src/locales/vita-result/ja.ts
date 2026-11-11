@@ -14,6 +14,13 @@ export const vrJa: VitaResultDict = {
     spectrumNote:
       'V・I・T・Aは活力が先行する主エンジン、F・G・L・Sは効率・保存が先行するエンジンです。優劣ではなく代謝の傾向です。',
     axisNo: (n) => `第${n}軸`,
+    borderline: '境界',
+    borderlineHeadline: (pairs) => `境界傾向: ${pairs} — 2つの傾向が同程度に表れています`,
+    cutoffBasis: {
+      cohort: (n) => `中央の点線 = 同じ性別・年代のユーザー${n}人の中央値。これより負荷が高いとF・G・L・Sエンジンが優位になります。`,
+      all: (n) => `中央の点線 = 全ユーザー${n}人の中央値。これより負荷が高いとF・G・L・Sエンジンが優位になります。`,
+      provisional: () => '中央の点線 = 暫定基準。ユーザーが30人以上集まると、同じ性別・年代の中央値に切り替わります。',
+    },
     engineMix: '私のエンジン構成',
     strengths: '現在の健康状態・強み',
     warnings: '逆説的な注意ポイント',

@@ -14,6 +14,13 @@ export const vrEs: VitaResultDict = {
     spectrumNote:
       'V·I·T·A son motores principales guiados por la vitalidad; F·G·L·S son motores guiados por la eficiencia y la conservación. Son tendencias metabólicas, no una jerarquía.',
     axisNo: (n) => `Eje ${n}`,
+    borderline: 'Límite',
+    borderlineHeadline: (pairs) => `En el límite: ${pairs} — ambas tendencias aparecen en niveles similares`,
+    cutoffBasis: {
+      cohort: (n) => `Línea punteada central = mediana de ${n} usuarios de tu sexo y grupo de edad. Por encima, predomina el motor F·G·L·S.`,
+      all: (n) => `Línea punteada central = mediana de los ${n} usuarios. Por encima, predomina el motor F·G·L·S.`,
+      provisional: () => 'Línea punteada central = referencia provisional. Con 30 o más usuarios, pasará a ser la mediana de tu sexo y grupo de edad.',
+    },
     engineMix: 'Mi combinación de motores',
     strengths: 'Estado actual · Fortalezas',
     warnings: 'Puntos de atención paradójicos',

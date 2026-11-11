@@ -1,61 +1,117 @@
 import type { VitaSectionScores } from '../schemas/vita.js';
+import {
+  ageDecade,
+  axisLoads,
+  classifyAxes,
+  linearSectionScores,
+  type PeerLoads,
+  type VitaAnswers,
+  type VitaAxes,
+  type VitaAxisLoads,
+} from './classify.js';
 
-// VITA CODE V8 분류(서버 정본 — 클라이언트 engine.ts와 동일 로직).
-// 1축 대사·에너지 V/F: energy,glucose · 2축 심혈관·순환 I/G: circulation ·
-// 3축 장·간·해독 T/L: gut,inflammation,detox · 4축 호르몬·리듬 A/S: hormone,sleep,musculoskeletal,neuro.
-// 축 평균 증상 부하(0~100)가 스펙트럼 중앙(50) 초과 → 보존 엔진(F/G/L/S), 이하 → 주 엔진(V/I/T/A).
-// 코드 순서=[1축][2축][3축][4축]. 전 영역 최적이면 'VITA'.
-// 🚨 apps/web/src/lib/vita/engine.ts VITA_SPECTRUM_MIDPOINT 와 반드시 같은 값.
-//   (2026-11-11 사고: 웹은 50, 서버는 옛 경계 20 → 저장 코드 FITS 인데 본문은 VITA 설명이 나옴.
-//    웹은 이제 sectionScores 로 코드를 다시 계산해 쓰지만, 서버 저장값도 맞춰 둔다.)
-export const VITA_SPECTRUM_MIDPOINT = 50;
-
-function secondary(...vals: number[]): boolean {
-  const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-  return avg > VITA_SPECTRUM_MIDPOINT;
-}
-
-export function classifyVita(s: VitaSectionScores): { code: string; totalScore: number } {
-  const metabolic = secondary(s.energy, s.glucose);
-  const circulation = secondary(s.circulation);
-  const gutliver = secondary(s.gut, s.inflammation, s.detox);
-  const hormonal = secondary(s.hormone, s.sleep, s.musculoskeletal, s.neuro);
-  const code =
-    (metabolic ? 'F' : 'V') +
-    (circulation ? 'G' : 'I') +
-    (gutliver ? 'L' : 'T') +
-    (hormonal ? 'S' : 'A');
-  const totalScore = Object.values(s).reduce((sum, v) => sum + v, 0);
-  return { code, totalScore };
-}
+// VITA CODE V8 결과 저장·조회. 유형 판정 규칙은 classify.ts(v8.1) — 서버가 정본.
+// 🚨 2026-11-11 사고: 서버(경계 20)·웹(50)이 따로 판정해 'FITS' 머리말 아래 'VITA' 본문이 나왔다.
+//    이제 웹은 판정하지 않고 결과의 code·axes 를 그대로 쓴다.
 
 export type VitaResultRow = {
   code: string;
   totalScore: number;
   sectionScores: VitaSectionScores;
+  axes: VitaAxes | null; // v8.1 이전 결과는 null(웹은 코드만 표시)
   createdAt: string;
 };
 
-export async function saveVitaResult(
+export type VitaInput = { sectionScores?: VitaSectionScores | undefined; answers?: VitaAnswers | undefined };
+
+const VALID_SEX = new Set(['male', 'female']);
+
+// 같은 성별·나이대 / 전체 사용자의 최신 결과 축 부하(본인 제외).
+export async function loadPeerLoads(
   db: D1Database,
   pseudonymId: string,
-  sectionScores: VitaSectionScores,
+  sex: string | null,
+  ageBand: string | null,
+): Promise<PeerLoads> {
+  const base = `SELECT v.axis_loads, v.sex, v.age_band FROM vita_results v
+    JOIN (SELECT user_pseudonym_id, MAX(created_at) mc FROM vita_results GROUP BY user_pseudonym_id) l
+      ON v.user_pseudonym_id = l.user_pseudonym_id AND v.created_at = l.mc
+    WHERE v.axis_loads IS NOT NULL AND v.user_pseudonym_id != ?`;
+  const { results } = await db
+    .prepare(base)
+    .bind(pseudonymId)
+    .all<{ axis_loads: string; sex: string | null; age_band: string | null }>();
+  const all: VitaAxisLoads[] = [];
+  const cohort: VitaAxisLoads[] = [];
+  for (const r of results ?? []) {
+    let loads: VitaAxisLoads;
+    try {
+      loads = JSON.parse(r.axis_loads) as VitaAxisLoads;
+    } catch {
+      continue;
+    }
+    all.push(loads);
+    if (sex && ageBand && r.sex === sex && r.age_band === ageBand) cohort.push(loads);
+  }
+  return { cohort, all };
+}
+
+async function readCohort(
+  identityDb: D1Database | undefined,
+  pseudonymId: string,
+): Promise<{ sex: string | null; ageBand: string | null }> {
+  if (!identityDb) return { sex: null, ageBand: null };
+  const u = await identityDb
+    .prepare('SELECT sex, birth_year FROM users WHERE user_pseudonym_id = ? LIMIT 1')
+    .bind(pseudonymId)
+    .first<{ sex: string | null; birth_year: number | null }>();
+  return {
+    sex: u?.sex && VALID_SEX.has(u.sex) ? u.sex : null,
+    ageBand: ageDecade(u?.birth_year ?? null),
+  };
+}
+
+export async function saveVitaResult(
+  db: D1Database,
+  identityDb: D1Database | undefined,
+  pseudonymId: string,
+  input: VitaInput,
   modelVersion: string,
 ): Promise<VitaResultRow> {
-  const { code, totalScore } = classifyVita(sectionScores);
+  const answers = input.answers ?? null;
+  const sectionScores = answers ? linearSectionScores(answers) : (input.sectionScores as VitaSectionScores);
+  const totalScore = Object.values(sectionScores).reduce((sum, v) => sum + v, 0);
+  const loads = axisLoads(sectionScores, answers);
+  const { sex, ageBand } = await readCohort(identityDb, pseudonymId);
+  const peers = await loadPeerLoads(db, pseudonymId, sex, ageBand);
+  const { code, axes } = classifyAxes(loads, peers);
+
   const id = crypto.randomUUID();
   await db
     .prepare(
-      `INSERT INTO vita_results (id, user_pseudonym_id, code, total_score, section_scores, model_version)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO vita_results (id, user_pseudonym_id, code, total_score, section_scores, model_version,
+                                 answers, axis_loads, axis_detail, sex, age_band)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(id, pseudonymId, code, totalScore, JSON.stringify(sectionScores), modelVersion)
+    .bind(
+      id,
+      pseudonymId,
+      code,
+      totalScore,
+      JSON.stringify(sectionScores),
+      modelVersion,
+      answers ? JSON.stringify(answers) : null,
+      JSON.stringify(loads),
+      JSON.stringify(axes),
+      sex,
+      ageBand,
+    )
     .run();
   const row = await db
     .prepare('SELECT created_at FROM vita_results WHERE id = ?')
     .bind(id)
     .first<{ created_at: string }>();
-  return { code, totalScore, sectionScores, createdAt: row?.created_at ?? '' };
+  return { code, totalScore, sectionScores, axes, createdAt: row?.created_at ?? '' };
 }
 
 export async function readLatestVitaResult(
@@ -64,12 +120,12 @@ export async function readLatestVitaResult(
 ): Promise<VitaResultRow | null> {
   const row = await db
     .prepare(
-      `SELECT code, total_score, section_scores, created_at
+      `SELECT code, total_score, section_scores, axis_detail, created_at
          FROM vita_results WHERE user_pseudonym_id = ?
         ORDER BY created_at DESC LIMIT 1`,
     )
     .bind(pseudonymId)
-    .first<{ code: string; total_score: number; section_scores: string; created_at: string }>();
+    .first<{ code: string; total_score: number; section_scores: string; axis_detail: string | null; created_at: string }>();
   if (!row) return null;
   let sectionScores: VitaSectionScores;
   try {
@@ -77,10 +133,13 @@ export async function readLatestVitaResult(
   } catch {
     return null;
   }
-  return {
-    code: row.code,
-    totalScore: row.total_score,
-    sectionScores,
-    createdAt: row.created_at,
-  };
+  let axes: VitaAxes | null = null;
+  if (row.axis_detail) {
+    try {
+      axes = JSON.parse(row.axis_detail) as VitaAxes;
+    } catch {
+      axes = null;
+    }
+  }
+  return { code: row.code, totalScore: row.total_score, sectionScores, axes, createdAt: row.created_at };
 }

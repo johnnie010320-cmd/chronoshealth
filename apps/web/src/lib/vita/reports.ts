@@ -7,6 +7,7 @@ import {
   axisPrimaryPercent,
   classifyVita,
   VITA_AXIS_META,
+  VITA_AXIS_ORDER,
   VITA_SECTIONS,
   vitaBand,
   vitaTypeByCode,
@@ -46,6 +47,7 @@ export type VitaAxisSpectrum = {
   primary: { letter: string; name: string };
   secondary: { letter: string; name: string };
   band: VitaBand;
+  borderline: boolean; // ④ 기준선과 차이 5 이하 — 두 성향을 함께 표시
 };
 
 export type VitaReport = {
@@ -58,12 +60,32 @@ export type VitaReport = {
   spectrum: VitaAxisSpectrum[];
 };
 
-// 영역별 점수 → 완성 리포트(아키타입 본문 + 영역 밴드 + 축 스펙트럼).
-export function buildVitaReport(
-  sectionScores: Record<VitaSectionId, number>,
-  locale: VitaLocale = 'ko',
-): VitaReport {
-  const result = classifyVita(sectionScores);
+// 저장 결과 → 완성 리포트(아키타입 본문 + 영역 밴드 + 축 스펙트럼).
+// 🚨 유형 코드·축 판정은 서버 결과(code·axes)를 그대로 쓴다 — 웹에서 다시 판정하지 않는다(2026-11-11 사고).
+export type VitaReportInput = {
+  code: string;
+  sectionScores: Record<VitaSectionId, number>;
+  axes?: Partial<Record<VitaAxis, { load: number; cutoff: number; secondary: boolean; borderline: boolean }>> | null;
+};
+
+// 기준선(cutoff)을 슬라이더 가운데(50%)에 둔다. 부하가 기준선보다 낮을수록 주 엔진 쪽(100%).
+function pctAroundCutoff(load: number, cutoff: number): number {
+  const c = Math.min(99, Math.max(1, cutoff));
+  const v = load <= c ? 50 + (50 * (c - load)) / c : 50 - (50 * (load - c)) / (100 - c);
+  return Math.round(Math.max(0, Math.min(100, v)));
+}
+
+export function buildVitaReport(saved: VitaReportInput, locale: VitaLocale = 'ko'): VitaReport {
+  const sectionScores = saved.sectionScores;
+  const base = classifyVita(sectionScores); // 영역 평균 부하·총점(표시용). 코드는 쓰지 않는다.
+  const axisLoad = { ...base.axisLoad };
+  const axisSecondary = {} as Record<VitaAxis, boolean>;
+  VITA_AXIS_ORDER.forEach((axis, i) => {
+    const d = saved.axes?.[axis];
+    if (d) axisLoad[axis] = d.load;
+    axisSecondary[axis] = d ? d.secondary : 'FGLS'.includes(saved.code.charAt(i));
+  });
+  const result: VitaResult = { ...base, code: saved.code, axisLoad, axisSecondary };
   const headline = vitaTypeByCode(result.code);
   const archetype = vitaArchetype(result.code);
 
@@ -78,8 +100,9 @@ export function buildVitaReport(
   }));
 
   const spectrum: VitaAxisSpectrum[] = VITA_AXIS_META.map((m) => {
-    const load = result.axisLoad[m.axis];
-    const isSecondary = result.axisSecondary[m.axis];
+    const d = saved.axes?.[m.axis];
+    const load = axisLoad[m.axis];
+    const isSecondary = axisSecondary[m.axis];
     const active = isSecondary ? m.secondary : m.primary;
     return {
       axis: m.axis,
@@ -88,13 +111,14 @@ export function buildVitaReport(
       titleKo: m.titleKo,
       title: vitaAxisTitle(m.axis, locale).title,
       load,
-      primaryPct: axisPrimaryPercent(load),
+      primaryPct: d ? pctAroundCutoff(d.load, d.cutoff) : axisPrimaryPercent(load),
       isSecondary,
       activeLetter: active.letter,
       activeName: active.name,
       primary: m.primary,
       secondary: m.secondary,
       band: vitaBand(load),
+      borderline: d?.borderline ?? false,
     };
   });
 

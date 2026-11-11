@@ -15,6 +15,13 @@ export const vrKo = {
     spectrumNote:
       'V·I·T·A는 활력이 앞서는 주 엔진, F·G·L·S는 효율·보존이 앞서는 엔진입니다. 우열이 아닌 대사 성향입니다.',
     axisNo: (n: number) => `${n}축`,
+    borderline: '경계',
+    borderlineHeadline: (pairs: string) => `경계 성향: ${pairs} — 두 성향이 비슷하게 나타납니다`,
+    cutoffBasis: {
+      cohort: (n: number) => `가운데 점선 = 같은 성별·나이대 사용자 ${n}명의 중앙값. 이보다 부하가 높으면 F·G·L·S 엔진이 앞섭니다.`,
+      all: (n: number) => `가운데 점선 = 전체 사용자 ${n}명의 중앙값. 이보다 부하가 높으면 F·G·L·S 엔진이 앞섭니다.`,
+      provisional: () => '가운데 점선 = 임시 기준. 사용자가 30명 이상 모이면 같은 성별·나이대 중앙값으로 바뀝니다.',
+    },
     engineMix: '내 엔진 구성',
     strengths: '현재 건강 상태 · 강점',
     warnings: '역설적 주의 포인트',

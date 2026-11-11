@@ -40,7 +40,7 @@ export function VitaResultSummary({ saved }: { saved: VitaSavedResult }) {
       .catch(() => {});
   }, []);
 
-  const report = buildVitaReport(saved.sectionScores, locale);
+  const report = buildVitaReport(saved, locale);
   const chartData = report.sectionRows.map((r) => ({
     no: r.no,
     label: r.title,

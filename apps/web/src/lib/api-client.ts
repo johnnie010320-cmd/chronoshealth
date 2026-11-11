@@ -10,7 +10,6 @@ import type {
 } from './signup-schema';
 import { readSession } from './session';
 import type { Nationality } from './signup-schema';
-import { classifyVita } from './vita/engine';
 
 // ADR 0014 — same-origin 상대경로. `/api/*` 는 CF Pages Function 프록시가 게이트웨이로 전달.
 // same-origin 이므로 쿠키 자동 전송(fetch credentials 기본 'same-origin').
@@ -1023,29 +1022,40 @@ export type VitaSectionScores = {
   neuro: number;
 };
 
+// 영역별 20문항 답(0~5), 1~20번 순서.
+export type VitaAnswers = Record<keyof VitaSectionScores, number[]>;
+
+// 축별 판정 근거(v8.1, 서버 정본). 옛 결과는 null.
+export type VitaAxisDetail = {
+  load: number;
+  cutoff: number;
+  basis: 'cohort' | 'all' | 'provisional';
+  peers: number;
+  secondary: boolean;
+  borderline: boolean;
+};
+export type VitaAxes = Record<'metabolic' | 'circulation' | 'gutliver' | 'hormonal', VitaAxisDetail>;
+
+// 🚨 유형 코드는 서버가 정한다(services/gateway/src/vita/classify.ts). 웹에서 다시 계산하지 말 것 —
+//    2026-11-11 서버·웹이 따로 판정해 'FITS' 머리말 아래 'VITA' 본문이 나왔던 사고.
 export type VitaSavedResult = {
   code: string;
   totalScore: number;
   sectionScores: VitaSectionScores;
+  axes?: VitaAxes | null;
   createdAt: string;
 };
 
-export async function submitVita(sectionScores: VitaSectionScores): Promise<VitaSavedResult> {
+export async function submitVita(sectionScores: VitaSectionScores, answers?: VitaAnswers): Promise<VitaSavedResult> {
   const session = readSession();
   if (!session) throw new Error('UNAUTHORIZED');
   const res = await fetch(`${GATEWAY_URL}/api/v1/vita`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.sessionToken}` },
-    body: JSON.stringify({ sectionScores }),
+    body: JSON.stringify(answers ? { sectionScores, answers } : { sectionScores }),
   });
   if (!res.ok) await throwOnError(res);
-  return withVitaCode(((await res.json()) as { result: VitaSavedResult }).result);
-}
-
-// 코드(4글자)는 영역 점수에서 다시 계산해 쓴다 — 화면의 본문·스펙트럼(buildVitaReport)과 늘 같은 코드가 되도록.
-// (2026-11-11: 서버 저장 코드가 옛 경계로 매겨져 'FITS' 머리말 아래 'VITA' 본문이 나왔던 사고 재발 방지.)
-function withVitaCode(r: VitaSavedResult): VitaSavedResult {
-  return { ...r, code: classifyVita(r.sectionScores).code };
+  return ((await res.json()) as { result: VitaSavedResult }).result;
 }
 
 export async function fetchLatestVita(): Promise<VitaSavedResult | null> {
@@ -1056,8 +1066,7 @@ export async function fetchLatestVita(): Promise<VitaSavedResult | null> {
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
-  const r = ((await res.json()) as { result: VitaSavedResult | null }).result;
-  return r ? withVitaCode(r) : null;
+  return ((await res.json()) as { result: VitaSavedResult | null }).result;
 }
 
 // ── 국민건강보험공단(건강보험25시) 검진 연동 — 인터페이스 + MOCK(실연동 키는 추후) ──

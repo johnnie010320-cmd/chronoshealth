@@ -26,7 +26,7 @@ const VITA_SCORES = {
   musculoskeletal: 29,
   neuro: 41,
 };
-const VITA_MODEL_VERSION = 'vita-v8.0.0';
+const VITA_MODEL_VERSION = 'vita-v8.1.0';
 
 export type EnsureResult = 'skipped' | 'ok' | 'created' | 'password_reset';
 
@@ -102,7 +102,7 @@ export async function ensureReviewAccount(env: Bindings): Promise<EnsureResult> 
   }
 
   if ((await readLatestVitaResult(env.DB, pid)) === null) {
-    await saveVitaResult(env.DB, pid, VITA_SCORES, VITA_MODEL_VERSION);
+    await saveVitaResult(env.DB, env.IDENTITY_DB, pid, { sectionScores: VITA_SCORES }, VITA_MODEL_VERSION);
   }
   return result;
 }

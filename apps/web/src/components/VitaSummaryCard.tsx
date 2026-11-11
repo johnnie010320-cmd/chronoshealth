@@ -38,7 +38,7 @@ export function VitaSummaryCard() {
   // 결과가 있을 때만 요약을 노출한다. '시작하기' 진입은 AI 리포트 탭에 있으므로 라이프에선 생략(중복 방지).
   if (state !== 'ok' || !saved) return null;
 
-  const report = buildVitaReport(saved.sectionScores, locale);
+  const report = buildVitaReport(saved, locale);
   const head = report.headline;
   const tx = report.text;
 

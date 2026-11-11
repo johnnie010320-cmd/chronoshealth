@@ -56,7 +56,7 @@ export default function AiDiagnosisPage() {
       .catch(() => setState('none'));
   }, []);
 
-  const report: VitaReport | null = saved ? buildVitaReport(saved.sectionScores, locale) : null;
+  const report: VitaReport | null = saved ? buildVitaReport(saved, locale) : null;
   const arch = report?.text;
   const animal = saved ? vitaAnimal(saved.code) : undefined;
 
@@ -98,6 +98,16 @@ export default function AiDiagnosisPage() {
               {animal && (
                 <p className="mt-1 text-[11px] font-medium text-white/85">
                   {animal.titleEn} · {animal.quadrantEn}
+                </p>
+              )}
+              {report.spectrum.some((x) => x.borderline) && (
+                <p className="mt-1.5 text-[11px] font-semibold text-amber-100">
+                  {t.borderlineHeadline(
+                    report.spectrum
+                      .filter((x) => x.borderline)
+                      .map((x) => `${t.axisNo(x.no)} ${x.primary.letter}/${x.secondary.letter}`)
+                      .join(' · '),
+                  )}
                 </p>
               )}
               <p className="mt-2 text-[12px] font-semibold">{t.totalScore(saved.totalScore)}</p>
@@ -159,6 +169,11 @@ export default function AiDiagnosisPage() {
             <p className="mt-3 text-[10px] leading-relaxed text-stone-400 dark:text-stone-500">
               {t.spectrumNote}
             </p>
+            {saved.axes && (
+              <p className="mt-1 text-[10px] leading-relaxed text-stone-400 dark:text-stone-500">
+                {t.cutoffBasis[saved.axes.metabolic.basis](saved.axes.metabolic.peers)}
+              </p>
+            )}
           </section>
 
           {arch && (
@@ -319,12 +334,19 @@ export default function AiDiagnosisPage() {
 function SpectrumRow({ s, t }: { s: VitaAxisSpectrum; t: VitaResultDict['diag'] }) {
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between text-[11px]">
-        <span className="font-semibold text-stone-600 dark:text-stone-300">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+        <span className="min-w-0 font-semibold text-stone-600 dark:text-stone-300">
           {t.axisNo(s.no)} · {s.title}
         </span>
-        <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-          {s.activeLetter} · {s.activeName}
+        <span className="flex shrink-0 items-center gap-1">
+          {s.borderline && (
+            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+              {t.borderline} {s.primary.letter}/{s.secondary.letter}
+            </span>
+          )}
+          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+            {s.activeLetter} · {s.activeName}
+          </span>
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -333,6 +355,7 @@ function SpectrumRow({ s, t }: { s: VitaAxisSpectrum; t: VitaResultDict['diag'] 
         </span>
         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
           <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" style={{ width: `${s.primaryPct}%` }} />
+          <div className="absolute inset-y-0 left-1/2 border-l border-dashed border-stone-400/70 dark:border-stone-500/70" />
           <div
             className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-brand-700 shadow dark:border-stone-900"
             style={{ left: `${s.primaryPct}%` }}

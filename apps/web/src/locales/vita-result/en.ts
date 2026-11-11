@@ -14,6 +14,13 @@ export const vrEn: VitaResultDict = {
     spectrumNote:
       'V·I·T·A are primary engines led by vitality; F·G·L·S are engines led by efficiency and conservation. These are metabolic tendencies, not rankings.',
     axisNo: (n) => `Axis ${n}`,
+    borderline: 'Borderline',
+    borderlineHeadline: (pairs) => `Borderline: ${pairs} — both tendencies appear at similar levels`,
+    cutoffBasis: {
+      cohort: (n) => `Center dotted line = median of ${n} users of your sex and age group. Above it, the F·G·L·S engine leads.`,
+      all: (n) => `Center dotted line = median of all ${n} users. Above it, the F·G·L·S engine leads.`,
+      provisional: () => 'Center dotted line = provisional baseline. Once 30+ users are collected, it switches to the median for your sex and age group.',
+    },
     engineMix: 'My Engine Mix',
     strengths: 'Current State · Strengths',
     warnings: 'Paradoxical Watch Points',

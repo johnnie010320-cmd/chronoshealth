@@ -5,7 +5,8 @@ import { VitaSubmitRequest } from '../../schemas/vita.js';
 import { readLatestVitaResult, saveVitaResult } from '../../vita/storage.js';
 import type { Bindings } from '../../bindings.js';
 
-const MODEL_VERSION = 'vita-v8.0.0';
+// v8.1.0(2026-11-11): 답 원본·강도 가중·또래 기준선·경계 표시(vita/classify.ts).
+const MODEL_VERSION = 'vita-v8.1.0';
 
 export const vitaRoute = new Hono<{
   Bindings: Bindings;
@@ -25,7 +26,13 @@ vitaRoute.post('/', authMiddleware, rateLimit(60), async (c) => {
   if (!parsed.success) {
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   }
-  const saved = await saveVitaResult(c.env.DB, pseudonymId, parsed.data.sectionScores, MODEL_VERSION);
+  const saved = await saveVitaResult(
+    c.env.DB,
+    c.env.IDENTITY_DB,
+    pseudonymId,
+    { sectionScores: parsed.data.sectionScores, answers: parsed.data.answers },
+    MODEL_VERSION,
+  );
   return c.json({ result: saved, modelVersion: MODEL_VERSION });
 });
 
