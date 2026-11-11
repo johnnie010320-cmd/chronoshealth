@@ -58,7 +58,7 @@ export const GUIDES: Record<string, VitaGuideText> = {
   },
   FITA: {
     feature:
-      'Es un tipo metabólico inteligente que consume poca energía pero tiene una excelente flexibilidad para convertir recursos. Es sensible a los cambios de las hormonas de la corteza suprarrenal (cortisol), por lo que el manejo del estrés es la clave de su tasa metabólica.',
+      'Eres un tipo metabólico ahorrador: gastas poca energía y conservas el combustible. Tu circulación y tu depuración intestinal están en buen estado, pero con poco margen de rendimiento eres sensible a los cambios de la hormona suprarrenal (cortisol), por lo que el manejo del estrés y las comidas regulares son la clave de tu metabolismo.',
     nutrients: ['Ashwagandha', 'Vitamina B6', 'Toronja', 'Sal marina sin refinar'],
     exerciseRest: ['Yoga vinyasa', 'Ejercicios de fortalecimiento del core', 'Entrenamiento de técnicas de respiración'],
     diet: 'Comer poco y con frecuencia (pequeñas porciones frecuentes) para estabilizar la glucosa',
@@ -72,21 +72,21 @@ export const GUIDES: Record<string, VitaGuideText> = {
   },
   FILA: {
     feature:
-      'Es un tipo «velocista» ágil, con metabolismo de la glucosa y una rápida velocidad de respuesta. Absorbe rápidamente los carbohidratos y quema la energía de inmediato, pero su desgaste físico puede ser pronunciado.',
-    nutrients: ['Carbohidratos complejos (avena·camote)', 'Omega-9', 'Vitamina B12'],
-    exerciseRest: ['Intervalos de corta distancia', 'Deportes de raqueta', 'Descansos regulares para recargar energía'],
+      'Tu rendimiento energético es bajo, pero te mantienes en movimiento durante el día y eliminas desechos mediante la circulación linfática. Estar sentado mucho tiempo acumula hinchazón y fatiga, y las caídas de energía por la tarde son frecuentes, así que moverte a menudo y mantener estable la glucosa es clave.',
+    nutrients: ['Verduras ricas en potasio', 'Proteína de calidad', 'Omega-3', 'Magnesio'],
+    exerciseRest: ['Caminata rápida·rebote suave', 'Entrenamiento de fuerza del tren inferior', 'Descanso con las piernas elevadas'],
     diet: 'Consumir primero la fibra para prevenir picos de glucosa (Vegetables First)',
   },
   FILS: {
     feature:
-      'Es un quemador «joya», con un metabolismo celular ágil y una minuciosa capacidad de distribuir la energía durante la noche. El equilibrio de minerales es la llave para mantener la salud metabólica.',
+      'Tienes un metabolismo conservador que usa la energía con moderación y restaura tu cuerpo durante la noche mediante el sueño profundo y la circulación linfática. Cuando tu sueño se altera, la fatiga y la hinchazón aumentan mucho al día siguiente, y el equilibrio mineral es la clave para mantenerte en buena forma.',
     nutrients: ['Magnesio', 'Minerales ionizados', 'Frutos secos', 'Vitamina E'],
     exerciseRest: ['Pilates con accesorios', 'Yoga de relajación', 'Rutina nocturna tranquila'],
     diet: 'Refrigerios basados en frutos secos saludables como almendras y nueces',
   },
   FGTA: {
     feature:
-      'Es un defensor robusto, con una estructura de membrana celular sólida y una excelente defensa inmunitaria. Su eficiencia para convertir el metabolismo de las grasas es algo lenta, por lo que requiere elegir su dieta con cuidado.',
+      'Eres un defensor sólido: un metabolismo ahorrador que tiende a almacenar energía, combinado con una respuesta vascular protectora. Tu barrera intestinal está limpia, pero tardas en pasar al metabolismo de las grasas y las subidas de glucosa tras las comidas pueden sobrecargar tus vasos, así que debes elegir tu dieta con cuidado.',
     nutrients: ['Bioflavonoides cítricos', 'Extracto de hoja de olivo', 'Cromo'],
     exerciseRest: ['Ejercicio aeróbico continuo de baja intensidad y larga duración (Zone 2 Training)'],
     diet: 'Dieta orgánica con menos grasas saturadas y basada en grasas insaturadas',
@@ -100,17 +100,17 @@ export const GUIDES: Record<string, VitaGuideText> = {
   },
   FGLA: {
     feature:
-      'Se caracteriza por un sistema circulatorio limpio y una flexibilidad metabólica pura de base vegetal. Su sensibilidad a las toxinas es muy alta, por lo que al aplicar un estilo de vida limpio obtiene una rápida mejora metabólica.',
+      'En tu tipo, un metabolismo ahorrador trabaja junto con una respuesta vascular protectora y la depuración linfática. Eres muy sensible a las toxinas y a los productos de glicación (AGEs), así que adoptar un estilo de vida limpio mejora rápidamente tu metabolismo.',
     nutrients: ['Chlorella', 'Clorofila (Chlorophyll)', 'Vitamina C', 'Proteína vegetal limpia'],
     exerciseRest: ['Senderismo al aire libre', 'Caminatas por el bosque', 'Descanso en contacto con la naturaleza'],
     diet: 'Exclusión total de ultraprocesados y una dieta vital centrada en vegetales',
   },
   FGLS: {
     feature:
-      'Es un tipo «caballero de esmoquin», con una excelente adaptación metabólica al frío y a los ambientes de baja temperatura, y una capacidad de termogénesis (Thermogenesis) nocturna singularmente desarrollada.',
-    nutrients: ['Omega-3 de alta concentración', 'Vitamina D3+K2', 'Activador de la grasa parda (capsaicina)'],
-    exerciseRest: ['Ducha fría/Cold Plunge', 'Ejercicio aeróbico en invierno', 'Descanso nocturno ordenado'],
-    diet: 'Dieta de mariscos y pescado azul de calidad, que aumenta la eficiencia en la quema de grasa',
+      'Eres un tipo "caballero de esmoquin" con un metabolismo muy conservador que depende del sueño y de la circulación linfática nocturna para restaurar tu cuerpo. Sientes el frío con facilidad y tus vasos reaccionan de forma sensible a los estímulos, así que mantenerte abrigado y cuidar tu ritmo de sueño es clave.',
+    nutrients: ['Omega-3 en dosis altas', 'Vitamina D3+K2', 'Magnesio', 'Especias que calientan, como jengibre·canela'],
+    exerciseRest: ['Cardio suave durante el día', 'Un baño tibio de medio cuerpo', 'Un descanso nocturno bien organizado'],
+    diet: 'Una dieta basada en mariscos de calidad, pescado azul y comidas calientes que protegen tus vasos y te ayudan a mantener el calor',
   },
 };
 

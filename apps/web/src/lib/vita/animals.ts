@@ -21,14 +21,14 @@ export const VITA_ANIMALS: Record<string, VitaAnimal> = {
   VGTS: { code: 'VGTS', image: '/vita/animals/vgts.png', name: { ko: '코알라', en: 'Koala', ja: 'コアラ', es: 'Koala' }, titleEn: 'Starry Wizard Koala', quadrantEn: 'Starry Power / Rest Balance' },
   VGLA: { code: 'VGLA', image: '/vita/animals/vgla.png', name: { ko: '돌고래', en: 'Dolphin', ja: 'イルカ', es: 'Delfín' }, titleEn: 'Clear Wave Dolphin', quadrantEn: 'Wave Flow / High Active' },
   VGLS: { code: 'VGLS', image: '/vita/animals/vgls.png', name: { ko: '늑대', en: 'Wolf', ja: 'オオカミ', es: 'Lobo' }, titleEn: 'Moonlight Guardian Wolf', quadrantEn: 'Moonlight / Guard Burner' },
-  FITA: { code: 'FITA', image: '/vita/animals/fita.png', name: { ko: '여우', en: 'Fox', ja: 'キツネ', es: 'Zorro' }, titleEn: 'Flexible Yoga Fox', quadrantEn: 'Flexible / Low Power' },
+  FITA: { code: 'FITA', image: '/vita/animals/fita.png', name: { ko: '여우', en: 'Fox', ja: 'キツネ', es: 'Zorro' }, titleEn: 'Flexible Yoga Fox', quadrantEn: 'Steady / Low Power' },
   FITS: { code: 'FITS', image: '/vita/animals/fits.png', name: { ko: '판다', en: 'Panda', ja: 'パンダ', es: 'Panda' }, titleEn: 'Deep Sleep Panda', quadrantEn: 'Deep Sleep / Energy Saver' },
-  FILA: { code: 'FILA', image: '/vita/animals/fila.png', name: { ko: '토끼', en: 'Bunny', ja: 'ウサギ', es: 'Conejo' }, titleEn: 'Speedy Spring Bunny', quadrantEn: 'Speedy / Light Active' },
-  FILS: { code: 'FILS', image: '/vita/animals/fils.png', name: { ko: '다람쥐', en: 'Squirrel', ja: 'リス', es: 'Ardilla' }, titleEn: 'Night Crystal Squirrel', quadrantEn: 'Crystal / Rapid Burner' },
+  FILA: { code: 'FILA', image: '/vita/animals/fila.png', name: { ko: '토끼', en: 'Bunny', ja: 'ウサギ', es: 'Conejo' }, titleEn: 'Speedy Spring Bunny', quadrantEn: 'Steady Flow / Light Active' },
+  FILS: { code: 'FILS', image: '/vita/animals/fils.png', name: { ko: '다람쥐', en: 'Squirrel', ja: 'リス', es: 'Ardilla' }, titleEn: 'Night Crystal Squirrel', quadrantEn: 'Crystal / Night Saver' },
   FGTA: { code: 'FGTA', image: '/vita/animals/fgta.png', name: { ko: '코뿔소', en: 'Rhino', ja: 'サイ', es: 'Rinoceronte' }, titleEn: 'Sturdy Rhino Defender', quadrantEn: 'Sturdy / Dense Energy' },
   FGTS: { code: 'FGTS', image: '/vita/animals/fgts.png', name: { ko: '나무늘보', en: 'Sloth', ja: 'ナマケモノ', es: 'Perezoso' }, titleEn: 'Cosmic Star Sloth', quadrantEn: 'Cosmic / Ultra Saver' },
-  FGLA: { code: 'FGLA', image: '/vita/animals/fgla.png', name: { ko: '사슴', en: 'Deer', ja: 'シカ', es: 'Ciervo' }, titleEn: 'Nature Forest Deer', quadrantEn: 'Nature / Clean Detox' },
-  FGLS: { code: 'FGLS', image: '/vita/animals/fgls.png', name: { ko: '펭귄', en: 'Penguin', ja: 'ペンギン', es: 'Pingüino' }, titleEn: 'Starlight Tuxedo Penguin', quadrantEn: 'Starlight / Cold Burner' },
+  FGLA: { code: 'FGLA', image: '/vita/animals/fgla.png', name: { ko: '사슴', en: 'Deer', ja: 'シカ', es: 'Ciervo' }, titleEn: 'Nature Forest Deer', quadrantEn: 'Nature / Clean Saver' },
+  FGLS: { code: 'FGLS', image: '/vita/animals/fgls.png', name: { ko: '펭귄', en: 'Penguin', ja: 'ペンギン', es: 'Pingüino' }, titleEn: 'Starlight Tuxedo Penguin', quadrantEn: 'Starlight / Night Saver' },
 };
 
 export function vitaAnimal(code: string | null | undefined): VitaAnimal | undefined {

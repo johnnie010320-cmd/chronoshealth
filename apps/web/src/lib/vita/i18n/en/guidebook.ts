@@ -58,7 +58,7 @@ export const GUIDES: Record<string, VitaGuideText> = {
   },
   FITA: {
     feature:
-      'You are a clever metabolic type that uses little energy but is highly flexible in switching between fuel sources. You are sensitive to changes in adrenal cortex hormones (cortisol), so managing stress is the key to your metabolic rate.',
+      'You are an energy-saving metabolic type that uses little energy and conserves fuel. Your blood flow and gut cleansing are in good shape, but with little spare output you are sensitive to changes in adrenal cortex hormones (cortisol), so stress management and regular meals are the key to your metabolic rate.',
     nutrients: ['Ashwagandha', 'Vitamin B6', 'Grapefruit', 'Unrefined sea salt'],
     exerciseRest: ['Vinyasa yoga', 'Core-strengthening exercises', 'Breathing technique training'],
     diet: 'Small, frequent meals to keep your blood sugar steady',
@@ -72,21 +72,21 @@ export const GUIDES: Record<string, VitaGuideText> = {
   },
   FILA: {
     feature:
-      'You are a nimble "sprinter" type with quick sugar metabolism and fast reactions. You absorb carbohydrates quickly and burn energy right away, but your stamina can drain fast.',
-    nutrients: ['Complex carbohydrates (oats·sweet potatoes)', 'Omega-9', 'Vitamin B12'],
-    exerciseRest: ['Short-distance intervals', 'Racket sports', 'Regular rest breaks to recharge'],
+      'Your energy output is low, but you keep moving steadily through the day and clear waste through lymph circulation. Sitting for long periods builds up swelling and fatigue, and afternoon energy dips are common, so moving often and keeping blood sugar steady are key.',
+    nutrients: ['Potassium-rich vegetables', 'Quality protein', 'Omega-3', 'Magnesium'],
+    exerciseRest: ['Brisk walking·light rebounding', 'Lower-body strength training', 'Resting with your legs raised'],
     diet: 'Eat fiber first to prevent blood sugar spikes (Vegetables First)',
   },
   FILS: {
     feature:
-      'You are a "gem" burner with agile cellular metabolism and a careful ability to distribute energy at night. Mineral balance is the key to keeping your metabolism healthy.',
+      'You have a conserving metabolism that uses energy sparingly and restores your body overnight through deep sleep and lymph circulation. When your sleep is disrupted, fatigue and swelling rise sharply the next day, and mineral balance is the key to staying in good condition.',
     nutrients: ['Magnesium', 'Ionized minerals', 'Nuts', 'Vitamin E'],
     exerciseRest: ['Pilates with small equipment', 'Relaxing yoga', 'A calm evening routine'],
     diet: 'Snacks centered on healthy nuts such as almonds and walnuts',
   },
   FGTA: {
     feature:
-      'You are a solid defender with sturdy cell membranes and excellent immune defenses. Your body is somewhat slow to switch into fat metabolism, so you need to choose your diet carefully.',
+      'You are a solid defender: an energy-storing, saving metabolism combined with a protective vascular response. Your gut barrier is clean, but you are slow to switch into fat metabolism and post-meal blood sugar swings can strain your blood vessels, so you need to choose your diet carefully.',
     nutrients: ['Citrus bioflavonoids', 'Olive leaf extract', 'Chromium'],
     exerciseRest: ['Steady, low-intensity, long-duration cardio (Zone 2 Training)'],
     diet: 'An organic diet lower in saturated fat and centered on unsaturated fats',
@@ -100,17 +100,17 @@ export const GUIDES: Record<string, VitaGuideText> = {
   },
   FGLA: {
     feature:
-      'You are defined by a clear circulatory system and pure, plant-based metabolic flexibility. You are highly sensitive to toxins, so adopting a clean lifestyle quickly improves your metabolism.',
+      'In your type, an energy-saving metabolism works together with a protective vascular response and lymphatic detox. You are highly sensitive to toxins and glycation byproducts (AGEs), so adopting a clean lifestyle quickly improves your metabolism.',
     nutrients: ['Chlorella', 'Chlorophyll', 'Vitamin C', 'Clean plant protein'],
     exerciseRest: ['Outdoor trekking', 'Forest walks', 'Restful time in nature'],
     diet: 'Cut out ultra-processed foods completely and enjoy a vibrant, plant-centered diet',
   },
   FGLS: {
     feature:
-      'You are a "tuxedo gentleman" type with excellent metabolic adaptation to cold and low-temperature environments, and a uniquely developed ability to generate heat (Thermogenesis) at night.',
-    nutrients: ['High-dose omega-3', 'Vitamin D3+K2', 'Brown fat activator (capsaicin)'],
-    exerciseRest: ['Cold showers/Cold Plunge', 'Winter cardio', 'Well-structured nighttime rest'],
-    diet: 'A diet of quality seafood and oily fish that boosts fat-burning efficiency',
+      'You are a "tuxedo gentleman" type with a deeply conserving metabolism that relies on sleep and lymph circulation overnight to restore your body. You feel the cold easily and your blood vessels react sensitively to stimuli, so keeping warm and protecting your sleep rhythm are key.',
+    nutrients: ['High-dose omega-3', 'Vitamin D3+K2', 'Magnesium', 'Warming spices such as ginger·cinnamon'],
+    exerciseRest: ['Light daytime cardio', 'A warm half-body bath', 'Well-structured nighttime rest'],
+    diet: 'A diet centered on quality seafood, oily fish and warm foods that protect your blood vessels and help keep you warm',
   },
 };
 
