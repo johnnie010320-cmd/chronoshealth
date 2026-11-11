@@ -95,7 +95,7 @@ export function VitaResultSummary({ saved }: { saved: VitaSavedResult }) {
           <img
             src={vitaAnimalImage(saved.code)}
             alt={animal?.name[locale] ?? saved.code}
-            className="h-16 shrink-0 rounded-xl bg-white/70 object-contain dark:bg-stone-800"
+            className="h-16 shrink-0 rounded-xl bg-white/70 object-cover dark:bg-stone-800"
             style={{ width: 84 }}
           />
           <div className="min-w-0 flex-1">

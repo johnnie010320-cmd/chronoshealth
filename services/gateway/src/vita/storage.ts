@@ -3,13 +3,16 @@ import type { VitaSectionScores } from '../schemas/vita.js';
 // VITA CODE V8 분류(서버 정본 — 클라이언트 engine.ts와 동일 로직).
 // 1축 대사·에너지 V/F: energy,glucose · 2축 심혈관·순환 I/G: circulation ·
 // 3축 장·간·해독 T/L: gut,inflammation,detox · 4축 호르몬·리듬 A/S: hormone,sleep,musculoskeletal,neuro.
-// 축 평균 증상 부하(0~100)가 최적 경계(20) 초과 → 보존 엔진(F/G/L/S), 이하 → 주 엔진(V/I/T/A).
+// 축 평균 증상 부하(0~100)가 스펙트럼 중앙(50) 초과 → 보존 엔진(F/G/L/S), 이하 → 주 엔진(V/I/T/A).
 // 코드 순서=[1축][2축][3축][4축]. 전 영역 최적이면 'VITA'.
-const OPTIMAL_MAX = 20;
+// 🚨 apps/web/src/lib/vita/engine.ts VITA_SPECTRUM_MIDPOINT 와 반드시 같은 값.
+//   (2026-11-11 사고: 웹은 50, 서버는 옛 경계 20 → 저장 코드 FITS 인데 본문은 VITA 설명이 나옴.
+//    웹은 이제 sectionScores 로 코드를 다시 계산해 쓰지만, 서버 저장값도 맞춰 둔다.)
+export const VITA_SPECTRUM_MIDPOINT = 50;
 
 function secondary(...vals: number[]): boolean {
   const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-  return avg > OPTIMAL_MAX;
+  return avg > VITA_SPECTRUM_MIDPOINT;
 }
 
 export function classifyVita(s: VitaSectionScores): { code: string; totalScore: number } {

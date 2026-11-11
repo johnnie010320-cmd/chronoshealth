@@ -6,10 +6,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Efficient Streamliner',
     coreState: 'Precision Efficiency Guardian',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Heart & Circulation): Immuno-Vessel (Immune · Lipid Defense Type)',
-      'Axis 3 (Gut · Liver · Detox): Tract-Cleaner (Gut Microbiome · Intestinal Detox Type)',
-      'Axis 4 (Hormones & Rhythm): Adaptive-Rest (Autonomic Relaxation · Recovery Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Inner-Flow (Clean Vessel · Fluid Type)',
+      'Axis 3 (Gut · Liver · Detox): Tidy-Filter (Gut Barrier · Purifying Type)',
+      'Axis 4 (Hormones & Rhythm): Adaptive-Rhythm (Adrenal · Autonomic Recovery Type)',
     ],
     strengths: [
       'Excellent metabolic flexibility: When you cut back on carbohydrates, your body can switch quickly to burning ketones and fatty acids without a blood sugar crash or a surge of hunger.',
@@ -84,9 +84,9 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Steady Restorer',
     coreState: 'Sustainable Repair Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Heart & Circulation): Immuno-Vessel (Immune · Lipid Defense Type)',
-      'Axis 3 (Gut · Liver · Detox): Tract-Cleaner (Gut Microbiome · Intestinal Detox Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Inner-Flow (Clean Vessel · Fluid Type)',
+      'Axis 3 (Gut · Liver · Detox): Tidy-Filter (Gut Barrier · Purifying Type)',
       'Axis 4 (Hormones & Rhythm): Serene-Sleeper (Hormone Repair · Deep Rest Type)',
     ],
     strengths: [
@@ -162,10 +162,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Eco-Purifier',
     coreState: 'Dynamic Efficiency Purifier Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Heart & Circulation): Immuno-Vessel (Immune · Lipid Defense Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Inner-Flow (Clean Vessel · Fluid Type)',
       'Axis 3 (Gut · Liver · Detox): Lymphatic-Cleanser (Lymph Circulation · Dynamic Detox Type)',
-      'Axis 4 (Hormones & Rhythm): Adaptive-Rest (Autonomic Relaxation · Recovery Type)',
+      'Axis 4 (Hormones & Rhythm): Adaptive-Rhythm (Adrenal · Autonomic Recovery Type)',
     ],
     strengths: [
       'Unblocked metabolic and fluid circulation: You have excellent fluid-cleansing performance, with the by-products of cell-level energy burning (F) flushed out through your lymph vessels (L) without delay.',
@@ -240,8 +240,8 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Night Sustainer',
     coreState: 'Somatic Cell Preservation Repair Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Heart & Circulation): Immuno-Vessel (Immune · Lipid Defense Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Inner-Flow (Clean Vessel · Fluid Type)',
       'Axis 3 (Gut · Liver · Detox): Lymphatic-Cleanser (Lymph Circulation · Dynamic Detox Type)',
       'Axis 4 (Hormones & Rhythm): Serene-Sleeper (Hormone Repair · Deep Rest Type)',
     ],
@@ -317,10 +317,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Safe Reservoir',
     coreState: 'Energy-Saving Defender Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Blood Sugar & Insulin): Glucose-Gator (Strong Insulin Sensitivity · Blood Sugar Control Type)',
-      'Axis 3 (Kidney · Fluids · Blood Pressure): Tissue-Fluid Regulators (Body Fluid · Kidney · Extracellular Water Regulation Type)',
-      'Axis 4 (Hormones & Rhythm): Adaptive-Rest (Autonomic Relaxation · Recovery Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Glyco-Vessel (Vessel Lining · Resistance-Response Type)',
+      'Axis 3 (Gut · Liver · Detox): Tidy-Filter (Gut Barrier · Purifying Type)',
+      'Axis 4 (Hormones & Rhythm): Adaptive-Rhythm (Adrenal · Autonomic Recovery Type)',
     ],
     strengths: [
       'Top-tier metabolic and blood sugar balance: You use fatty acids and glucose flexibly as fuel depending on the situation (F), and thanks to strong insulin sensitivity (G), you are highly resistant to visceral fat buildup and insulin resistance.',
@@ -395,9 +395,9 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Deep Reservoir',
     coreState: 'Deep-Saving Rest Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Blood Sugar & Insulin): Glucose-Gator (Strong Insulin Sensitivity · Blood Sugar Control Type)',
-      'Axis 3 (Kidney · Fluids · Blood Pressure): Tissue-Fluid Regulators (Body Fluid · Kidney · Extracellular Water Regulation Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Glyco-Vessel (Vessel Lining · Resistance-Response Type)',
+      'Axis 3 (Gut · Liver · Detox): Tidy-Filter (Gut Barrier · Purifying Type)',
       'Axis 4 (Hormones & Rhythm): Serene-Sleeper (Hormone Repair · Deep Rest Type)',
     ],
     strengths: [
@@ -473,10 +473,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Resilient Shield',
     coreState: 'Dynamic Immune Preservation Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Blood Sugar & Insulin): Glucose-Gator (Strong Insulin Sensitivity · Blood Sugar Control Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Glyco-Vessel (Vessel Lining · Resistance-Response Type)',
       'Axis 3 (Gut · Liver · Detox): Lymphatic-Cleanser (Lymph Circulation · Dynamic Detox Type)',
-      'Axis 4 (Hormones & Rhythm): Adaptive-Rest (Autonomic Relaxation · Recovery Type)',
+      'Axis 4 (Hormones & Rhythm): Adaptive-Rhythm (Adrenal · Autonomic Recovery Type)',
     ],
     strengths: [
       'Smooth metabolism and blood sugar control: Metabolic flexibility (F) combined with high insulin sensitivity (G) means a low metabolic load after eating carbohydrates/fats and strong resistance to visceral fat and blood sugar risks.',
@@ -551,8 +551,8 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'The Complete Sanctuary',
     coreState: 'Complete Resilience Regeneration Type',
     axisLines: [
-      'Axis 1 (Metabolism & Energy): Flexible-Burner (Fat/Carb Burning · Flexible Type)',
-      'Axis 2 (Blood Sugar & Insulin): Glucose-Gator (Strong Insulin Sensitivity · Blood Sugar Control Type)',
+      'Axis 1 (Metabolism & Energy): Fuel-Saver (Energy Saving · Conserving Type)',
+      'Axis 2 (Heart & Circulation): Glyco-Vessel (Vessel Lining · Resistance-Response Type)',
       'Axis 3 (Gut · Liver · Detox): Lymphatic-Cleanser (Lymph Circulation · Dynamic Detox Type)',
       'Axis 4 (Hormones & Rhythm): Serene-Sleeper (Hormone Repair · Deep Rest Type)',
     ],

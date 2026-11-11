@@ -60,7 +60,7 @@ export function VitaSummaryCard() {
         <img
           src={vitaAnimalImage(saved.code)}
           alt=""
-          className="h-16 w-20 shrink-0 rounded-xl bg-white/10 object-contain ring-1 ring-white/30"
+          className="h-16 w-20 shrink-0 rounded-xl bg-white/10 object-cover ring-1 ring-white/30"
         />
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">

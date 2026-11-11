@@ -49,7 +49,7 @@ export function VitaResultHomeCard({ legalText }: { legalText: string }) {
             <img
               src={vitaAnimalImage(saved.code)}
               alt={vitaAnimal(saved.code)?.name[locale] ?? saved.code}
-              className="h-14 shrink-0 rounded-lg bg-stone-100 object-contain dark:bg-stone-800"
+              className="h-14 shrink-0 rounded-lg bg-stone-100 object-cover dark:bg-stone-800"
               style={{ width: 72 }}
             />
             <div className="min-w-0 flex-1">

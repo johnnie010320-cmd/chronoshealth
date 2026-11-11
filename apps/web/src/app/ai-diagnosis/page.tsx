@@ -81,7 +81,7 @@ export default function AiDiagnosisPage() {
               <img
                 src={vitaAnimalImage(saved.code)}
                 alt={animal?.name[locale] ?? saved.code}
-                className="h-40 w-52 rounded-2xl object-contain drop-shadow-xl"
+                className="h-40 w-auto max-w-full rounded-2xl object-contain shadow-xl"
               />
             </div>
             <div className="px-6 py-5">

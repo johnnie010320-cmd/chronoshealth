@@ -10,6 +10,7 @@ import type {
 } from './signup-schema';
 import { readSession } from './session';
 import type { Nationality } from './signup-schema';
+import { classifyVita } from './vita/engine';
 
 // ADR 0014 — same-origin 상대경로. `/api/*` 는 CF Pages Function 프록시가 게이트웨이로 전달.
 // same-origin 이므로 쿠키 자동 전송(fetch credentials 기본 'same-origin').
@@ -1038,7 +1039,13 @@ export async function submitVita(sectionScores: VitaSectionScores): Promise<Vita
     body: JSON.stringify({ sectionScores }),
   });
   if (!res.ok) await throwOnError(res);
-  return ((await res.json()) as { result: VitaSavedResult }).result;
+  return withVitaCode(((await res.json()) as { result: VitaSavedResult }).result);
+}
+
+// 코드(4글자)는 영역 점수에서 다시 계산해 쓴다 — 화면의 본문·스펙트럼(buildVitaReport)과 늘 같은 코드가 되도록.
+// (2026-11-11: 서버 저장 코드가 옛 경계로 매겨져 'FITS' 머리말 아래 'VITA' 본문이 나왔던 사고 재발 방지.)
+function withVitaCode(r: VitaSavedResult): VitaSavedResult {
+  return { ...r, code: classifyVita(r.sectionScores).code };
 }
 
 export async function fetchLatestVita(): Promise<VitaSavedResult | null> {
@@ -1049,7 +1056,8 @@ export async function fetchLatestVita(): Promise<VitaSavedResult | null> {
     headers: { Authorization: `Bearer ${session.sessionToken}` },
   });
   if (!res.ok) await throwOnError(res);
-  return ((await res.json()) as { result: VitaSavedResult | null }).result;
+  const r = ((await res.json()) as { result: VitaSavedResult | null }).result;
+  return r ? withVitaCode(r) : null;
 }
 
 // ── 국민건강보험공단(건강보험25시) 검진 연동 — 인터페이스 + MOCK(실연동 키는 추후) ──

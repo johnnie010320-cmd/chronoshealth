@@ -274,7 +274,7 @@ export function DigitalTwinSim() {
       {vita && (
         <div className="mx-4 mt-1 flex items-center gap-2.5 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-cyan-300/20">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={animalImg} alt={animalName} className="h-9 w-11 shrink-0 rounded-md bg-white/10 object-contain" />
+          <img src={animalImg} alt={animalName} className="h-9 w-11 shrink-0 rounded-md bg-white/10 object-cover" />
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-cyan-200/70">
               My VITAcode

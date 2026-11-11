@@ -6,10 +6,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: '精密効率ガーディアン',
     coreState: '精密効率ガーディアン',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（心血管・循環）: Immuno-Vessel（免疫・脂質防御型）',
-      '第3軸（腸・肝・デトックス）: Tract-Cleaner（腸内細菌・腸管デトックス型）',
-      '第4軸（ホルモン・リズム）: Adaptive-Rest（自律神経リラックス・回復型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Inner-Flow（血管クリーン・流動型）',
+      '第3軸（腸・肝・デトックス）: Tidy-Filter（腸管バリア・浄化型）',
+      '第4軸（ホルモン・リズム）: Adaptive-Rhythm（副腎・自律神経回復型）',
     ],
     strengths: [
       '優れた代謝柔軟性: 炭水化物を控えたときにも血糖の急降下や激しい空腹感を起こさず、すばやくケトン体・脂肪酸の燃焼へ切り替える生体の柔軟性を備えています。',
@@ -84,9 +84,9 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: '持続可能リペア型',
     coreState: '持続可能リペア型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（心血管・循環）: Immuno-Vessel（免疫・脂質防御型）',
-      '第3軸（腸・肝・デトックス）: Tract-Cleaner（腸内細菌・腸管デトックス型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Inner-Flow（血管クリーン・流動型）',
+      '第3軸（腸・肝・デトックス）: Tidy-Filter（腸管バリア・浄化型）',
       '第4軸（ホルモン・リズム）: Serene-Sleeper（ホルモン修復・深層休息型）',
     ],
     strengths: [
@@ -162,10 +162,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'アクティブ効率浄化型',
     coreState: 'アクティブ効率浄化型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（心血管・循環）: Immuno-Vessel（免疫・脂質防御型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Inner-Flow（血管クリーン・流動型）',
       '第3軸（腸・肝・デトックス）: Lymphatic-Cleanser（リンパ循環・動的デトックス型）',
-      '第4軸（ホルモン・リズム）: Adaptive-Rest（自律神経リラックス・回復型）',
+      '第4軸（ホルモン・リズム）: Adaptive-Rhythm（副腎・自律神経回復型）',
     ],
     strengths: [
       '滞りのない代謝・体液循環: 細胞レベルのエネルギー燃焼（F）で生じる副産物が、リンパ管（L）を通じてすぐに排出される、優れた体液浄化性能を備えています。',
@@ -240,8 +240,8 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: '体細胞保全リペア型',
     coreState: '体細胞保全リペア型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（心血管・循環）: Immuno-Vessel（免疫・脂質防御型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Inner-Flow（血管クリーン・流動型）',
       '第3軸（腸・肝・デトックス）: Lymphatic-Cleanser（リンパ循環・動的デトックス型）',
       '第4軸（ホルモン・リズム）: Serene-Sleeper（ホルモン修復・深層休息型）',
     ],
@@ -317,10 +317,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'エネルギー貯蓄ディフェンス型',
     coreState: 'エネルギー貯蓄ディフェンス型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（血糖・インスリン）: Glucose-Gator（強力なインスリン感受性・血糖コントロール型）',
-      '第3軸（腎臓・体液・血圧）: Tissue-Fluid Regulators（体液・腎臓・細胞外水分調節型）',
-      '第4軸（ホルモン・リズム）: Adaptive-Rest（自律神経リラックス・回復型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Glyco-Vessel（血管内皮・抵抗反応型）',
+      '第3軸（腸・肝・デトックス）: Tidy-Filter（腸管バリア・浄化型）',
+      '第4軸（ホルモン・リズム）: Adaptive-Rhythm（副腎・自律神経回復型）',
     ],
     strengths: [
       '代謝と血糖の恒常性が最高レベル: 脂肪酸とブドウ糖を状況に合わせて柔軟に燃料として使い（F）、強力なインスリン感受性（G）のおかげで、内臓脂肪の蓄積やインスリン抵抗性に対する抵抗力が非常に高いです。',
@@ -395,9 +395,9 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: '深層貯蓄休息型',
     coreState: '深層貯蓄休息型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（血糖・インスリン）: Glucose-Gator（強力なインスリン感受性・血糖コントロール型）',
-      '第3軸（腎臓・体液・血圧）: Tissue-Fluid Regulators（体液・腎臓・細胞外水分調節型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Glyco-Vessel（血管内皮・抵抗反応型）',
+      '第3軸（腸・肝・デトックス）: Tidy-Filter（腸管バリア・浄化型）',
       '第4軸（ホルモン・リズム）: Serene-Sleeper（ホルモン修復・深層休息型）',
     ],
     strengths: [
@@ -473,10 +473,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'アクティブ免疫保全型',
     coreState: 'アクティブ免疫保全型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（血糖・インスリン）: Glucose-Gator（強力なインスリン感受性・血糖コントロール型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Glyco-Vessel（血管内皮・抵抗反応型）',
       '第3軸（腸・肝・デトックス）: Lymphatic-Cleanser（リンパ循環・動的デトックス型）',
-      '第4軸（ホルモン・リズム）: Adaptive-Rest（自律神経リラックス・回復型）',
+      '第4軸（ホルモン・リズム）: Adaptive-Rhythm（副腎・自律神経回復型）',
     ],
     strengths: [
       '滞りのない代謝と血糖コントロール: 代謝柔軟性（F）と高いインスリン感受性（G）が結びつき、炭水化物／脂肪の摂取後も代謝の負担が少なく、内臓脂肪や血糖のリスクに強い抵抗力を示します。',
@@ -551,8 +551,8 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: '完全サバイバル再生型',
     coreState: '完全サバイバル再生型',
     axisLines: [
-      '第1軸（代謝・エネルギー）: Flexible-Burner（脂肪／炭水化物燃焼・フレキシブル型）',
-      '第2軸（血糖・インスリン）: Glucose-Gator（強力なインスリン感受性・血糖コントロール型）',
+      '第1軸（代謝・エネルギー）: Fuel-Saver（エネルギー節約・保存型）',
+      '第2軸（心血管・循環）: Glyco-Vessel（血管内皮・抵抗反応型）',
       '第3軸（腸・肝・デトックス）: Lymphatic-Cleanser（リンパ循環・動的デトックス型）',
       '第4軸（ホルモン・リズム）: Serene-Sleeper（ホルモン修復・深層休息型）',
     ],

@@ -709,10 +709,10 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Adaptive-Rhythm',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (심혈관·순환): Immuno-Vessel (면역·지질 방어형)',
-      '3축 (장·간·해독): Tract-Cleaner (장내 미생물·장관 해독형)',
-      '4축 (호르몬·리듬): Adaptive-Rest (자율신경 이완·복구형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Inner-Flow (혈관 청정·유동형)',
+      '3축 (장·간·해독): Tidy-Filter (장 장벽·정화형)',
+      '4축 (호르몬·리듬): Adaptive-Rhythm (부신·자율신경 복원형)',
     ],
     strengths: [
       '우수한 대사 유연성: 탄수화물 절식 시 혈당 급락이나 허기감 폭발 없이 빠르게 케톤 및 지방산 연소로 전환하는 생체 유연성을 보유하고 있습니다.',
@@ -791,9 +791,9 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Serene-Sleeper',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (심혈관·순환): Immuno-Vessel (면역·지질 방어형)',
-      '3축 (장·간·해독): Tract-Cleaner (장내 미생물·장관 해독형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Inner-Flow (혈관 청정·유동형)',
+      '3축 (장·간·해독): Tidy-Filter (장 장벽·정화형)',
       '4축 (호르몬·리듬): Serene-Sleeper (호르몬 수리·심층휴식형)',
     ],
     strengths: [
@@ -873,10 +873,10 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Adaptive-Rhythm',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (심혈관·순환): Immuno-Vessel (면역·지질 방어형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Inner-Flow (혈관 청정·유동형)',
       '3축 (장·간·해독): Lymphatic-Cleanser (림프 순환·동적해독형)',
-      '4축 (호르몬·리듬): Adaptive-Rest (자율신경 이완·복구형)',
+      '4축 (호르몬·리듬): Adaptive-Rhythm (부신·자율신경 복원형)',
     ],
     strengths: [
       '막힘없는 대사-체액 순환: 세포 수준의 에너지 연소(F)에서 생기는 부산물이 림프관(L)을 통해 지체 없이 배출되는 뛰어난 체액 정화 성능을 갖추고 있습니다.',
@@ -955,8 +955,8 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Serene-Sleeper',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (심혈관·순환): Immuno-Vessel (면역·지질 방어형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Inner-Flow (혈관 청정·유동형)',
       '3축 (장·간·해독): Lymphatic-Cleanser (림프 순환·동적해독형)',
       '4축 (호르몬·리듬): Serene-Sleeper (호르몬 수리·심층휴식형)',
     ],
@@ -1036,10 +1036,10 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Adaptive-Rhythm',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (혈당·인슐린): Glucose-Gator (강력한 인슐린 감수성·혈당 제어형)',
-      '3축 (신장·체액·혈압): Tissue-Fluid Regulators (체액·신장·세포외수분 조절형)',
-      '4축 (호르몬·리듬): Adaptive-Rest (자율신경 이완·복구형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Glyco-Vessel (혈관 내피·저항 반응형)',
+      '3축 (장·간·해독): Tidy-Filter (장 장벽·정화형)',
+      '4축 (호르몬·리듬): Adaptive-Rhythm (부신·자율신경 복원형)',
     ],
     strengths: [
       '대사 및 혈당 항상성 최상: 지방산과 포도당을 상황에 맞추어 유연하게 연료로 사용하며(F), 강력한 인슐린 감수성(G) 덕분에 내장지방 누적이나 인슐린 저항성에 대한 저항력이 매우 높습니다.',
@@ -1118,9 +1118,9 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Serene-Sleeper',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (혈당·인슐린): Glucose-Gator (강력한 인슐린 감수성·혈당 제어형)',
-      '3축 (신장·체액·혈압): Tissue-Fluid Regulators (체액·신장·세포외수분 조절형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Glyco-Vessel (혈관 내피·저항 반응형)',
+      '3축 (장·간·해독): Tidy-Filter (장 장벽·정화형)',
       '4축 (호르몬·리듬): Serene-Sleeper (호르몬 수리·심층휴식형)',
     ],
     strengths: [
@@ -1200,10 +1200,10 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Adaptive-Rhythm',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (혈당·인슐린): Glucose-Gator (강력한 인슐린 감수성·혈당 제어형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Glyco-Vessel (혈관 내피·저항 반응형)',
       '3축 (장·간·해독): Lymphatic-Cleanser (림프 순환·동적해독형)',
-      '4축 (호르몬·리듬): Adaptive-Rest (자율신경 이완·복구형)',
+      '4축 (호르몬·리듬): Adaptive-Rhythm (부신·자율신경 복원형)',
     ],
     strengths: [
       '막힘없는 대사 및 혈당 제어: 대사 유연성(F)과 높은 인슐린 감수성(G)이 결합하여, 탄수화물/지방 섭취 후 대사 부하가 적고 내장지방 및 혈당 리스크에 강한 면역력을 보입니다.',
@@ -1282,8 +1282,8 @@ export const VITA_ARCHETYPES: Record<string, VitaArchetype> = {
       'Serene-Sleeper',
     ],
     axisLines: [
-      '1축 (대사·에너지): Flexible-Burner (지방/탄수화물 연소 유연형)',
-      '2축 (혈당·인슐린): Glucose-Gator (강력한 인슐린 감수성·혈당 제어형)',
+      '1축 (대사·에너지): Fuel-Saver (에너지 절약·보존형)',
+      '2축 (심혈관·순환): Glyco-Vessel (혈관 내피·저항 반응형)',
       '3축 (장·간·해독): Lymphatic-Cleanser (림프 순환·동적해독형)',
       '4축 (호르몬·리듬): Serene-Sleeper (호르몬 수리·심층휴식형)',
     ],

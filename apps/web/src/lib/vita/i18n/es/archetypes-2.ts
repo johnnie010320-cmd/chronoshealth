@@ -6,10 +6,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Guardián de la eficiencia precisa',
     coreState: 'Guardián de la eficiencia precisa',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Cardiovascular·Circulación): Immuno-Vessel (tipo de defensa inmunitaria·lipídica)',
-      'Eje 3 (Intestino·Hígado·Depuración): Tract-Cleaner (tipo de depuración por microbiota intestinal·tracto intestinal)',
-      'Eje 4 (Hormonas·Ritmo): Adaptive-Rest (tipo de relajación·recuperación del sistema nervioso autónomo)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Inner-Flow (tipo de vasos limpios·fluidez)',
+      'Eje 3 (Intestino·Hígado·Depuración): Tidy-Filter (tipo de barrera intestinal·depuración)',
+      'Eje 4 (Hormonas·Ritmo): Adaptive-Rhythm (tipo de recuperación suprarrenal·del sistema nervioso autónomo)',
     ],
     strengths: [
       'Excelente flexibilidad metabólica: posee una flexibilidad biológica que, al restringir los carbohidratos, le permite pasar rápidamente a quemar cetonas y ácidos grasos sin caídas bruscas de glucosa ni ataques de hambre.',
@@ -84,9 +84,9 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Reparador sostenible',
     coreState: 'Reparador sostenible',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Cardiovascular·Circulación): Immuno-Vessel (tipo de defensa inmunitaria·lipídica)',
-      'Eje 3 (Intestino·Hígado·Depuración): Tract-Cleaner (tipo de depuración por microbiota intestinal·tracto intestinal)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Inner-Flow (tipo de vasos limpios·fluidez)',
+      'Eje 3 (Intestino·Hígado·Depuración): Tidy-Filter (tipo de barrera intestinal·depuración)',
       'Eje 4 (Hormonas·Ritmo): Serene-Sleeper (tipo de reparación hormonal·descanso profundo)',
     ],
     strengths: [
@@ -162,10 +162,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Purificador de eficiencia dinámica',
     coreState: 'Purificador de eficiencia dinámica',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Cardiovascular·Circulación): Immuno-Vessel (tipo de defensa inmunitaria·lipídica)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Inner-Flow (tipo de vasos limpios·fluidez)',
       'Eje 3 (Intestino·Hígado·Depuración): Lymphatic-Cleanser (tipo de circulación linfática·depuración dinámica)',
-      'Eje 4 (Hormonas·Ritmo): Adaptive-Rest (tipo de relajación·recuperación del sistema nervioso autónomo)',
+      'Eje 4 (Hormonas·Ritmo): Adaptive-Rhythm (tipo de recuperación suprarrenal·del sistema nervioso autónomo)',
     ],
     strengths: [
       'Circulación metabólica y de fluidos sin obstrucciones: posee un excelente rendimiento de limpieza de fluidos, en el que los subproductos de la combustión energética celular (F) se eliminan sin demora a través de los vasos linfáticos (L).',
@@ -240,8 +240,8 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Reparador conservador de células somáticas',
     coreState: 'Reparador conservador de células somáticas',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Cardiovascular·Circulación): Immuno-Vessel (tipo de defensa inmunitaria·lipídica)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Inner-Flow (tipo de vasos limpios·fluidez)',
       'Eje 3 (Intestino·Hígado·Depuración): Lymphatic-Cleanser (tipo de circulación linfática·depuración dinámica)',
       'Eje 4 (Hormonas·Ritmo): Serene-Sleeper (tipo de reparación hormonal·descanso profundo)',
     ],
@@ -317,10 +317,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Defensor ahorrador de energía',
     coreState: 'Defensor ahorrador de energía',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Glucosa·Insulina): Glucose-Gator (tipo de alta sensibilidad a la insulina·control de la glucosa)',
-      'Eje 3 (Riñón·Fluidos·Presión arterial): Tissue-Fluid Regulators (tipo regulador de fluidos·riñón·agua extracelular)',
-      'Eje 4 (Hormonas·Ritmo): Adaptive-Rest (tipo de relajación·recuperación del sistema nervioso autónomo)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Glyco-Vessel (tipo de respuesta del endotelio vascular·resistencia)',
+      'Eje 3 (Intestino·Hígado·Depuración): Tidy-Filter (tipo de barrera intestinal·depuración)',
+      'Eje 4 (Hormonas·Ritmo): Adaptive-Rhythm (tipo de recuperación suprarrenal·del sistema nervioso autónomo)',
     ],
     strengths: [
       'Homeostasis metabólica y glucémica óptima: utiliza ácidos grasos y glucosa como combustible de forma flexible según la situación (F), y gracias a su alta sensibilidad a la insulina (G) tiene una gran resistencia a la acumulación de grasa visceral y a la resistencia a la insulina.',
@@ -395,9 +395,9 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Reservorio de descanso profundo',
     coreState: 'Reservorio de descanso profundo',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Glucosa·Insulina): Glucose-Gator (tipo de alta sensibilidad a la insulina·control de la glucosa)',
-      'Eje 3 (Riñón·Fluidos·Presión arterial): Tissue-Fluid Regulators (tipo regulador de fluidos·riñón·agua extracelular)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Glyco-Vessel (tipo de respuesta del endotelio vascular·resistencia)',
+      'Eje 3 (Intestino·Hígado·Depuración): Tidy-Filter (tipo de barrera intestinal·depuración)',
       'Eje 4 (Hormonas·Ritmo): Serene-Sleeper (tipo de reparación hormonal·descanso profundo)',
     ],
     strengths: [
@@ -473,10 +473,10 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Conservador inmunitario dinámico',
     coreState: 'Conservador inmunitario dinámico',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Glucosa·Insulina): Glucose-Gator (tipo de alta sensibilidad a la insulina·control de la glucosa)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Glyco-Vessel (tipo de respuesta del endotelio vascular·resistencia)',
       'Eje 3 (Intestino·Hígado·Depuración): Lymphatic-Cleanser (tipo de circulación linfática·depuración dinámica)',
-      'Eje 4 (Hormonas·Ritmo): Adaptive-Rest (tipo de relajación·recuperación del sistema nervioso autónomo)',
+      'Eje 4 (Hormonas·Ritmo): Adaptive-Rhythm (tipo de recuperación suprarrenal·del sistema nervioso autónomo)',
     ],
     strengths: [
       'Control metabólico y glucémico sin obstrucciones: la flexibilidad metabólica (F) combinada con una alta sensibilidad a la insulina (G) hace que la carga metabólica tras consumir carbohidratos/grasas sea baja y muestra una gran resistencia frente a los riesgos de grasa visceral y glucosa.',
@@ -551,8 +551,8 @@ export const ARCHETYPES_2: Record<string, VitaArchetypeText> = {
     nickname: 'Regenerador de supervivencia total',
     coreState: 'Regenerador de supervivencia total',
     axisLines: [
-      'Eje 1 (Metabolismo·Energía): Flexible-Burner (tipo flexible en la combustión de grasas/carbohidratos)',
-      'Eje 2 (Glucosa·Insulina): Glucose-Gator (tipo de alta sensibilidad a la insulina·control de la glucosa)',
+      'Eje 1 (Metabolismo·Energía): Fuel-Saver (tipo de ahorro·conservación de energía)',
+      'Eje 2 (Cardiovascular·Circulación): Glyco-Vessel (tipo de respuesta del endotelio vascular·resistencia)',
       'Eje 3 (Intestino·Hígado·Depuración): Lymphatic-Cleanser (tipo de circulación linfática·depuración dinámica)',
       'Eje 4 (Hormonas·Ritmo): Serene-Sleeper (tipo de reparación hormonal·descanso profundo)',
     ],
